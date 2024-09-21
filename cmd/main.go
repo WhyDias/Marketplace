@@ -60,6 +60,8 @@ func main() {
 	// Создание роутера Gin
 	router := gin.Default()
 
+	router.Use(CORSMiddleware())
+
 	// Настройка маршрута для Swagger
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -83,5 +85,21 @@ func main() {
 	log.Printf("Starting server on port %s", port)
 	if err := router.Run(port); err != nil {
 		log.Fatalf("Could not start server: %v", err)
+	}
+}
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*") // Разрешить все источники
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// Обработка preflight запросов
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204) // Нет содержимого
+			return
+		}
+
+		c.Next() // Продолжить обработку запроса
 	}
 }
