@@ -10,6 +10,7 @@ import (
 	"github.com/WhyDias/Marketplace/internal/services"
 	"github.com/WhyDias/Marketplace/pkg/jwt"
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -38,6 +39,7 @@ import (
 func main() {
 
 	// Инициализация базы данных
+	time.Sleep(10 * time.Second)
 	err := db.InitDB("/app/configs/config.yaml")
 	if err != nil {
 		log.Fatalf("Could not initialize database: %v", err)
@@ -65,6 +67,7 @@ func main() {
 	router.POST("/register", verificationController.Register)
 	router.POST("/verify", verificationController.Verify)
 	router.POST("/api/users/login", userController.LoginUser)
+	router.POST("/api/users/register", userController.RegisterUser)
 
 	// Группа защищённых маршрутов
 	authorized := router.Group("/")
@@ -73,7 +76,6 @@ func main() {
 		authorized.POST("/suppliers/register", supplierController.RegisterSupplier)
 		authorized.GET("/suppliers", supplierController.GetSuppliers)
 		authorized.GET("/suppliers/info", supplierController.GetSupplierInfo)
-		authorized.POST("/api/users/register", userController.RegisterUser)
 	}
 
 	// Запуск сервера

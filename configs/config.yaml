@@ -1,12 +1,12 @@
 server:
-  port: 8881
+  port: 8080
 
 database:
-  host: localhost
-  port: 5432
-  user: marketplace_first
-  password: marketplace_first
-  dbname: marketplace_supplier
+  host: "db"     # Использует переменную из .env
+  port: 5432        # Использует переменную из .env
+  user: postgres       # Использует переменную из .env
+  password: yourpassword
+  dbname: marketplace_db    # Использует переменную из .env
   sslmode: disable
 
 jwt:

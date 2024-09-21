@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:13-alpine
+    container_name: marketplace_db
+    ports:
+      - "5432:5432"
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: marketplace_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
   app:
     build: .
     container_name: marketplace_app
@@ -12,17 +24,6 @@ services:
       - ./configs:/app/configs # Монтируем локальную папку configs в контейнер
     depends_on:
       - db
-
-  db:
-    image: postgres:14-alpine
-    container_name: marketplace_db
-    restart: always
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-    volumes:
-      - db_data:/var/lib/postgresql/data
 
 volumes:
   db_data:
