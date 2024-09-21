@@ -38,7 +38,7 @@ import (
 func main() {
 
 	// Инициализация базы данных
-	err := db.InitDB("configs/config.yaml")
+	err := db.InitDB("/app/configs/config.yaml")
 	if err != nil {
 		log.Fatalf("Could not initialize database: %v", err)
 	}

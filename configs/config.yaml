@@ -4,9 +4,9 @@ server:
 database:
   host: localhost
   port: 5432
-  user: marketplase_first
-  password: marketplase_first
-  dbname: marketplase_supplier
+  user: marketplace_first
+  password: marketplace_first
+  dbname: marketplace_supplier
   sslmode: disable
 
 jwt:
