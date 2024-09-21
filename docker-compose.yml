@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13-alpine
+    container_name: marketplace_first
+    environment:
+      POSTGRES_USER: marketplase_first
+      POSTGRES_PASSWORD: marketplase_first
+      POSTGRES_DB: marketplase_supplier
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  db_data:

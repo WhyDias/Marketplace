@@ -1,0 +1,18 @@
+server:
+  port: 8881
+
+database:
+  host: localhost
+  port: 5432
+  user: marketplase_first
+  password: marketplase_first
+  dbname: marketplase_supplier
+  sslmode: disable
+
+jwt:
+  secret: supersecretkey1234567890
+  expiration: 24h
+
+whatsapp:
+  api_url: https://api.whatsapp.com/send
+  api_key: your_whatsapp_api_key
