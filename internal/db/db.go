@@ -103,10 +103,10 @@ func GetUserByUsername(username string) (*models.User, error) {
 }
 
 func CreateSupplier(supplier *models.Supplier) error {
-	query := `INSERT INTO suppliers (name, phone_number, market_name, places_rows, category, created_at, updated_at) 
+	query := `INSERT INTO suppliers (name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified) 
               VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
 
-	err := DB.QueryRow(query, supplier.Name, supplier.PhoneNumber, supplier.MarketName, supplier.PlacesRows, supplier.Category, supplier.CreatedAt, supplier.UpdatedAt).Scan(&supplier.ID)
+	err := DB.QueryRow(query, supplier.Name, supplier.PhoneNumber, supplier.MarketID, supplier.PlaceID, supplier.Categories, supplier.CreatedAt, supplier.UpdatedAt).Scan(&supplier.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create supplier: %v", err)
 	}
@@ -118,16 +118,16 @@ func CreateSupplier(supplier *models.Supplier) error {
 func GetSupplierInfo(phoneNumber string) (*models.Supplier, error) {
 	supplier := &models.Supplier{}
 
-	query := `SELECT id, name, phone_number, market_name, places_rows, category, created_at, updated_at 
+	query := `SELECT name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at 
               FROM suppliers WHERE phone_number = $1`
 
 	err := DB.QueryRow(query, phoneNumber).Scan(
 		&supplier.ID,
 		&supplier.Name,
 		&supplier.PhoneNumber,
-		&supplier.MarketName,
-		&supplier.PlacesRows,
-		&supplier.Category,
+		&supplier.MarketID,
+		&supplier.PlaceID,
+		&supplier.Categories,
 		&supplier.CreatedAt,
 		&supplier.UpdatedAt,
 	)
@@ -143,7 +143,7 @@ func GetSupplierInfo(phoneNumber string) (*models.Supplier, error) {
 
 // GetAllSuppliers получает список всех поставщиков
 func GetAllSuppliers() ([]models.Supplier, error) {
-	query := `SELECT id, name, phone_number, market_name, places_rows, category, created_at, updated_at FROM suppliers`
+	query := `SELECT id, name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at FROM suppliers`
 
 	rows, err := DB.Query(query)
 	if err != nil {
@@ -154,7 +154,7 @@ func GetAllSuppliers() ([]models.Supplier, error) {
 	var suppliers []models.Supplier
 	for rows.Next() {
 		var supplier models.Supplier
-		if err := rows.Scan(&supplier.ID, &supplier.Name, &supplier.PhoneNumber, &supplier.MarketName, &supplier.PlacesRows, &supplier.Category, &supplier.CreatedAt, &supplier.UpdatedAt); err != nil {
+		if err := rows.Scan(&supplier.ID, &supplier.Name, &supplier.PhoneNumber, &supplier.MarketID, &supplier.PlaceID, &supplier.Categories, &supplier.CreatedAt, &supplier.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("error scanning supplier: %v", err)
 		}
 		suppliers = append(suppliers, supplier)

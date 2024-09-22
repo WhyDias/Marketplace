@@ -23,24 +23,11 @@ func NewSupplierService() *SupplierService {
 
 // CreateSupplier создает нового поставщика
 func (s *SupplierService) CreateSupplier(supplier *models.Supplier) error {
-	query := `INSERT INTO suppliers (name, phone_number, market_name, places_rows, category, created_at, updated_at, is_verified)
+	query := `INSERT INTO suppliers (name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified)
 	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, updated_at`
 
-	// Если некоторые поля пусты, устанавливаем значения по умолчанию
-	if supplier.Name == "" {
-		supplier.Name = "Unnamed Supplier"
-	}
-	if supplier.MarketID == 0 {
-		supplier.MarketID = 0
-	}
-	if supplier.PlaceID == 0 {
-		supplier.PlaceID = 0
-	}
-	if supplier.Categories == nil {
-		supplier.Categories = nil
-	}
-
-	err := db.DB.QueryRow(query, supplier.Name, supplier.PhoneNumber, supplier.MarketID, supplier.PlaceID, supplier.Categories, time.Now(), time.Now(), supplier.IsVerified).Scan(&supplier.ID, &supplier.CreatedAt, &supplier.UpdatedAt)
+	// Параметры могут включать поле categories, если это массив
+	err := db.DB.QueryRow(query, supplier.Name, supplier.PhoneNumber, supplier.MarketID, supplier.PlaceID, supplier.RowID, supplier.Categories, time.Now(), time.Now(), supplier.IsVerified).Scan(&supplier.ID, &supplier.CreatedAt, &supplier.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create supplier: %v", err)
 	}
@@ -52,7 +39,7 @@ func (s *SupplierService) CreateSupplier(supplier *models.Supplier) error {
 func (s *SupplierService) GetSupplierInfo(phoneNumber string) (*models.Supplier, error) {
 	supplier := &models.Supplier{}
 
-	query := `SELECT id, name, phone_number, market_name, places_rows, category, created_at, updated_at, is_verified
+	query := `SELECT id, name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified
 	          FROM suppliers WHERE phone_number = $1`
 
 	err := db.DB.QueryRow(query, phoneNumber).Scan(
@@ -78,7 +65,7 @@ func (s *SupplierService) GetSupplierInfo(phoneNumber string) (*models.Supplier,
 
 // GetAllSuppliers получает список всех поставщиков
 func (s *SupplierService) GetAllSuppliers() ([]models.Supplier, error) {
-	query := `SELECT id, name, phone_number, market_name, places_rows, category, created_at, updated_at, is_verified FROM suppliers`
+	query := `SELECT id, name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified FROM suppliers`
 
 	rows, err := db.DB.Query(query)
 	if err != nil {
