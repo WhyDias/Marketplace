@@ -3,6 +3,7 @@
 package controllers
 
 import (
+	"github.com/WhyDias/Marketplace/internal/models"
 	"net/http"
 
 	"github.com/WhyDias/Marketplace/internal/services"
@@ -91,19 +92,44 @@ func (vc *VerificationController) Verify(c *gin.Context) {
 		return
 	}
 
-	// Проверка кода
+	// Проверка кода верификации
 	isValid := utils.ValidateWhatsAppCode(req.PhoneNumber, req.Code)
 	if !isValid {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Invalid or expired verification code"})
 		return
 	}
 
-	// Обновление статуса поставщика
-	err := vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber)
+	// Проверка существования номера телефона в таблице suppliers
+	supplier, err := vc.SupplierService.GetSupplierInfo(req.PhoneNumber)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to mark phone number as verified"})
+		// Если поставщик не найден, создаём нового
+		newSupplier := &models.Supplier{
+			PhoneNumber: req.PhoneNumber,
+			IsVerified:  true,
+		}
+
+		err = vc.SupplierService.CreateSupplier(newSupplier)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create supplier"})
+			return
+		}
+
+		c.JSON(http.StatusOK, VerifyResponse{
+			Message: "Verification successful and supplier created",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, VerifyResponse{Message: "Phone number verified successfully"})
+	// Если поставщик найден, обновляем его статус верификации
+	if !supplier.IsVerified {
+		err = vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to mark phone number as verified"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, VerifyResponse{
+		Message: "Verification successful",
+	})
 }

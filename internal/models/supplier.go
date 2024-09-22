@@ -28,7 +28,7 @@ type UpdateSupplierRequest struct {
 type RegisterSupplierRequest struct {
 	Name        string `json:"name" binding:"required"`
 	PhoneNumber string `json:"phone_number" binding:"required,e164"`
-	MarketID    int    `json:"market_id" binding:"required"`
+	BazaarID    int    `json:"bazaar_id" binding:"required"`
 	PlaceID     int    `json:"place_id" binding:"required"`
 	RowID       int    `json:"row_id" binding:"required"`
 	Categories  []int  `json:"categories" binding:"required"`

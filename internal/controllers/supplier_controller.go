@@ -48,7 +48,7 @@ func (sc *SupplierController) RegisterSupplier(c *gin.Context) {
 		return
 	}
 
-	// Проверка, верифицирован ли номер телефона
+	// Проверка верификации номера телефона
 	isVerified, err := sc.Service.IsPhoneNumberVerified(req.PhoneNumber)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to verify phone number"})
@@ -60,31 +60,15 @@ func (sc *SupplierController) RegisterSupplier(c *gin.Context) {
 		return
 	}
 
-	// Создание нового поставщика
-	newSupplier := &models.Supplier{
-		Name:        req.Name,
-		PhoneNumber: req.PhoneNumber,
-		MarketID:    req.MarketID,
-		PlaceID:     0, // Поскольку место будет создано позже
-		RowID:       0, // Поскольку ряд будет создан позже
-		Categories:  req.Categories,
-	}
-
-	err = sc.Service.CreateSupplier(newSupplier)
+	// Обновление данных поставщика с использованием bazaar_id
+	err = sc.Service.UpdateSupplierData(req.PhoneNumber, req.BazaarID, req.PlaceID, req.RowID, req.Categories)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create supplier"})
-		return
-	}
-
-	// Создание пользователя с ролью supplier
-	err = sc.Service.CreateUser(newSupplier.PhoneNumber) // Создайте функцию CreateUser в сервисе
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create user"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier data"})
 		return
 	}
 
 	c.JSON(http.StatusOK, VerifyResponse{
-		Message: "Supplier registered successfully",
+		Message: "Supplier details updated successfully",
 	})
 }
 
@@ -247,7 +231,7 @@ func (sc *SupplierController) UpdateSupplier(c *gin.Context) {
 		return
 	}
 
-	err := sc.Service.UpdateSupplierData(req.PhoneNumber, req.MarketID, req.PlaceID, req.RowID, req.Categories)
+	err := sc.Service.UpdateSupplierData(req.PhoneNumber, req.BazaarID, req.PlaceID, req.RowID, req.Categories)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier data"})
 		return
