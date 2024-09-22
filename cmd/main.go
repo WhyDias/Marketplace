@@ -90,17 +90,20 @@ func main() {
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*") // Разрешить все источники
+		origin := c.Request.Header.Get("Origin")
+		if origin == "http://localhost:3000" {
+			c.Header("Access-Control-Allow-Origin", origin) // Укажите конкретный источник
+		} else {
+			c.Header("Access-Control-Allow-Origin", "*") // Для всех остальных
+		}
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		c.Header("Access-Control-Allow-Credentials", "true") // Разрешить учетные данные
 
-		// Обработка preflight запросов
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204) // Нет содержимого
+			c.AbortWithStatus(204)
 			return
 		}
 
-		c.Next() // Продолжить обработку запроса
+		c.Next()
 	}
 }
