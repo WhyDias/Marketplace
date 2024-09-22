@@ -70,12 +70,16 @@ func main() {
 	router.POST("/verify", verificationController.Verify)
 	router.POST("/api/users/login", userController.LoginUser)
 	router.POST("/api/users/register", userController.RegisterUser)
+	router.GET("/suppliers/bazaars", supplierController.GetBazaarList)
+	router.POST("/suppliers/places", supplierController.CreatePlace)
+	router.POST("/suppliers/rows", supplierController.CreateRow)
 
 	// Группа защищённых маршрутов
 	authorized := router.Group("/")
 	authorized.Use(middlewares.AuthMiddleware(jwtService))
 	{
 		authorized.POST("/suppliers/register", supplierController.RegisterSupplier)
+		authorized.POST("/suppliers/update", supplierController.UpdateSupplier) // Новый эндпоинт
 		authorized.GET("/suppliers", supplierController.GetSuppliers)
 		authorized.GET("/suppliers/info", supplierController.GetSupplierInfo)
 	}

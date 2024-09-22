@@ -3,7 +3,6 @@
 package controllers
 
 import (
-	"github.com/WhyDias/Marketplace/internal/models"
 	"net/http"
 
 	"github.com/WhyDias/Marketplace/internal/services"
@@ -76,7 +75,7 @@ func (vc *VerificationController) Register(c *gin.Context) {
 }
 
 // Verify @Summary Verify phone number
-// @Description Verifies a phone number with the provided code. If the phone number does not exist, a new supplier is created and marked as verified.
+// @Description Verifies a phone number with the provided code.
 // @Tags verification
 // @Accept json
 // @Produce json
@@ -84,7 +83,6 @@ func (vc *VerificationController) Register(c *gin.Context) {
 // @Success 200 {object} VerifyResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
 // @Router /verify [post]
 func (vc *VerificationController) Verify(c *gin.Context) {
 	var req VerifyRequest
@@ -93,50 +91,19 @@ func (vc *VerificationController) Verify(c *gin.Context) {
 		return
 	}
 
-	// Проверка кода верификации
+	// Проверка кода
 	isValid := utils.ValidateWhatsAppCode(req.PhoneNumber, req.Code)
 	if !isValid {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Invalid or expired verification code"})
 		return
 	}
 
-	// Проверка существования номера телефона в таблице suppliers
-	isVerified, err := vc.SupplierService.IsPhoneNumberVerified(req.PhoneNumber)
+	// Обновление статуса поставщика
+	err := vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber)
 	if err != nil {
-		if err.Error() == "supplier not found" {
-			// Если поставщик не найден, создаём нового с пометкой, что он верифицирован
-			newSupplier := &models.Supplier{
-				PhoneNumber: req.PhoneNumber,
-				IsVerified:  true,
-			}
-
-			err = vc.SupplierService.CreateSupplier(newSupplier)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create supplier"})
-				return
-			}
-
-			c.JSON(http.StatusOK, VerifyResponse{
-				Message: "Верификация успешна и поставщик создан",
-			})
-			return
-		}
-
-		// Другие ошибки
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to verify phone number"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to mark phone number as verified"})
 		return
 	}
 
-	if !isVerified {
-		// Обновляем статус верификации
-		err := vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to mark phone number as verified"})
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, VerifyResponse{
-		Message: "Верификация успешна",
-	})
+	c.JSON(http.StatusOK, VerifyResponse{Message: "Phone number verified successfully"})
 }

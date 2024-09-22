@@ -5,6 +5,7 @@ package controllers
 import (
 	"fmt"
 	"github.com/WhyDias/Marketplace/internal/db"
+	"github.com/WhyDias/Marketplace/internal/utils"
 	"net/http"
 	"time"
 
@@ -14,13 +15,6 @@ import (
 )
 
 // RegisterSupplierRequest структура запроса для регистрации поставщика
-type RegisterSupplierRequest struct {
-	Name        string `json:"name" binding:"required"`
-	PhoneNumber string `json:"phone_number" binding:"required,e164"`
-	MarketName  string `json:"market_name" binding:"required"`
-	PlacesRows  string `json:"places_rows" binding:"required"`
-	Category    string `json:"category" binding:"required"`
-}
 
 // RegisterSupplierResponse структура ответа при регистрации поставщика
 type RegisterSupplierResponse struct {
@@ -39,53 +33,62 @@ func NewSupplierController(service *services.SupplierService) *SupplierControlle
 	}
 }
 
-// RegisterSupplier @Summary Register or Update a supplier
-// @Description Updates supplier details if verified, or creates a new verified supplier.
+// RegisterSupplier @Summary Register a supplier
+// @Description Registers a supplier and sends a verification code.
 // @Tags suppliers
 // @Accept json
 // @Produce json
 // @Param supplier body RegisterSupplierRequest true "Supplier registration data"
-// @Success 200 {object} VerifyResponse
+// @Success 200 {object} RegisterResponse
 // @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
 // @Router /suppliers/register [post]
 func (sc *SupplierController) RegisterSupplier(c *gin.Context) {
-	var req RegisterSupplierRequest
+	var req models.RegisterSupplierRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	// Проверка, верифицирован ли номер телефона
-	isVerified, err := sc.Service.IsPhoneNumberVerified(req.PhoneNumber)
+	// Отправка кода верификации через WhatsApp
+	err := utils.SendVerificationCode(req.PhoneNumber)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to verify phone number"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to send verification code"})
 		return
 	}
 
-	if !isVerified {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Phone number not verified"})
-		return
+	// Здесь можно создать запись в таблице suppliers и users
+	supplier := &models.Supplier{
+		PhoneNumber: req.PhoneNumber,
+		MarketID:    req.MarketID,
+		PlaceName:   req.PlaceName,
+		RowName:     req.RowName,
+		Categories:  req.Categories,
+		IsVerified:  false, // Не верифицирован
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
-	// Обновление данных поставщика
-	updateReq := models.UpdateSupplierRequest{
-		Name:       req.Name,
-		MarketName: req.MarketName,
-		PlacesRows: req.PlacesRows,
-		Category:   req.Category,
-	}
-
-	err = sc.Service.UpdateSupplierDetails(req.PhoneNumber, updateReq)
+	err = sc.Service.CreateSupplier(supplier)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier details"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create supplier"})
 		return
 	}
 
-	c.JSON(http.StatusOK, VerifyResponse{
-		Message: "Supplier details updated successfully",
-	})
+	// Создание пользователя с ролью supplier
+	user := &models.User{
+		Username:     req.PhoneNumber,
+		PasswordHash: "some_hash", // Замените на хеш пароля
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	err = sc.Service.CreateUser(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, RegisterResponse{Message: "Verification code sent"})
 }
 
 // GetSupplierInfo @Summary Get supplier information
@@ -160,4 +163,101 @@ func (s *SupplierService) UpdateSupplierDetails(phoneNumber string, req models.U
 	}
 
 	return nil
+}
+
+// GetBazaarList @Summary Get a list of bazaars
+// @Description Retrieves a list of all bazaars
+// @Tags suppliers
+// @Produce json
+// @Success 200 {array} models.Bazaar
+// @Failure 500 {object} ErrorResponse
+// @Router /suppliers/bazaars [get]
+func (sc *SupplierController) GetBazaarList(c *gin.Context) {
+	bazaars, err := sc.Service.GetAllBazaars()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to fetch bazaars"})
+		return
+	}
+
+	c.JSON(http.StatusOK, bazaars)
+}
+
+// CreatePlace @Summary Create a new place
+// @Description Creates a new place for a bazaar
+// @Tags suppliers
+// @Accept json
+// @Produce json
+// @Param place body models.Place true "Place details"
+// @Success 201 {object} models.Place
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /suppliers/places [post]
+func (sc *SupplierController) CreatePlace(c *gin.Context) {
+	var req models.Place
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	if err := sc.Service.CreatePlace(&req); err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create place"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, req)
+}
+
+// CreateRow @Summary Create a new row
+// @Description Creates a new row for a place
+// @Tags suppliers
+// @Accept json
+// @Produce json
+// @Param row body models.Row true "Row details"
+// @Success 201 {object} models.Row
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /suppliers/rows [post]
+func (sc *SupplierController) CreateRow(c *gin.Context) {
+	var req models.Row
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	if err := sc.Service.CreateRow(&req); err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create row"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, req)
+}
+
+// UpdateSupplier @Summary Update supplier information
+// @Description Updates supplier details including market, places, rows, and categories
+// @Tags suppliers
+// @Accept json
+// @Produce json
+// @Param supplier body RegisterSupplierRequest true "Supplier registration data"
+// @Success 200 {object} VerifyResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /suppliers/update [post]
+func (sc *SupplierController) UpdateSupplier(c *gin.Context) {
+	var req models.RegisterSupplierRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Обновление данных поставщика
+	err := sc.Service.UpdateSupplierData(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier details"})
+		return
+	}
+
+	c.JSON(http.StatusOK, VerifyResponse{
+		Message: "Supplier details updated successfully",
+	})
 }
