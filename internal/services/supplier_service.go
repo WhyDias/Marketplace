@@ -178,27 +178,6 @@ func (s *SupplierService) CreateRow(row *models.Row) error {
 	return nil
 }
 
-// UpdateSupplierDetails обновляет данные поставщика
-func (s *SupplierService) UpdateSupplierDetails(phoneNumber, marketName string, placeID, rowID int, categories []int) error {
-	query := `UPDATE suppliers 
-	          SET market_name = $1, 
-	              place_id = $2, 
-	              row_id = $3, 
-	              category_ids = $4, 
-	              updated_at = $5 
-	          WHERE phone_number = $6`
-
-	// Преобразуем массив категорий в строку (например, через запятую)
-	categoryIDs := strings.Join(intSliceToStringSlice(categories), ",")
-
-	_, err := db.DB.Exec(query, marketName, placeID, rowID, categoryIDs, time.Now(), phoneNumber)
-	if err != nil {
-		return fmt.Errorf("failed to update supplier details: %v", err)
-	}
-
-	return nil
-}
-
 // Функция для преобразования []int в []string
 func intSliceToStringSlice(ints []int) []string {
 	strs := make([]string, len(ints))
@@ -206,4 +185,36 @@ func intSliceToStringSlice(ints []int) []string {
 		strs[i] = strconv.Itoa(v)
 	}
 	return strs
+}
+
+func (s *SupplierService) CreateUser(phoneNumber string) error {
+	query := `INSERT INTO users (username, password_hash, created_at, updated_at, role) 
+              VALUES ($1, $2, $3, $4, 'supplier')` // Измените на подходящие значения
+
+	// Пример значений:
+	username := phoneNumber           // Или любое другое значение, которое вы хотите использовать
+	passwordHash := "hashed_password" // Замените на фактический хэш пароля
+
+	_, err := db.DB.Exec(query, username, passwordHash, time.Now(), time.Now())
+	return err
+}
+
+func (s *SupplierService) UpdateSupplierData(phoneNumber string, marketID, placeID, rowID int, categories []int) error {
+	query := `UPDATE suppliers 
+	          SET market_id = $1, 
+	              place_id = $2, 
+	              row_id = $3, 
+	              category_ids = $4, -- если у вас массив категорий, вам нужно будет изменить эту логику
+	              updated_at = $5 
+	          WHERE phone_number = $6`
+
+	// Преобразование массива категорий в строку, если требуется
+	categoryIDs := strings.Join(intSliceToStringSlice(categories), ",")
+
+	_, err := db.DB.Exec(query, marketID, placeID, rowID, categoryIDs, time.Now(), phoneNumber)
+	if err != nil {
+		return fmt.Errorf("failed to update supplier data: %v", err)
+	}
+
+	return nil
 }

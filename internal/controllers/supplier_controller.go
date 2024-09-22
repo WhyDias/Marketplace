@@ -5,7 +5,6 @@ package controllers
 import (
 	"fmt"
 	"github.com/WhyDias/Marketplace/internal/db"
-	"github.com/WhyDias/Marketplace/internal/utils"
 	"net/http"
 	"time"
 
@@ -49,46 +48,44 @@ func (sc *SupplierController) RegisterSupplier(c *gin.Context) {
 		return
 	}
 
-	// Отправка кода верификации через WhatsApp
-	err := utils.SendVerificationCode(req.PhoneNumber)
+	// Проверка, верифицирован ли номер телефона
+	isVerified, err := sc.Service.IsPhoneNumberVerified(req.PhoneNumber)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to send verification code"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to verify phone number"})
 		return
 	}
 
-	// Здесь можно создать запись в таблице suppliers и users
-	supplier := &models.Supplier{
-		PhoneNumber: req.PhoneNumber,
-		MarketID:    req.MarketID,
-		PlaceName:   req.PlaceName,
-		RowName:     req.RowName,
-		Categories:  req.Categories,
-		IsVerified:  false, // Не верифицирован
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+	if !isVerified {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Phone number not verified"})
+		return
 	}
 
-	err = sc.Service.CreateSupplier(supplier)
+	// Создание нового поставщика
+	newSupplier := &models.Supplier{
+		Name:        req.Name,
+		PhoneNumber: req.PhoneNumber,
+		MarketID:    req.MarketID,
+		PlaceID:     0, // Поскольку место будет создано позже
+		RowID:       0, // Поскольку ряд будет создан позже
+		Categories:  req.Categories,
+	}
+
+	err = sc.Service.CreateSupplier(newSupplier)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create supplier"})
 		return
 	}
 
 	// Создание пользователя с ролью supplier
-	user := &models.User{
-		Username:     req.PhoneNumber,
-		PasswordHash: "some_hash", // Замените на хеш пароля
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}
-
-	err = sc.Service.CreateUser(user)
+	err = sc.Service.CreateUser(newSupplier.PhoneNumber) // Создайте функцию CreateUser в сервисе
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create user"})
 		return
 	}
 
-	c.JSON(http.StatusOK, RegisterResponse{Message: "Verification code sent"})
+	c.JSON(http.StatusOK, VerifyResponse{
+		Message: "Supplier registered successfully",
+	})
 }
 
 // GetSupplierInfo @Summary Get supplier information
@@ -250,10 +247,9 @@ func (sc *SupplierController) UpdateSupplier(c *gin.Context) {
 		return
 	}
 
-	// Обновление данных поставщика
-	err := sc.Service.UpdateSupplierData(req)
+	err := sc.Service.UpdateSupplierData(req.PhoneNumber, req.MarketID, req.PlaceID, req.RowID, req.Categories)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier details"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier data"})
 		return
 	}
 
