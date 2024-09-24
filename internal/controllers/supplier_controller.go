@@ -48,22 +48,10 @@ func (sc *SupplierController) RegisterSupplier(c *gin.Context) {
 		return
 	}
 
-	// Проверка верификации номера телефона
-	isVerified, err := sc.Service.IsPhoneNumberVerified(req.PhoneNumber)
+	// Логика верификации и обновления
+	err := sc.Service.UpdateSupplierDetails(req.PhoneNumber, req.BazaarID, req.PlaceName, req.RowName, req.Categories)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to verify phone number"})
-		return
-	}
-
-	if !isVerified {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Phone number not verified"})
-		return
-	}
-
-	// Обновление данных поставщика с использованием bazaar_id
-	err = sc.Service.UpdateSupplierData(req.PhoneNumber, req.BazaarID, req.PlaceID, req.RowID, req.Categories)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier data"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier details"})
 		return
 	}
 
@@ -231,7 +219,7 @@ func (sc *SupplierController) UpdateSupplier(c *gin.Context) {
 		return
 	}
 
-	err := sc.Service.UpdateSupplierData(req.PhoneNumber, req.BazaarID, req.PlaceID, req.RowID, req.Categories)
+	err := sc.Service.UpdateSupplierDetails(req.PhoneNumber, req.BazaarID, req.PlaceName, req.RowName, req.Categories)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier data"})
 		return
@@ -240,4 +228,59 @@ func (sc *SupplierController) UpdateSupplier(c *gin.Context) {
 	c.JSON(http.StatusOK, VerifyResponse{
 		Message: "Supplier details updated successfully",
 	})
+}
+
+// internal/controllers/supplier_controller.go
+
+type UpdateSupplierDetailsRequest struct {
+	MarketID   int   `json:"market_id" binding:"required"`
+	PlaceID    int   `json:"place_id" binding:"required"`
+	RowID      int   `json:"row_id" binding:"required"`
+	Categories []int `json:"categories" binding:"required"`
+}
+
+func (sc *SupplierController) UpdateSupplierDetails(c *gin.Context) {
+	var req UpdateSupplierDetailsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Получаем user_id из контекста
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Пользователь не аутентифицирован"})
+		return
+	}
+
+	// Обновляем детали поставщика
+	err := sc.Service.UpdateSupplierDetailsByUserID(userID.(int), req.MarketID, req.PlaceID, req.RowID, req.Categories)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить данные поставщика"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Данные поставщика успешно обновлены",
+	})
+}
+
+func (sc *SupplierController) GetMarkets(c *gin.Context) {
+	markets, err := sc.Service.GetAllMarkets()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось получить список рынков"})
+		return
+	}
+
+	c.JSON(http.StatusOK, markets)
+}
+
+func (sc *SupplierController) GetCategories(c *gin.Context) {
+	categories, err := sc.Service.GetAllCategories()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось получить список категорий"})
+		return
+	}
+
+	c.JSON(http.StatusOK, categories)
 }

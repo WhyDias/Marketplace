@@ -33,15 +33,17 @@ type RegisterUserResponse struct {
 
 // UserController структура контроллера пользователей
 type UserController struct {
-	Service *services.UserService
-	JWT     jwt.JWTService
+	Service         *services.UserService
+	SupplierService *services.SupplierService
+	JWT             jwt.JWTService
 }
 
-// NewUserController конструктор контроллера
-func NewUserController(service *services.UserService, jwtService jwt.JWTService) *UserController {
+// В конструкторе
+func NewUserController(service *services.UserService, supplierService *services.SupplierService, jwtService jwt.JWTService) *UserController {
 	return &UserController{
-		Service: service,
-		JWT:     jwtService,
+		Service:         service,
+		SupplierService: supplierService,
+		JWT:             jwtService,
 	}
 }
 
@@ -105,14 +107,14 @@ func (uc *UserController) LoginUser(c *gin.Context) {
 
 	user, err := uc.Service.AuthenticateUser(req.Username, req.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Invalid credentials"})
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверные учетные данные"})
 		return
 	}
 
-	// Генерация JWT токена
-	token, err := uc.JWT.GenerateToken(user.Username)
+	// Генерируем JWT токен с UserID
+	token, err := uc.JWT.GenerateToken(user.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate token"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось сгенерировать токен"})
 		return
 	}
 
@@ -132,4 +134,45 @@ type LoginUserRequest struct {
 type LoginUserResponse struct {
 	AccessToken string `json:"access_token"`
 	ExpiresAt   string `json:"expires_at"`
+}
+
+// internal/controllers/user_controller.go
+
+type SetPasswordRequest struct {
+	PhoneNumber     string `json:"phone_number" binding:"required,e164"`
+	Password        string `json:"password" binding:"required,min=6"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
+}
+
+func (uc *UserController) SetPassword(c *gin.Context) {
+	var req SetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Проверяем, что номер телефона верифицирован
+	isVerified, err := uc.SupplierService.IsPhoneNumberVerified(req.PhoneNumber)
+	if err != nil || !isVerified {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Номер телефона не верифицирован"})
+		return
+	}
+
+	// Создаем учетную запись пользователя
+	user, err := uc.Service.RegisterUser(req.PhoneNumber, req.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать учетную запись пользователя"})
+		return
+	}
+
+	// Связываем пользователя с поставщиком
+	err = uc.SupplierService.LinkUserToSupplier(req.PhoneNumber, user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось связать пользователя с поставщиком"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Пароль установлен, учетная запись создана",
+	})
 }

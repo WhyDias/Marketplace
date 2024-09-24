@@ -15,17 +15,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// Инициализируем генератор случайных чисел
-var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-// Инициализируем лимитер (например, 1 запрос в секунду)
-var limiter = rate.NewLimiter(1, 3)
-
-// GenerateSixDigitCode генерирует случайный 6-значный код
-func GenerateSixDigitCode() string {
-	return fmt.Sprintf("%06d", seededRand.Intn(1000000))
-}
-
 // ValidateWhatsAppCode валидирует код из WhatsApp
 func ValidateWhatsAppCode(phoneNumber, code string) bool {
 	// Получаем последний код для данного номера телефона
@@ -43,18 +32,18 @@ func ValidateWhatsAppCode(phoneNumber, code string) bool {
 	return code == verificationCode.Code
 }
 
-// sendTextMessage отправляет текстовое сообщение через WhatsApp API
-func sendTextMessage(messageBody string, recipient string) {
-	// Ожидаем разрешения от лимитера
+func SendTextMessage(messageBody string, recipient string) error {
+	// Ожидаем разрешения от лимитера (ограничиваем количество запросов)
 	err := limiter.Wait(context.Background())
 	if err != nil {
 		fmt.Println("Ошибка при ожидании разрешения от лимитера:", err)
-		return
+		return err
 	}
 
-	id := "b0fbe69d-e68e" // Замените на ваш реальный profile_id
-	url := fmt.Sprintf("https://wappi.pro/api/sync/message/send?profile_id=%s", id)
-	apiKey := "234f33d4c7af8a62baeecdf1432fc9b5ffe911a1" // Замените на ваш реальный apiKey
+	// Параметры API
+	profileID := "your_profile_id" // Замените на ваш реальный profile_id
+	apiKey := "your_api_key"       // Замените на ваш реальный apiKey
+	url := fmt.Sprintf("https://wappi.pro/api/sync/message/send?profile_id=%s", profileID)
 
 	// Создание данных для отправки
 	data := map[string]string{
@@ -66,14 +55,14 @@ func sendTextMessage(messageBody string, recipient string) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("Error marshaling data:", err)
-		return
+		return err
 	}
 
 	// Создание HTTP-запроса
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return
+		return err
 	}
 
 	// Установка заголовков
@@ -85,7 +74,7 @@ func sendTextMessage(messageBody string, recipient string) {
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error sending request:", err)
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -96,7 +85,21 @@ func sendTextMessage(messageBody string, recipient string) {
 		fmt.Println("Response:", result)
 	} else {
 		fmt.Printf("Error sending message to %s, status code: %d\n", recipient, resp.StatusCode)
+		return fmt.Errorf("failed to send message, status code: %d", resp.StatusCode)
 	}
+
+	return nil
+}
+
+// Инициализируем генератор случайных чисел
+var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// Инициализируем лимитер (например, 1 запрос в секунду)
+var limiter = rate.NewLimiter(1, 3)
+
+// GenerateSixDigitCode генерирует случайный 6-значный код
+func GenerateSixDigitCode() string {
+	return fmt.Sprintf("%06d", seededRand.Intn(1000000))
 }
 
 // SendVerificationCode генерирует и отправляет код верификации через WhatsApp
@@ -108,10 +111,13 @@ func SendVerificationCode(phoneNumber string) error {
 	message := fmt.Sprintf("Ваш код подтверждения: %s", code)
 
 	// Отправка сообщения
-	sendTextMessage(message, phoneNumber)
+	err := SendTextMessage(message, phoneNumber)
+	if err != nil {
+		return err
+	}
 
 	// Удаление старых кодов для данного номера телефона
-	err := db.DeleteVerificationCodes(phoneNumber)
+	err = db.DeleteVerificationCodes(phoneNumber)
 	if err != nil {
 		return err
 	}

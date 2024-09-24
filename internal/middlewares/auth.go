@@ -3,49 +3,35 @@
 package middlewares
 
 import (
-	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/WhyDias/Marketplace/pkg/jwt"
-	"net/http"
-	"strings"
-
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 // AuthMiddleware проверяет наличие и валидность JWT токена
 func AuthMiddleware(jwtService jwt.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Authorization header required"})
+		tokenString := c.GetHeader("Authorization")
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Отсутствует заголовок Authorization"})
 			c.Abort()
 			return
 		}
 
-		// Ожидается формат "Bearer <token>"
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Authorization header format must be Bearer {token}"})
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
 		token, err := jwtService.ValidateToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Invalid token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный токен"})
 			c.Abort()
 			return
 		}
 
-		claims, ok := token.Claims.(*jwt.JWTCustomClaim)
-		if !ok || !token.Valid {
-			c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Invalid token claims"})
+		if claims, ok := token.Claims.(*jwt.JWTCustomClaim); ok && token.Valid {
+			// Устанавливаем информацию о пользователе в контекст
+			c.Set("user_id", claims.UserID)
+			c.Next()
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверные клеймы токена"})
 			c.Abort()
-			return
 		}
-
-		// Устанавливаем информацию о пользователе в контекст
-		c.Set("phone_number", claims.PhoneNumber)
-		c.Next()
 	}
 }

@@ -5,12 +5,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"github.com/lib/pq"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/WhyDias/Marketplace/internal/db"
 	"github.com/WhyDias/Marketplace/internal/models"
+	"github.com/WhyDias/Marketplace/internal/utils"
 )
 
 // SupplierService структура сервиса поставщиков
@@ -199,22 +201,143 @@ func (s *SupplierService) CreateUser(phoneNumber string) error {
 	return err
 }
 
-func (s *SupplierService) UpdateSupplierData(phoneNumber string, marketID, placeID, rowID int, categories []int) error {
+// UpdateSupplierDetails обновляет данные поставщика
+func (s *SupplierService) UpdateSupplierDetails(phoneNumber string, marketID int, placeName string, rowName string, categories []int) error {
 	query := `UPDATE suppliers 
 	          SET market_id = $1, 
-	              place_id = $2, 
-	              row_id = $3, 
-	              category_ids = $4, -- если у вас массив категорий, вам нужно будет изменить эту логику
+	              place_name = $2, 
+	              row_name = $3, 
+	              category_ids = $4, 
 	              updated_at = $5 
 	          WHERE phone_number = $6`
 
-	// Преобразование массива категорий в строку, если требуется
+	// Преобразуем массив категорий в строку (например, через запятую)
 	categoryIDs := strings.Join(intSliceToStringSlice(categories), ",")
 
-	_, err := db.DB.Exec(query, marketID, placeID, rowID, categoryIDs, time.Now(), phoneNumber)
+	_, err := db.DB.Exec(query, marketID, placeName, rowName, categoryIDs, time.Now(), phoneNumber)
 	if err != nil {
-		return fmt.Errorf("failed to update supplier data: %v", err)
+		return fmt.Errorf("failed to update supplier details: %v", err)
 	}
 
 	return nil
+}
+func (s *SupplierService) SendVerificationCode(phoneNumber string) error {
+	code := utils.GenerateSixDigitCode()
+
+	// Шаг 2: Формирование сообщения
+	message := fmt.Sprintf("Ваш код подтверждения: %s", code)
+
+	// Шаг 3: Отправка сообщения пользователю
+	err := utils.SendTextMessage(message, phoneNumber)
+	if err != nil {
+		fmt.Println("Error sending message:", err)
+		return err
+	}
+
+	// Шаг 4: Удаление старых кодов для данного номера телефона
+	err = db.DeleteVerificationCodes(phoneNumber)
+	if err != nil {
+		fmt.Println("Error deleting old verification codes:", err)
+		return err
+	}
+
+	// Шаг 5: Сохранение нового кода в базе данных с временем истечения
+	expiresAt := time.Now().Add(10 * time.Minute)
+	err = db.CreateVerificationCode(phoneNumber, code, expiresAt)
+	if err != nil {
+		fmt.Println("Error saving verification code:", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *SupplierService) ValidateVerificationCode(phoneNumber, code string) bool {
+	verificationCode, err := db.GetLatestVerificationCode(phoneNumber)
+	if err != nil {
+		fmt.Println("Error fetching verification code:", err)
+		return false
+	}
+
+	// Проверяем, не истёк ли код
+	if time.Now().After(verificationCode.ExpiresAt) {
+		return false
+	}
+
+	// Сравниваем введённый код с сохранённым
+	return code == verificationCode.Code
+}
+
+func (s *SupplierService) LinkUserToSupplier(phoneNumber string, userID int) error {
+	query := `UPDATE suppliers SET user_id = $1 WHERE phone_number = $2`
+	result, err := db.DB.Exec(query, userID, phoneNumber)
+	if err != nil {
+		return fmt.Errorf("Не удалось связать пользователя с поставщиком: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("Ошибка при получении количества затронутых строк: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("Поставщик с номером телефона %s не найден", phoneNumber)
+	}
+
+	return nil
+}
+
+func (s *SupplierService) UpdateSupplierDetailsByUserID(userID int, marketID, placeID, rowID int, categories []int) error {
+	query := `UPDATE suppliers 
+              SET market_id = $1, place_id = $2, row_id = $3, categories = $4, updated_at = $5
+              WHERE user_id = $6`
+
+	_, err := db.DB.Exec(query, marketID, placeID, rowID, pq.Array(categories), time.Now(), userID)
+	if err != nil {
+		return fmt.Errorf("Не удалось обновить данные поставщика: %v", err)
+	}
+
+	return nil
+}
+
+func (s *SupplierService) GetAllMarkets() ([]models.Market, error) {
+	query := `SELECT id, name FROM market`
+
+	rows, err := db.DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("Ошибка при получении рынков: %v", err)
+	}
+	defer rows.Close()
+
+	var markets []models.Market
+	for rows.Next() {
+		var market models.Market
+		if err := rows.Scan(&market.ID, &market.Name); err != nil {
+			return nil, fmt.Errorf("Ошибка при сканировании рынка: %v", err)
+		}
+		markets = append(markets, market)
+	}
+
+	return markets, nil
+}
+
+func (s *SupplierService) GetAllCategories() ([]models.Category, error) {
+	query := `SELECT id, name, path FROM categories`
+
+	rows, err := db.DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("Ошибка при получении категорий: %v", err)
+	}
+	defer rows.Close()
+
+	var categories []models.Category
+	for rows.Next() {
+		var category models.Category
+		if err := rows.Scan(&category.ID, &category.Name, &category.Path); err != nil {
+			return nil, fmt.Errorf("Ошибка при сканировании категории: %v", err)
+		}
+		categories = append(categories, category)
+	}
+
+	return categories, nil
 }

@@ -21,22 +21,23 @@ func NewUserService() *UserService {
 
 // RegisterUser регистрирует нового пользователя
 func (s *UserService) RegisterUser(username, password string) (*models.User, error) {
-	// Проверка, существует ли пользователь с таким именем
+	// Проверка существования пользователя
 	existingUser, err := db.GetUserByUsername(username)
 	if err == nil && existingUser != nil {
-		return nil, errors.New("user already exists")
+		return nil, errors.New("Пользователь уже существует")
 	}
 
 	// Хеширование пароля
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, errors.New("failed to hash password")
+		return nil, errors.New("Не удалось хешировать пароль")
 	}
 
-	// Создание нового пользователя
+	// Создание пользователя
 	user := &models.User{
 		Username:     username,
 		PasswordHash: string(hashedPassword),
+		Role:         "supplier",
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
@@ -49,14 +50,15 @@ func (s *UserService) RegisterUser(username, password string) (*models.User, err
 	return user, nil
 }
 
-// AuthenticateUser аутентифицирует пользователя по имени и паролю
+// AuthenticateUser аутентифицирует пользователя по имени пользователя и паролю
 func (s *UserService) AuthenticateUser(username, password string) (*models.User, error) {
+	// Получаем пользователя из базы данных по имени пользователя
 	user, err := db.GetUserByUsername(username)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("user not found")
 	}
 
-	// Сравнение хеша пароля
+	// Сравниваем хеш пароля из базы данных с введённым паролем
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, errors.New("invalid password")
 	}

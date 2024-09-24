@@ -53,7 +53,7 @@ func main() {
 	supplierService := services.NewSupplierService()
 
 	// Инициализация контроллеров
-	userController := controllers.NewUserController(userService, jwtService)
+	userController := controllers.NewUserController(userService, supplierService, jwtService)
 	supplierController := controllers.NewSupplierController(supplierService)
 	verificationController := controllers.NewVerificationController(supplierService)
 
@@ -66,23 +66,20 @@ func main() {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Публичные маршруты (доступны без токена)
-	router.POST("/register", verificationController.Register)
-	router.POST("/verify", verificationController.Verify)
-	router.POST("/api/users/login", userController.LoginUser)
-	router.POST("/api/users/register", userController.RegisterUser)
-	router.GET("/suppliers/bazaars", supplierController.GetBazaarList)
-	router.POST("/suppliers/places", supplierController.CreatePlace)
-	router.POST("/suppliers/rows", supplierController.CreateRow)
+	router.POST("/register", verificationController.SendVerificationCode)
+	router.POST("/verify", verificationController.VerifyCode)
+	router.POST("/set_password", userController.SetPassword)
 
-	// Группа защищённых маршрутов
+	// Защищенные маршруты
 	authorized := router.Group("/")
 	authorized.Use(middlewares.AuthMiddleware(jwtService))
 	{
-		authorized.POST("/suppliers/register", supplierController.RegisterSupplier)
-		authorized.POST("/suppliers/update", supplierController.UpdateSupplier) // Новый эндпоинт
-		authorized.GET("/suppliers", supplierController.GetSuppliers)
-		authorized.GET("/suppliers/info", supplierController.GetSupplierInfo)
+		authorized.POST("/supplier/update_details", supplierController.UpdateSupplierDetails)
 	}
+
+	// Маршруты для получения рынков и категорий
+	router.GET("/markets", supplierController.GetMarkets)
+	router.GET("/categories", supplierController.GetCategories)
 
 	// Запуск сервера
 	port := ":8080"

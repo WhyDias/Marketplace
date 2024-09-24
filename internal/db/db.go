@@ -4,11 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/WhyDias/Marketplace/internal/models"
-	"io/ioutil"
-	"time"
-
 	_ "github.com/lib/pq" // Импорт драйвера PostgreSQL
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 )
 
 type Config struct {
@@ -67,40 +65,7 @@ func InitDB(configPath string) error {
 	return nil
 }
 
-func CreateUser(user *models.User) error {
-	query := `INSERT INTO users (username, password_hash, created_at, updated_at) 
-              VALUES ($1, $2, $3, $4) RETURNING id`
-
-	err := DB.QueryRow(query, user.Username, user.PasswordHash, user.CreatedAt, user.UpdatedAt).Scan(&user.ID)
-	if err != nil {
-		return fmt.Errorf("failed to create user: %v", err)
-	}
-
-	return nil
-}
-
 // GetUserByUsername получает пользователя из базы данных по имени пользователя
-func GetUserByUsername(username string) (*models.User, error) {
-	user := &models.User{}
-
-	query := `SELECT id, username, password_hash, created_at, updated_at FROM users WHERE username = $1`
-
-	err := DB.QueryRow(query, username).Scan(
-		&user.ID,
-		&user.Username,
-		&user.PasswordHash,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user not found")
-		}
-		return nil, fmt.Errorf("error fetching user: %v", err)
-	}
-
-	return user, nil
-}
 
 func CreateSupplier(supplier *models.Supplier) error {
 	query := `INSERT INTO suppliers (name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified) 
@@ -167,53 +132,7 @@ func GetAllSuppliers() ([]models.Supplier, error) {
 	return suppliers, nil
 }
 
-// CreateVerificationCode вставляет новый код в таблицу verification_codes
-func CreateVerificationCode(phoneNumber, code string, expiresAt time.Time) error {
-	query := `INSERT INTO verification_codes (phone_number, code, expires_at) 
-	          VALUES ($1, $2, $3)`
-	_, err := DB.Exec(query, phoneNumber, code, expiresAt)
-	if err != nil {
-		return fmt.Errorf("failed to create verification code: %v", err)
-	}
-	return nil
-}
-
 // GetLatestVerificationCode получает последний созданный код для данного номера телефона
-func GetLatestVerificationCode(phoneNumber string) (*models.VerificationCode, error) {
-	code := &models.VerificationCode{}
-
-	query := `SELECT id, phone_number, code, created_at, expires_at 
-	          FROM verification_codes 
-	          WHERE phone_number = $1 
-	          ORDER BY created_at DESC 
-	          LIMIT 1`
-
-	err := DB.QueryRow(query, phoneNumber).Scan(
-		&code.ID,
-		&code.PhoneNumber,
-		&code.Code,
-		&code.CreatedAt,
-		&code.ExpiresAt,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("verification code not found for phone number: %s", phoneNumber)
-		}
-		return nil, fmt.Errorf("error fetching verification code: %v", err)
-	}
-
-	return code, nil
-}
-
-// DeleteVerificationCodes удаляет все коды для данного номера телефона
-func DeleteVerificationCodes(phoneNumber string) error {
-	query := `DELETE FROM verification_codes WHERE phone_number = $1`
-	_, err := DB.Exec(query, phoneNumber)
-	if err != nil {
-		return fmt.Errorf("failed to delete verification codes: %v", err)
-	}
-	return nil
-}
 
 // MarkPhoneNumberAsVerified обновляет поле is_verified для поставщика
 func MarkPhoneNumberAsVerified(phoneNumber string) error {
@@ -233,4 +152,31 @@ func MarkPhoneNumberAsVerified(phoneNumber string) error {
 	}
 
 	return nil
+}
+
+func CreateUser(user *models.User) error {
+	query := `INSERT INTO users (username, password_hash, role, created_at, updated_at)
+              VALUES ($1, $2, $3, $4, $5) RETURNING id`
+
+	err := DB.QueryRow(query, user.Username, user.PasswordHash, user.Role, user.CreatedAt, user.UpdatedAt).Scan(&user.ID)
+	if err != nil {
+		return fmt.Errorf("Не удалось создать пользователя: %v", err)
+	}
+
+	return nil
+}
+
+func GetUserByUsername(username string) (*models.User, error) {
+	user := &models.User{}
+
+	query := `SELECT id, username, password_hash, role, created_at, updated_at FROM users WHERE username = $1`
+	err := DB.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Не удалось получить пользователя по имени: %v", err)
+	}
+
+	return user, nil
 }

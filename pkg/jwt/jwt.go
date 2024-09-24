@@ -10,13 +10,13 @@ import (
 
 // JWTService интерфейс для генерации и валидации токенов
 type JWTService interface {
-	GenerateToken(phoneNumber string) (string, error)
+	GenerateToken(userID int) (string, error)
 	ValidateToken(tokenString string) (*jwt.Token, error)
 }
 
 // JWTCustomClaim экспортируемая структура для кастомных клеймов
 type JWTCustomClaim struct {
-	PhoneNumber string `json:"phone_number"`
+	UserID int `json:"user_id"`
 	jwt.StandardClaims
 }
 
@@ -32,10 +32,17 @@ func NewJWTService(secretKey string) JWTService {
 	}
 }
 
+// ValidateToken валидирует JWT токен
+func (j *jwtService) ValidateToken(tokenString string) (*jwt.Token, error) {
+	return jwt.ParseWithClaims(tokenString, &JWTCustomClaim{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(j.secretKey), nil
+	})
+}
+
 // GenerateToken генерирует JWT токен
-func (j *jwtService) GenerateToken(phoneNumber string) (string, error) {
+func (j *jwtService) GenerateToken(userID int) (string, error) {
 	claims := &JWTCustomClaim{
-		PhoneNumber: phoneNumber,
+		UserID: userID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
 			IssuedAt:  time.Now().Unix(),
@@ -45,11 +52,4 @@ func (j *jwtService) GenerateToken(phoneNumber string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(j.secretKey))
-}
-
-// ValidateToken валидирует JWT токен
-func (j *jwtService) ValidateToken(tokenString string) (*jwt.Token, error) {
-	return jwt.ParseWithClaims(tokenString, &JWTCustomClaim{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(j.secretKey), nil
-	})
 }

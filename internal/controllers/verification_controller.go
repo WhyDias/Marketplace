@@ -133,3 +133,45 @@ func (vc *VerificationController) Verify(c *gin.Context) {
 		Message: "Verification successful",
 	})
 }
+
+// internal/controllers/verification_controller.go
+
+func (vc *VerificationController) SendVerificationCode(c *gin.Context) {
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Отправка кода верификации через WhatsApp
+	err := vc.SupplierService.SendVerificationCode(req.PhoneNumber)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось отправить код подтверждения"})
+		return
+	}
+
+	c.JSON(http.StatusOK, RegisterResponse{
+		Message: "Код подтверждения отправлен",
+	})
+}
+
+// internal/controllers/verification_controller.go
+
+func (vc *VerificationController) VerifyCode(c *gin.Context) {
+	var req VerifyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Проверка кода верификации
+	isValid := vc.SupplierService.ValidateVerificationCode(req.PhoneNumber, req.Code)
+	if !isValid {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверный или истекший код подтверждения"})
+		return
+	}
+
+	c.JSON(http.StatusOK, VerifyResponse{
+		Message: "Верификация успешна",
+	})
+}
