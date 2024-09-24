@@ -38,7 +38,6 @@ type UserController struct {
 	JWT             jwt.JWTService
 }
 
-// В конструкторе
 func NewUserController(service *services.UserService, supplierService *services.SupplierService, jwtService jwt.JWTService) *UserController {
 	return &UserController{
 		Service:         service,
@@ -101,26 +100,25 @@ func (uc *UserController) RegisterUser(c *gin.Context) {
 func (uc *UserController) LoginUser(c *gin.Context) {
 	var req LoginUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	user, err := uc.Service.AuthenticateUser(req.Username, req.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверные учетные данные"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверное имя пользователя или пароль"})
 		return
 	}
 
-	// Генерируем JWT токен с UserID
 	token, err := uc.JWT.GenerateToken(user.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось сгенерировать токен"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать токен"})
 		return
 	}
 
-	c.JSON(http.StatusOK, LoginUserResponse{
-		AccessToken: token,
-		ExpiresAt:   time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": token,
+		"expires_at":   time.Now().Add(72 * time.Hour).Format(time.RFC3339),
 	})
 }
 
