@@ -17,25 +17,24 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// @title Marketplace API
-// @version 1.0
-// @description This is the API documentation for the Marketplace application.
-// @termsOfService http://yourproject.com/terms/
+// @title           Marketplace API
+// @version         1.0
+// @description     API для Marketplace приложения.
+// @termsOfService  http://your-website.com/terms/
 
-// @contact.name API Support
-// @contact.url http://yourproject.com/support
-// @contact.email support@yourproject.com
+// @contact.name   Support Team
+// @contact.url    http://your-website.com/support
+// @contact.email  support@your-website.com
 
-// @license.name MIT
-// @license.url https://opensource.org/licenses/MIT
+// @license.name  MIT License
+// @license.url   https://opensource.org/licenses/MIT
 
-// @host localhost:8080
-// @BasePath /
+// @host      195.49.215.120:8080
+// @BasePath  /
 
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-
 func main() {
 
 	// Инициализация базы данных

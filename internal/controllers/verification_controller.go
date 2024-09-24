@@ -75,16 +75,6 @@ func (vc *VerificationController) Register(c *gin.Context) {
 	})
 }
 
-// Verify @Summary Verify phone number
-// @Description Verifies a phone number with the provided code.
-// @Tags verification
-// @Accept json
-// @Produce json
-// @Param verification body VerifyRequest true "Phone number and verification code"
-// @Success 200 {object} VerifyResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Router /verify [post]
 func (vc *VerificationController) Verify(c *gin.Context) {
 	var req VerifyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -134,8 +124,17 @@ func (vc *VerificationController) Verify(c *gin.Context) {
 	})
 }
 
-// internal/controllers/verification_controller.go
-
+// SendVerificationCode отправляет код подтверждения на указанный номер телефона.
+// @Summary      Отправка кода подтверждения
+// @Description  Отправляет код подтверждения на указанный номер телефона.
+// @Tags         Авторизация
+// @Accept       json
+// @Produce      json
+// @Param        input  body      RegisterRequest  true  "Данные для регистрации"
+// @Success      200    {object}  RegisterResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /register [post]
 func (vc *VerificationController) SendVerificationCode(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -155,8 +154,17 @@ func (vc *VerificationController) SendVerificationCode(c *gin.Context) {
 	})
 }
 
-// internal/controllers/verification_controller.go
-
+// VerifyCode проверяет код подтверждения для указанного номера телефона.
+// @Summary      Верификация кода подтверждения
+// @Description  Проверяет код подтверждения, отправленный на номер телефона.
+// @Tags         Авторизация
+// @Accept       json
+// @Produce      json
+// @Param        input  body      VerifyCodeRequest  true  "Данные для верификации"
+// @Success      200    {object}  VerifyCodeResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /verify [post]
 func (vc *VerificationController) VerifyCode(c *gin.Context) {
 	var req VerifyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

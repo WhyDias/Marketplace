@@ -1,0 +1,21 @@
+basePath: /
+host: 195.49.215.120:8080
+info:
+  contact:
+    email: support@your-website.com
+    name: Support Team
+    url: http://your-website.com/support
+  description: API для Marketplace приложения.
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://your-website.com/terms/
+  title: Marketplace API
+  version: "1.0"
+paths: {}
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

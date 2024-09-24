@@ -86,17 +86,18 @@ func (uc *UserController) RegisterUser(c *gin.Context) {
 	})
 }
 
-// LoginUser @Summary Login a user
-// @Description Authenticates a user and returns a JWT token
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param credentials body LoginUserRequest true "User credentials"
-// @Success 200 {object} LoginUserResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /api/users/login [post]
+// LoginUser выполняет аутентификацию пользователя и возвращает JWT-токен.
+// @Summary      Авторизация пользователя
+// @Description  Аутентифицирует пользователя и возвращает JWT-токен.
+// @Tags         Авторизация
+// @Accept       json
+// @Produce      json
+// @Param        input  body      LoginUserRequest  true  "Данные для входа"
+// @Success      200    {object}  LoginUserResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      401    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /api/users/login [post]
 func (uc *UserController) LoginUser(c *gin.Context) {
 	var req LoginUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -142,6 +143,17 @@ type SetPasswordRequest struct {
 	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
 }
 
+// SetPassword устанавливает пароль для пользователя после верификации номера телефона.
+// @Summary      Установка пароля
+// @Description  Устанавливает пароль для пользователя.
+// @Tags         Авторизация
+// @Accept       json
+// @Produce      json
+// @Param        input  body      SetPasswordRequest  true  "Данные для установки пароля"
+// @Success      200    {object}  SetPasswordResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /set_password [post]
 func (uc *UserController) SetPassword(c *gin.Context) {
 	var req SetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

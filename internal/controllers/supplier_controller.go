@@ -107,7 +107,19 @@ func (sc *SupplierController) GetSuppliers(c *gin.Context) {
 // SupplierService структура сервиса поставщиков
 type SupplierService struct{}
 
-// UpdateSupplierDetails обновляет детали поставщика
+// UpdateSupplierDetails обновляет данные поставщика.
+// @Summary      Обновление данных поставщика
+// @Description  Обновляет информацию о поставщике.
+// @Tags         Поставщик
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param input body models.RegisterSupplierRequest true "Данные для регистрации поставщика"
+// @Success      200    {object}  UpdateSupplierDetailsResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      401    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /supplier/update_details [post]
 func (s *SupplierService) UpdateSupplierDetails(phoneNumber string, req models.UpdateSupplierRequest) error {
 	query := `UPDATE supplier 
 	          SET name = $1, 
@@ -206,7 +218,7 @@ func (sc *SupplierController) CreateRow(c *gin.Context) {
 // @Tags suppliers
 // @Accept json
 // @Produce json
-// @Param supplier body RegisterSupplierRequest true "Supplier registration data"
+// @Param input body models.RegisterSupplierRequest true "Данные для регистрации поставщика"
 // @Success 200 {object} VerifyResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
