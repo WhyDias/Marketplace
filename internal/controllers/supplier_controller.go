@@ -32,15 +32,6 @@ func NewSupplierController(service *services.SupplierService) *SupplierControlle
 	}
 }
 
-// RegisterSupplier @Summary Register a supplier
-// @Description Registers a supplier and sends a verification code.
-// @Tags suppliers
-// @Accept json
-// @Produce json
-// @Param supplier body RegisterSupplierRequest true "Supplier registration data"
-// @Success 200 {object} RegisterResponse
-// @Failure 400 {object} ErrorResponse
-// @Router /suppliers/register [post]
 func (sc *SupplierController) RegisterSupplier(c *gin.Context) {
 	var req models.RegisterSupplierRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -114,8 +105,8 @@ type SupplierService struct{}
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param input body models.RegisterSupplierRequest true "Данные для регистрации поставщика"
-// @Success      200    {object}  UpdateSupplierDetailsResponse
+// @Param        input  body      models.UpdateSupplierRequest  true  "Данные для обновления"
+// @Success      200    {object}  models.UpdateSupplierDetailsResponse
 // @Failure      400    {object}  ErrorResponse
 // @Failure      401    {object}  ErrorResponse
 // @Failure      500    {object}  ErrorResponse
@@ -146,13 +137,6 @@ func (s *SupplierService) UpdateSupplierDetails(phoneNumber string, req models.U
 	return nil
 }
 
-// GetBazaarList @Summary Get a list of bazaars
-// @Description Retrieves a list of all bazaars
-// @Tags suppliers
-// @Produce json
-// @Success 200 {array} models.Bazaar
-// @Failure 500 {object} ErrorResponse
-// @Router /suppliers/bazaars [get]
 func (sc *SupplierController) GetBazaarList(c *gin.Context) {
 	bazaars, err := sc.Service.GetAllBazaars()
 	if err != nil {
@@ -163,16 +147,6 @@ func (sc *SupplierController) GetBazaarList(c *gin.Context) {
 	c.JSON(http.StatusOK, bazaars)
 }
 
-// CreatePlace @Summary Create a new place
-// @Description Creates a new place for a bazaar
-// @Tags suppliers
-// @Accept json
-// @Produce json
-// @Param place body models.Place true "Place details"
-// @Success 201 {object} models.Place
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /suppliers/places [post]
 func (sc *SupplierController) CreatePlace(c *gin.Context) {
 	var req models.Place
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -188,16 +162,6 @@ func (sc *SupplierController) CreatePlace(c *gin.Context) {
 	c.JSON(http.StatusCreated, req)
 }
 
-// CreateRow @Summary Create a new row
-// @Description Creates a new row for a place
-// @Tags suppliers
-// @Accept json
-// @Produce json
-// @Param row body models.Row true "Row details"
-// @Success 201 {object} models.Row
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /suppliers/rows [post]
 func (sc *SupplierController) CreateRow(c *gin.Context) {
 	var req models.Row
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -213,17 +177,6 @@ func (sc *SupplierController) CreateRow(c *gin.Context) {
 	c.JSON(http.StatusCreated, req)
 }
 
-// UpdateSupplier @Summary Update supplier information
-// @Description Updates supplier details including market, places, rows, and categories
-// @Tags suppliers
-// @Accept json
-// @Produce json
-// @Param input body models.RegisterSupplierRequest true "Данные для регистрации поставщика"
-// @Success 200 {object} VerifyResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /suppliers/update [post]
 func (sc *SupplierController) UpdateSupplier(c *gin.Context) {
 	var req models.RegisterSupplierRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -283,6 +236,15 @@ func (sc *SupplierController) UpdateSupplierDetails(c *gin.Context) {
 	})
 }
 
+// GetMarkets возвращает список доступных рынков.
+// @Summary      Получение списка рынков
+// @Description  Возвращает список всех доступных рынков.
+// @Tags         Справочники
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   models.Market
+// @Failure      500  {object}  ErrorResponse
+// @Router       /markets [get]
 func (sc *SupplierController) GetMarkets(c *gin.Context) {
 	markets, err := sc.Service.GetAllMarkets()
 	if err != nil {
@@ -293,6 +255,15 @@ func (sc *SupplierController) GetMarkets(c *gin.Context) {
 	c.JSON(http.StatusOK, markets)
 }
 
+// GetCategories возвращает список доступных категорий товаров.
+// @Summary      Получение списка категорий
+// @Description  Возвращает список всех доступных категорий товаров.
+// @Tags         Справочники
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   models.Category
+// @Failure      500  {object}  ErrorResponse
+// @Router       /categories [get]
 func (sc *SupplierController) GetCategories(c *gin.Context) {
 	categories, err := sc.Service.GetAllCategories()
 	if err != nil {

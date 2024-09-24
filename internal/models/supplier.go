@@ -34,3 +34,7 @@ type UpdateSupplierRequest struct {
 	PlacesRows string `json:"places_rows" binding:"required"`
 	Category   string `json:"category" binding:"required"`
 }
+
+type UpdateSupplierDetailsResponse struct {
+	Message string `json:"message"`
+}

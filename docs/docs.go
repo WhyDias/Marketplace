@@ -9,14 +9,14 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://yourproject.com/terms/",
+        "termsOfService": "http://your-website.com/terms/",
         "contact": {
-            "name": "API Support",
-            "url": "http://yourproject.com/support",
-            "email": "support@yourproject.com"
+            "name": "Support Team",
+            "url": "http://your-website.com/support",
+            "email": "support@your-website.com"
         },
         "license": {
-            "name": "MIT",
+            "name": "MIT License",
             "url": "https://opensource.org/licenses/MIT"
         },
         "version": "{{.Version}}"
@@ -26,7 +26,7 @@ const docTemplate = `{
     "paths": {
         "/api/users/login": {
             "post": {
-                "description": "Authenticates a user and returns a JWT token",
+                "description": "Аутентифицирует пользователя и возвращает JWT-токен.",
                 "consumes": [
                     "application/json"
                 ],
@@ -34,16 +34,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "users"
+                    "Авторизация"
                 ],
+                "summary": "Авторизация пользователя",
                 "parameters": [
                     {
-                        "description": "User credentials",
-                        "name": "credentials",
+                        "description": "Данные для входа",
+                        "name": "input",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.LoginUserRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginUserRequest"
                         }
                     }
                 ],
@@ -51,25 +52,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.LoginUserResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginUserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -94,7 +95,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.RegisterUserRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserRequest"
                         }
                     }
                 ],
@@ -102,27 +103,27 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/controllers.RegisterUserResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/register": {
-            "post": {
-                "description": "Registers a phone number and sends a verification code via WhatsApp",
+        "/categories": {
+            "get": {
+                "description": "Возвращает список всех доступных категорий товаров.",
                 "consumes": [
                     "application/json"
                 ],
@@ -130,16 +131,81 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "verification"
+                    "Справочники"
                 ],
+                "summary": "Получение списка категорий",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.Category"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/markets": {
+            "get": {
+                "description": "Возвращает список всех доступных рынков.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Справочники"
+                ],
+                "summary": "Получение списка рынков",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.Market"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "description": "Отправляет код подтверждения на указанный номер телефона.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Авторизация"
+                ],
+                "summary": "Отправка кода подтверждения",
                 "parameters": [
                     {
-                        "description": "Phone number",
-                        "name": "phone",
+                        "description": "Данные для регистрации",
+                        "name": "input",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.RegisterRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterRequest"
                         }
                     }
                 ],
@@ -147,19 +213,122 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.RegisterResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/set_password": {
+            "post": {
+                "description": "Устанавливает пароль для пользователя.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Авторизация"
+                ],
+                "summary": "Установка пароля",
+                "parameters": [
+                    {
+                        "description": "Данные для установки пароля",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/supplier/update_details": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет информацию о поставщике.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Поставщик"
+                ],
+                "summary": "Обновление данных поставщика",
+                "parameters": [
+                    {
+                        "description": "Данные для обновления",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.UpdateSupplierRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.UpdateSupplierDetailsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -185,20 +354,20 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Supplier"
+                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.Supplier"
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -222,70 +391,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Supplier"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.Supplier"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/suppliers/register": {
-            "post": {
-                "description": "Updates supplier details if verified, or creates a new verified supplier.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "suppliers"
-                ],
-                "parameters": [
-                    {
-                        "description": "Supplier registration data",
-                        "name": "supplier",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/controllers.RegisterSupplierRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.VerifyResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -293,7 +411,7 @@ const docTemplate = `{
         },
         "/verify": {
             "post": {
-                "description": "Verifies a phone number with the provided code. If the phone number does not exist, a new supplier is created and marked as verified.",
+                "description": "Проверяет код подтверждения, отправленный на номер телефона.",
                 "consumes": [
                     "application/json"
                 ],
@@ -301,16 +419,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "verification"
+                    "Авторизация"
                 ],
+                "summary": "Верификация кода подтверждения",
                 "parameters": [
                     {
-                        "description": "Phone number and verification code",
-                        "name": "verification",
+                        "description": "Данные для верификации",
+                        "name": "input",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.VerifyRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeRequest"
                         }
                     }
                 ],
@@ -318,25 +437,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.VerifyResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -344,7 +457,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "controllers.ErrorResponse": {
+        "github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
@@ -352,7 +465,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.LoginUserRequest": {
+        "github_com_WhyDias_Marketplace_internal_controllers.LoginUserRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -367,7 +480,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.LoginUserResponse": {
+        "github_com_WhyDias_Marketplace_internal_controllers.LoginUserResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -378,7 +491,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.RegisterRequest": {
+        "github_com_WhyDias_Marketplace_internal_controllers.RegisterRequest": {
             "type": "object",
             "required": [
                 "phone_number"
@@ -389,7 +502,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.RegisterResponse": {
+        "github_com_WhyDias_Marketplace_internal_controllers.RegisterResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -397,34 +510,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.RegisterSupplierRequest": {
-            "type": "object",
-            "required": [
-                "category",
-                "market_name",
-                "name",
-                "phone_number",
-                "places_rows"
-            ],
-            "properties": {
-                "category": {
-                    "type": "string"
-                },
-                "market_name": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "phone_number": {
-                    "type": "string"
-                },
-                "places_rows": {
-                    "type": "string"
-                }
-            }
-        },
-        "controllers.RegisterUserRequest": {
+        "github_com_WhyDias_Marketplace_internal_controllers.RegisterUserRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -442,7 +528,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.RegisterUserResponse": {
+        "github_com_WhyDias_Marketplace_internal_controllers.RegisterUserResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -456,12 +542,36 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.VerifyRequest": {
+        "github_com_WhyDias_Marketplace_internal_controllers.SetPasswordRequest": {
             "type": "object",
             "required": [
-                "code",
+                "confirm_password",
+                "password",
                 "phone_number"
             ],
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "phone_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_controllers.SetPasswordResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeRequest": {
+            "type": "object",
             "properties": {
                 "code": {
                     "type": "string"
@@ -471,7 +581,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.VerifyResponse": {
+        "github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -479,11 +589,39 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Supplier": {
+        "github_com_WhyDias_Marketplace_internal_models.Category": {
             "type": "object",
             "properties": {
-                "category": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
                     "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_models.Market": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_models.Supplier": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "created_at": {
                     "type": "string"
@@ -494,8 +632,8 @@ const docTemplate = `{
                 "is_verified": {
                     "type": "boolean"
                 },
-                "market_name": {
-                    "type": "string"
+                "market_id": {
+                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -503,10 +641,179 @@ const docTemplate = `{
                 "phone_number": {
                     "type": "string"
                 },
-                "places_rows": {
+                "place": {
+                    "type": "string"
+                },
+                "row_name": {
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_models.UpdateSupplierDetailsResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_models.UpdateSupplierRequest": {
+            "type": "object",
+            "required": [
+                "category",
+                "market_name",
+                "name",
+                "places_rows"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "market_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "places_rows": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.LoginUserRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.LoginUserResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "phone_number"
+            ],
+            "properties": {
+                "phone_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.RegisterResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.RegisterUserRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
+                }
+            }
+        },
+        "internal_controllers.RegisterUserResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.SetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "confirm_password",
+                "password",
+                "phone_number"
+            ],
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "phone_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.SetPasswordResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.VerifyCodeRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.VerifyCodeResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
                     "type": "string"
                 }
             }
@@ -528,7 +835,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Marketplace API",
-	Description:      "This is the API documentation for the Marketplace application.",
+	Description:      "API для Marketplace приложения.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

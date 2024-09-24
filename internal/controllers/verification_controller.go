@@ -154,6 +154,14 @@ func (vc *VerificationController) SendVerificationCode(c *gin.Context) {
 	})
 }
 
+type VerifyCodeRequest struct {
+	PhoneNumber string `json:"phone_number"`
+	Code        string `json:"code"`
+}
+type VerifyCodeResponse struct {
+	Message string `json:"message"`
+}
+
 // VerifyCode проверяет код подтверждения для указанного номера телефона.
 // @Summary      Верификация кода подтверждения
 // @Description  Проверяет код подтверждения, отправленный на номер телефона.

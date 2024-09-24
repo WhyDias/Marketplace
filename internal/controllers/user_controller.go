@@ -143,6 +143,10 @@ type SetPasswordRequest struct {
 	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
 }
 
+type SetPasswordResponse struct {
+	Message string `json:"message"`
+}
+
 // SetPassword устанавливает пароль для пользователя после верификации номера телефона.
 // @Summary      Установка пароля
 // @Description  Устанавливает пароль для пользователя.

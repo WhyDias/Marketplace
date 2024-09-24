@@ -1,11 +1,11 @@
 basePath: /
 definitions:
-  controllers.ErrorResponse:
+  github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse:
     properties:
       error:
         type: string
     type: object
-  controllers.LoginUserRequest:
+  github_com_WhyDias_Marketplace_internal_controllers.LoginUserRequest:
     properties:
       password:
         type: string
@@ -15,45 +15,26 @@ definitions:
     - password
     - username
     type: object
-  controllers.LoginUserResponse:
+  github_com_WhyDias_Marketplace_internal_controllers.LoginUserResponse:
     properties:
       access_token:
         type: string
       expires_at:
         type: string
     type: object
-  controllers.RegisterRequest:
+  github_com_WhyDias_Marketplace_internal_controllers.RegisterRequest:
     properties:
       phone_number:
         type: string
     required:
     - phone_number
     type: object
-  controllers.RegisterResponse:
+  github_com_WhyDias_Marketplace_internal_controllers.RegisterResponse:
     properties:
       message:
         type: string
     type: object
-  controllers.RegisterSupplierRequest:
-    properties:
-      category:
-        type: string
-      market_name:
-        type: string
-      name:
-        type: string
-      phone_number:
-        type: string
-      places_rows:
-        type: string
-    required:
-    - category
-    - market_name
-    - name
-    - phone_number
-    - places_rows
-    type: object
-  controllers.RegisterUserRequest:
+  github_com_WhyDias_Marketplace_internal_controllers.RegisterUserRequest:
     properties:
       password:
         minLength: 6
@@ -66,7 +47,7 @@ definitions:
     - password
     - username
     type: object
-  controllers.RegisterUserResponse:
+  github_com_WhyDias_Marketplace_internal_controllers.RegisterUserResponse:
     properties:
       created_at:
         type: string
@@ -75,53 +56,199 @@ definitions:
       username:
         type: string
     type: object
-  controllers.VerifyRequest:
+  github_com_WhyDias_Marketplace_internal_controllers.SetPasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone_number:
+        type: string
+    required:
+    - confirm_password
+    - password
+    - phone_number
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.SetPasswordResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeRequest:
     properties:
       code:
         type: string
       phone_number:
         type: string
-    required:
-    - code
-    - phone_number
     type: object
-  controllers.VerifyResponse:
+  github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeResponse:
     properties:
       message:
         type: string
     type: object
-  models.Supplier:
+  github_com_WhyDias_Marketplace_internal_models.Category:
     properties:
-      category:
+      id:
+        type: integer
+      name:
         type: string
+      path:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_models.Market:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_models.Supplier:
+    properties:
+      categories:
+        items:
+          type: integer
+        type: array
       created_at:
         type: string
       id:
         type: integer
       is_verified:
         type: boolean
-      market_name:
-        type: string
+      market_id:
+        type: integer
       name:
         type: string
       phone_number:
         type: string
-      places_rows:
+      place:
+        type: string
+      row_name:
         type: string
       updated_at:
         type: string
+      user_id:
+        type: integer
     type: object
-host: localhost:8080
+  github_com_WhyDias_Marketplace_internal_models.UpdateSupplierDetailsResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_models.UpdateSupplierRequest:
+    properties:
+      category:
+        type: string
+      market_name:
+        type: string
+      name:
+        type: string
+      places_rows:
+        type: string
+    required:
+    - category
+    - market_name
+    - name
+    - places_rows
+    type: object
+  internal_controllers.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  internal_controllers.LoginUserRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  internal_controllers.LoginUserResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: string
+    type: object
+  internal_controllers.RegisterRequest:
+    properties:
+      phone_number:
+        type: string
+    required:
+    - phone_number
+    type: object
+  internal_controllers.RegisterResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  internal_controllers.RegisterUserRequest:
+    properties:
+      password:
+        minLength: 6
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  internal_controllers.RegisterUserResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+  internal_controllers.SetPasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone_number:
+        type: string
+    required:
+    - confirm_password
+    - password
+    - phone_number
+    type: object
+  internal_controllers.SetPasswordResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  internal_controllers.VerifyCodeRequest:
+    properties:
+      code:
+        type: string
+      phone_number:
+        type: string
+    type: object
+  internal_controllers.VerifyCodeResponse:
+    properties:
+      message:
+        type: string
+    type: object
+host: 195.49.215.120:8080
 info:
   contact:
-    email: support@yourproject.com
-    name: API Support
-    url: http://yourproject.com/support
-  description: This is the API documentation for the Marketplace application.
+    email: support@your-website.com
+    name: Support Team
+    url: http://your-website.com/support
+  description: API для Marketplace приложения.
   license:
-    name: MIT
+    name: MIT License
     url: https://opensource.org/licenses/MIT
-  termsOfService: http://yourproject.com/terms/
+  termsOfService: http://your-website.com/terms/
   title: Marketplace API
   version: "1.0"
 paths:
@@ -129,35 +256,36 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates a user and returns a JWT token
+      description: Аутентифицирует пользователя и возвращает JWT-токен.
       parameters:
-      - description: User credentials
+      - description: Данные для входа
         in: body
-        name: credentials
+        name: input
         required: true
         schema:
-          $ref: '#/definitions/controllers.LoginUserRequest'
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.LoginUserResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginUserResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+      summary: Авторизация пользователя
       tags:
-      - users
+      - Авторизация
   /api/users/register:
     post:
       consumes:
@@ -169,53 +297,162 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/controllers.RegisterUserRequest'
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/controllers.RegisterUserResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
       tags:
       - users
-  /register:
-    post:
+  /categories:
+    get:
       consumes:
       - application/json
-      description: Registers a phone number and sends a verification code via WhatsApp
-      parameters:
-      - description: Phone number
-        in: body
-        name: phone
-        required: true
-        schema:
-          $ref: '#/definitions/controllers.RegisterRequest'
+      description: Возвращает список всех доступных категорий товаров.
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.RegisterResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            items:
+              $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.Category'
+            type: array
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      summary: Получение списка категорий
       tags:
-      - verification
+      - Справочники
+  /markets:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех доступных рынков.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.Market'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      summary: Получение списка рынков
+      tags:
+      - Справочники
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Отправляет код подтверждения на указанный номер телефона.
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+      summary: Отправка кода подтверждения
+      tags:
+      - Авторизация
+  /set_password:
+    post:
+      consumes:
+      - application/json
+      description: Устанавливает пароль для пользователя.
+      parameters:
+      - description: Данные для установки пароля
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+      summary: Установка пароля
+      tags:
+      - Авторизация
+  /supplier/update_details:
+    post:
+      consumes:
+      - application/json
+      description: Обновляет информацию о поставщике.
+      parameters:
+      - description: Данные для обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.UpdateSupplierRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.UpdateSupplierDetailsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновление данных поставщика
+      tags:
+      - Поставщик
   /suppliers:
     get:
       description: Retrieves a list of all suppliers
@@ -226,16 +463,16 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Supplier'
+              $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.Supplier'
             type: array
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       security:
       - BearerAuth: []
       tags:
@@ -249,87 +486,49 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Supplier'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.Supplier'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       security:
       - BearerAuth: []
-      tags:
-      - suppliers
-  /suppliers/register:
-    post:
-      consumes:
-      - application/json
-      description: Updates supplier details if verified, or creates a new verified
-        supplier.
-      parameters:
-      - description: Supplier registration data
-        in: body
-        name: supplier
-        required: true
-        schema:
-          $ref: '#/definitions/controllers.RegisterSupplierRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controllers.VerifyResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
       tags:
       - suppliers
   /verify:
     post:
       consumes:
       - application/json
-      description: Verifies a phone number with the provided code. If the phone number
-        does not exist, a new supplier is created and marked as verified.
+      description: Проверяет код подтверждения, отправленный на номер телефона.
       parameters:
-      - description: Phone number and verification code
+      - description: Данные для верификации
         in: body
-        name: verification
+        name: input
         required: true
         schema:
-          $ref: '#/definitions/controllers.VerifyRequest'
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.VerifyResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+      summary: Верификация кода подтверждения
       tags:
-      - verification
+      - Авторизация
 securityDefinitions:
   BearerAuth:
     in: header
