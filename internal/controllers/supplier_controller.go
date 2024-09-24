@@ -109,7 +109,7 @@ type SupplierService struct{}
 
 // UpdateSupplierDetails обновляет детали поставщика
 func (s *SupplierService) UpdateSupplierDetails(phoneNumber string, req models.UpdateSupplierRequest) error {
-	query := `UPDATE suppliers 
+	query := `UPDATE supplier 
 	          SET name = $1, 
 	              market_name = $2, 
 	              places_rows = $3, 

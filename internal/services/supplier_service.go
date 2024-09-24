@@ -26,7 +26,7 @@ func NewSupplierService() *SupplierService {
 
 // CreateSupplier создает нового поставщика
 func (s *SupplierService) CreateSupplier(supplier *models.Supplier) error {
-	query := `INSERT INTO suppliers (phone_number, is_verified, created_at, updated_at)
+	query := `INSERT INTO supplier (phone_number, is_verified, created_at, updated_at)
               VALUES ($1, $2, $3, $4) RETURNING id`
 	err := db.DB.QueryRow(query, supplier.PhoneNumber, supplier.IsVerified, supplier.CreatedAt, supplier.UpdatedAt).Scan(&supplier.ID)
 	if err != nil {
@@ -40,7 +40,7 @@ func (s *SupplierService) GetSupplierInfo(phoneNumber string) (*models.Supplier,
 	supplier := &models.Supplier{}
 
 	query := `SELECT id, name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified
-	          FROM suppliers WHERE phone_number = $1`
+	          FROM supplier WHERE phone_number = $1`
 
 	err := db.DB.QueryRow(query, phoneNumber).Scan(
 		&supplier.ID,
@@ -65,7 +65,7 @@ func (s *SupplierService) GetSupplierInfo(phoneNumber string) (*models.Supplier,
 
 // GetAllSuppliers получает список всех поставщиков
 func (s *SupplierService) GetAllSuppliers() ([]models.Supplier, error) {
-	query := `SELECT id, name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified FROM suppliers`
+	query := `SELECT id, name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified FROM supplier`
 
 	rows, err := db.DB.Query(query)
 	if err != nil {
@@ -91,7 +91,7 @@ func (s *SupplierService) GetAllSuppliers() ([]models.Supplier, error) {
 
 // IsPhoneNumberVerified проверяет, верифицирован ли номер телефона
 func (s *SupplierService) IsPhoneNumberVerified(phoneNumber string) (bool, error) {
-	query := `SELECT is_verified FROM suppliers WHERE phone_number = $1`
+	query := `SELECT is_verified FROM supplier WHERE phone_number = $1`
 
 	var isVerified bool
 	err := db.DB.QueryRow(query, phoneNumber).Scan(&isVerified)
@@ -131,7 +131,7 @@ func (s *SupplierService) MarkPhoneNumberAsVerified(phoneNumber string) error {
 	}
 
 	// Если поставщик найден, обновляем его статус
-	query := `UPDATE suppliers SET is_verified = $1, updated_at = $2 WHERE phone_number = $3`
+	query := `UPDATE supplier SET is_verified = $1, updated_at = $2 WHERE phone_number = $3`
 	_, err = db.DB.Exec(query, true, time.Now(), phoneNumber)
 	if err != nil {
 		return fmt.Errorf("Не удалось обновить статус поставщика: %v", err)
@@ -209,7 +209,7 @@ func (s *SupplierService) CreateUser(phoneNumber string) error {
 
 // UpdateSupplierDetails обновляет данные поставщика
 func (s *SupplierService) UpdateSupplierDetails(phoneNumber string, marketID int, placeName string, rowName string, categories []int) error {
-	query := `UPDATE suppliers 
+	query := `UPDATE supplier 
 	          SET market_id = $1, 
 	              place_name = $2, 
 	              row_name = $3, 
@@ -275,7 +275,7 @@ func (s *SupplierService) ValidateVerificationCode(phoneNumber, code string) boo
 }
 
 func (s *SupplierService) LinkUserToSupplier(phoneNumber string, userID int) error {
-	query := `UPDATE suppliers SET user_id = $1 WHERE phone_number = $2`
+	query := `UPDATE supplier SET user_id = $1 WHERE phone_number = $2`
 	result, err := db.DB.Exec(query, userID, phoneNumber)
 	if err != nil {
 		return fmt.Errorf("Не удалось связать пользователя с поставщиком: %v", err)
@@ -294,7 +294,7 @@ func (s *SupplierService) LinkUserToSupplier(phoneNumber string, userID int) err
 }
 
 func (s *SupplierService) UpdateSupplierDetailsByUserID(userID int, marketID, placeID, rowID int, categories []int) error {
-	query := `UPDATE suppliers 
+	query := `UPDATE supplier 
               SET market_id = $1, place_id = $2, row_id = $3, categories = $4, updated_at = $5
               WHERE user_id = $6`
 
@@ -351,7 +351,7 @@ func (s *SupplierService) GetAllCategories() ([]models.Category, error) {
 func (s *SupplierService) GetSupplierByPhoneNumber(phoneNumber string) (*models.Supplier, error) {
 	supplier := &models.Supplier{}
 
-	query := `SELECT id, phone_number, is_verified, created_at, updated_at FROM suppliers WHERE phone_number = $1`
+	query := `SELECT id, phone_number, is_verified, created_at, updated_at FROM supplier WHERE phone_number = $1`
 
 	err := db.DB.QueryRow(query, phoneNumber).Scan(
 		&supplier.ID,
