@@ -39,20 +39,16 @@ func (s *SupplierService) CreateSupplier(supplier *models.Supplier) error {
 func (s *SupplierService) GetSupplierInfo(phoneNumber string) (*models.Supplier, error) {
 	supplier := &models.Supplier{}
 
-	query := `SELECT id, name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified
-	          FROM supplier WHERE phone_number = $1`
+	query := `SELECT id, phone_number, is_verified, created_at, updated_at FROM supplier WHERE phone_number = $1`
 
 	err := db.DB.QueryRow(query, phoneNumber).Scan(
 		&supplier.ID,
-		&supplier.Name,
 		&supplier.PhoneNumber,
-		&supplier.MarketID,
-		&supplier.PlaceID,
-		&supplier.Categories,
+		&supplier.IsVerified,
 		&supplier.CreatedAt,
 		&supplier.UpdatedAt,
-		&supplier.IsVerified,
 	)
+
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			return nil, errors.New("supplier not found")
@@ -65,7 +61,7 @@ func (s *SupplierService) GetSupplierInfo(phoneNumber string) (*models.Supplier,
 
 // GetAllSuppliers получает список всех поставщиков
 func (s *SupplierService) GetAllSuppliers() ([]models.Supplier, error) {
-	query := `SELECT id, name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified FROM supplier`
+	query := `SELECT id, name, phone_number, market_id, place_name, row_name, categories, created_at, updated_at, is_verified FROM supplier`
 
 	rows, err := db.DB.Query(query)
 	if err != nil {
@@ -76,7 +72,7 @@ func (s *SupplierService) GetAllSuppliers() ([]models.Supplier, error) {
 	var suppliers []models.Supplier
 	for rows.Next() {
 		var supplier models.Supplier
-		if err := rows.Scan(&supplier.ID, &supplier.Name, &supplier.PhoneNumber, &supplier.MarketID, &supplier.PlaceID, &supplier.Categories, &supplier.CreatedAt, &supplier.UpdatedAt, &supplier.IsVerified); err != nil {
+		if err := rows.Scan(&supplier.ID, &supplier.Name, &supplier.PhoneNumber, &supplier.MarketID, &supplier.Place, &supplier.RowName, &supplier.Categories, &supplier.CreatedAt, &supplier.UpdatedAt, &supplier.IsVerified); err != nil {
 			return nil, fmt.Errorf("error scanning supplier: %v", err)
 		}
 		suppliers = append(suppliers, supplier)

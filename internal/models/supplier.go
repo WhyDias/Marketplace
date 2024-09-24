@@ -7,14 +7,14 @@ import "time"
 // Supplier модель для хранения информации о поставщике
 type Supplier struct {
 	ID          int       `json:"id"`
+	Name        string    `json:"name"`
 	PhoneNumber string    `json:"phone_number"`
+	Categories  []int     `json:"categories"`
+	Place       string    `json:"place"`
+	MarketID    int       `json:"market_id"`
+	RowName     string    `json:"row_name"`
+	UserID      int       `json:"user_id"`
 	IsVerified  bool      `json:"is_verified"`
-	Name        string    `json:"name,omitempty"`
-	MarketID    int       `json:"market_id,omitempty"`
-	PlaceID     int       `json:"place_id,omitempty"`
-	RowID       int       `json:"row_id,omitempty"`
-	Categories  []int     `json:"categories,omitempty"` // Массив ID категорий
-	UserID      int       `json:"user_id,omitempty"`    // Новое поле для связи с пользователем
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
