@@ -289,12 +289,12 @@ func (s *SupplierService) LinkUserToSupplier(phoneNumber string, userID int) err
 	return nil
 }
 
-func (s *SupplierService) UpdateSupplierDetailsByUserID(userID int, marketID, placeID, rowID int, categories []int) error {
+func (s *SupplierService) UpdateSupplierDetailsByUserID(userID int, marketID int, place string, row_name string, categories []int) error {
 	query := `UPDATE supplier 
-              SET market_id = $1, place_id = $2, row_id = $3, categories = $4, updated_at = $5
+              SET market_id = $1, place_name = $2, row_name = $3, categories = $4, updated_at = $5
               WHERE user_id = $6`
 
-	_, err := db.DB.Exec(query, marketID, placeID, rowID, pq.Array(categories), time.Now(), userID)
+	_, err := db.DB.Exec(query, marketID, place, row_name, pq.Array(categories), time.Now(), userID)
 	if err != nil {
 		return fmt.Errorf("Не удалось обновить данные поставщика: %v", err)
 	}

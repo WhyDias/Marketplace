@@ -233,30 +233,36 @@ func (sc *SupplierController) UpdateSupplier(c *gin.Context) {
 // internal/controllers/supplier_controller.go
 
 type UpdateSupplierDetailsRequest struct {
-	MarketID   int   `json:"market_id" binding:"required"`
-	PlaceID    int   `json:"place_id" binding:"required"`
-	RowID      int   `json:"row_id" binding:"required"`
-	Categories []int `json:"categories" binding:"required"`
+	MarketID   int    `json:"market_id" binding:"required"`
+	Place      string `json:"place" binding:"required"`
+	RowName    string `json:"row_name" binding:"required"`
+	Categories []int  `json:"categories" binding:"required"`
 }
 
 func (sc *SupplierController) UpdateSupplierDetails(c *gin.Context) {
 	var req UpdateSupplierDetailsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Получаем user_id из контекста
-	userID, exists := c.Get("user_id")
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Пользователь не аутентифицирован"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не аутентифицирован"})
+		return
+	}
+
+	userID, ok := userIDInterface.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Неверный формат user_id"})
 		return
 	}
 
 	// Обновляем детали поставщика
-	err := sc.Service.UpdateSupplierDetailsByUserID(userID.(int), req.MarketID, req.PlaceID, req.RowID, req.Categories)
+	err := sc.Service.UpdateSupplierDetailsByUserID(userID, req.MarketID, req.Place, req.RowName, req.Categories)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить данные поставщика"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить данные поставщика"})
 		return
 	}
 
