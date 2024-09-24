@@ -41,8 +41,8 @@ func SendTextMessage(messageBody string, recipient string) error {
 	}
 
 	// Параметры API
-	profileID := "your_profile_id" // Замените на ваш реальный profile_id
-	apiKey := "your_api_key"       // Замените на ваш реальный apiKey
+	profileID := "b0fbe69d-e68e"                         // Замените на ваш реальный profile_id
+	apiKey := "234f33d4c7af8a62baeecdf1432fc9b5ffe911a1" // Замените на ваш реальный apiKey
 	url := fmt.Sprintf("https://wappi.pro/api/sync/message/send?profile_id=%s", profileID)
 
 	// Создание данных для отправки
