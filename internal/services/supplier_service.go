@@ -3,6 +3,7 @@
 package services
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/lib/pq"
@@ -25,15 +26,12 @@ func NewSupplierService() *SupplierService {
 
 // CreateSupplier создает нового поставщика
 func (s *SupplierService) CreateSupplier(supplier *models.Supplier) error {
-	query := `INSERT INTO suppliers (name, phone_number, market_id, place_id, row_id, categories, created_at, updated_at, is_verified)
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, updated_at`
-
-	// Параметры могут включать поле categories, если это массив
-	err := db.DB.QueryRow(query, supplier.Name, supplier.PhoneNumber, supplier.MarketID, supplier.PlaceID, supplier.RowID, supplier.Categories, time.Now(), time.Now(), supplier.IsVerified).Scan(&supplier.ID, &supplier.CreatedAt, &supplier.UpdatedAt)
+	query := `INSERT INTO suppliers (phone_number, is_verified, created_at, updated_at)
+              VALUES ($1, $2, $3, $4) RETURNING id`
+	err := db.DB.QueryRow(query, supplier.PhoneNumber, supplier.IsVerified, supplier.CreatedAt, supplier.UpdatedAt).Scan(&supplier.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create supplier: %v", err)
 	}
-
 	return nil
 }
 
@@ -116,19 +114,27 @@ type UpdateSupplierRequest struct {
 
 // MarkPhoneNumberAsVerified обновляет поле is_verified для поставщика
 func (s *SupplierService) MarkPhoneNumberAsVerified(phoneNumber string) error {
-	query := `UPDATE suppliers SET is_verified = TRUE WHERE phone_number = $1`
-	result, err := db.DB.Exec(query, phoneNumber)
+	supplier, err := s.GetSupplierByPhoneNumber(phoneNumber)
 	if err != nil {
-		return fmt.Errorf("failed to mark phone number as verified: %v", err)
+		if err.Error() == "supplier not found" {
+			// Если поставщик не найден, создаём новую запись
+			supplier = &models.Supplier{
+				PhoneNumber: phoneNumber,
+				IsVerified:  true,
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+			}
+			return s.CreateSupplier(supplier)
+		} else {
+			return fmt.Errorf("Ошибка при получении поставщика: %v", err)
+		}
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	// Если поставщик найден, обновляем его статус
+	query := `UPDATE suppliers SET is_verified = $1, updated_at = $2 WHERE phone_number = $3`
+	_, err = db.DB.Exec(query, true, time.Now(), phoneNumber)
 	if err != nil {
-		return fmt.Errorf("error fetching rows affected: %v", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("supplier with phone number %s not found", phoneNumber)
+		return fmt.Errorf("Не удалось обновить статус поставщика: %v", err)
 	}
 
 	return nil
@@ -340,4 +346,26 @@ func (s *SupplierService) GetAllCategories() ([]models.Category, error) {
 	}
 
 	return categories, nil
+}
+
+func (s *SupplierService) GetSupplierByPhoneNumber(phoneNumber string) (*models.Supplier, error) {
+	supplier := &models.Supplier{}
+
+	query := `SELECT id, phone_number, is_verified, created_at, updated_at FROM suppliers WHERE phone_number = $1`
+
+	err := db.DB.QueryRow(query, phoneNumber).Scan(
+		&supplier.ID,
+		&supplier.PhoneNumber,
+		&supplier.IsVerified,
+		&supplier.CreatedAt,
+		&supplier.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("supplier not found")
+		}
+		return nil, fmt.Errorf("error fetching supplier: %v", err)
+	}
+
+	return supplier, nil
 }

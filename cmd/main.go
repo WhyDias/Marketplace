@@ -69,6 +69,7 @@ func main() {
 	router.POST("/register", verificationController.SendVerificationCode)
 	router.POST("/verify", verificationController.VerifyCode)
 	router.POST("/set_password", userController.SetPassword)
+	router.POST("/api/users/login", userController.LoginUser)
 
 	// Защищенные маршруты
 	authorized := router.Group("/")

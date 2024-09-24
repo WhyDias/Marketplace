@@ -160,18 +160,25 @@ func (vc *VerificationController) SendVerificationCode(c *gin.Context) {
 func (vc *VerificationController) VerifyCode(c *gin.Context) {
 	var req VerifyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	// Проверка кода верификации
+	// Проверяем код верификации
 	isValid := vc.SupplierService.ValidateVerificationCode(req.PhoneNumber, req.Code)
 	if !isValid {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверный или истекший код подтверждения"})
+		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Неверный или истекший код подтверждения"})
 		return
 	}
 
-	c.JSON(http.StatusOK, VerifyResponse{
-		Message: "Верификация успешна",
+	// Обновляем статус поставщика или создаём запись, если её нет
+	err := vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось обновить статус поставщика"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Верификация успешна",
 	})
 }
