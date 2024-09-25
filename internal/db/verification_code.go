@@ -21,9 +21,7 @@ func CreateVerificationCode(phoneNumber, code string, expiresAt time.Time) error
 func GetLatestVerificationCode(phoneNumber string) (*models.VerificationCode, error) {
 	query := `SELECT id, phone_number, code, created_at, expires_at
               FROM verification_codes
-              WHERE phone_number = $1
-              ORDER BY created_at DESC
-              LIMIT 1`
+              WHERE phone_number = $1`
 
 	var vc models.VerificationCode
 	err := DB.QueryRow(query, phoneNumber).Scan(
