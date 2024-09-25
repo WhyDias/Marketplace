@@ -190,3 +190,230 @@ func (uc *UserController) SetPassword(c *gin.Context) {
 		"message": "Пароль установлен, учетная запись создана",
 	})
 }
+
+// CheckPhoneRequest структура запроса для проверки номера телефона
+type CheckPhoneRequest struct {
+	Username string `json:"username" binding:"required"` // Username используется как phone_number
+}
+
+// CheckPhoneResponse структура ответа после проверки номера телефона
+type CheckPhoneResponse struct {
+	Exists bool `json:"exists"`
+}
+
+// CheckPhone проверяет, существует ли номер телефона в таблице users
+// @Summary      Проверка существования номера телефона
+// @Description  Проверяет, существует ли пользователь с указанным номером телефона
+// @Tags         Авторизация
+// @Accept       json
+// @Produce      json
+// @Param        input  body      CheckPhoneRequest         true  "Номер телефона для проверки"
+// @Success      200    {object}  CheckPhoneResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /api/users/check_phone [post]
+func (uc *UserController) CheckPhone(c *gin.Context) {
+	var req CheckPhoneRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Проверяем существование пользователя по phone_number (username)
+	exists, err := uc.Service.CheckPhoneExists(req.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Ошибка при проверке номера телефона"})
+		return
+	}
+
+	c.JSON(http.StatusOK, CheckPhoneResponse{Exists: exists})
+}
+
+// RequestPasswordResetRequest структура запроса для инициации сброса пароля
+type RequestPasswordResetRequest struct {
+	Username string `json:"username" binding:"required"` // Username используется как phone_number
+}
+
+// RequestPasswordResetResponse структура ответа после инициации сброса пароля
+type RequestPasswordResetResponse struct {
+	Message string `json:"message"`
+}
+
+// ConfirmPasswordResetRequest структура запроса для подтверждения сброса пароля
+type ConfirmPasswordResetRequest struct {
+	Username        string `json:"username" binding:"required"`
+	Code            string `json:"code" binding:"required,len=6"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=NewPassword"`
+}
+
+// ConfirmPasswordResetResponse структура ответа после подтверждения сброса пароля
+type ConfirmPasswordResetResponse struct {
+	Message string `json:"message"`
+}
+
+// ConfirmPasswordReset подтверждает код и устанавливает новый пароль
+// @Summary      Подтверждение сброса пароля
+// @Description  Проверяет код подтверждения и устанавливает новый пароль для пользователя
+// @Tags         Восстановление доступа
+// @Accept       json
+// @Produce      json
+// @Param        input  body      ConfirmPasswordResetRequest  true  "Данные для подтверждения сброса пароля"
+// @Success      200    {object}  ConfirmPasswordResetResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      401    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /api/users/confirm_password_reset [post]
+func (uc *UserController) ConfirmPasswordReset(c *gin.Context) {
+	var req ConfirmPasswordResetRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Проверяем совпадение паролей
+	if req.NewPassword != req.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пароли не совпадают"})
+		return
+	}
+
+	// Проверяем корректность кода подтверждения
+	isValid := uc.SupplierService.ValidateVerificationCode(req.Username, req.Code)
+	if !isValid {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверный или истекший код подтверждения"})
+		return
+	}
+
+	// Устанавливаем новый пароль
+	err := uc.Service.ResetPassword(req.Username, req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось сбросить пароль"})
+		return
+	}
+
+	c.JSON(http.StatusOK, ConfirmPasswordResetResponse{Message: "Пароль успешно сброшен"})
+}
+
+// SetNewPasswordRequest структура запроса для установки нового пароля
+type SetNewPasswordRequest struct {
+	Username        string `json:"username" binding:"required,e164"` // Username используется как phone_number
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=NewPassword"`
+}
+
+// SetNewPasswordResponse структура ответа после установки нового пароля
+type SetNewPasswordResponse struct {
+	Message string `json:"message"`
+}
+
+// internal/controllers/user_controller.go
+
+// RequestPasswordReset инициирует процесс сброса пароля, отправляя код подтверждения
+// @Summary      Запрос на сброс пароля
+// @Description  Отправляет код подтверждения на указанный номер телефона для сброса пароля
+// @Tags         Восстановление доступа
+// @Accept       json
+// @Produce      json
+// @Param        input  body      RequestPasswordResetRequest  true  "Номер телефона для сброса пароля"
+// @Success      200    {object}  RequestPasswordResetResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /api/users/request_password_reset [post]
+func (uc *UserController) RequestPasswordReset(c *gin.Context) {
+	var req RequestPasswordResetRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Проверяем, существует ли пользователь с таким username (phone_number)
+	exists, err := uc.Service.CheckUserExists(req.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Ошибка при проверке пользователя"})
+		return
+	}
+
+	if !exists {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пользователь с таким номером телефона не найден"})
+		return
+	}
+
+	// Генерируем и отправляем код подтверждения
+	err = uc.SupplierService.SendVerificationCode(req.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось отправить код подтверждения"})
+		return
+	}
+
+	c.JSON(http.StatusOK, RequestPasswordResetResponse{Message: "Код подтверждения отправлен"})
+}
+
+// internal/controllers/user_controller.go
+
+// VerifyCode проверяет код подтверждения для указанного username.
+// @Summary      Верификация кода подтверждения
+// @Description  Проверяет код подтверждения, отправленный на номер телефона.
+// @Tags         Восстановление доступа
+// @Accept       json
+// @Produce      json
+// @Param        input  body      VerifyCodeRequest  true  "Данные для верификации"
+// @Success      200    {object}  VerifyCodeResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      401    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /api/users/verify_code [post]
+func (uc *UserController) VerifyCode(c *gin.Context) {
+	var req VerifyCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Проверяем корректность кода подтверждения
+	isValid := uc.SupplierService.ValidateVerificationCode(req.Usernamw, req.Code)
+	if !isValid {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверный или истекший код подтверждения"})
+		return
+	}
+
+	c.JSON(http.StatusOK, VerifyCodeResponse{Message: "Код подтвержден"})
+}
+
+// internal/controllers/user_controller.go
+
+// SetNewPassword устанавливает новый пароль для пользователя после верификации кода сброса пароля.
+// @Summary      Установка нового пароля
+// @Description  Устанавливает новый пароль для пользователя после верификации кода сброса пароля
+// @Tags         Восстановление доступа
+// @Accept       json
+// @Produce      json
+// @Param        input  body      SetNewPasswordRequest  true  "Данные для установки нового пароля"
+// @Success      200    {object}  SetNewPasswordResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /api/users/set_new_password [post]
+func (uc *UserController) SetNewPassword(c *gin.Context) {
+	var req SetNewPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Проверяем корректность паролей (эта проверка уже выполняется при валидации)
+	// Поэтому её можно удалить
+	/*
+		if req.NewPassword != req.ConfirmPassword {
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пароли не совпадают"})
+			return
+		}
+	*/
+
+	// Устанавливаем новый пароль
+	err := uc.Service.ResetPassword(req.Username, req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось сбросить пароль"})
+		return
+	}
+
+	c.JSON(http.StatusOK, SetNewPasswordResponse{Message: "Пароль успешно установлен"})
+}

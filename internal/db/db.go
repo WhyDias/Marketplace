@@ -7,6 +7,7 @@ import (
 	_ "github.com/lib/pq" // Импорт драйвера PostgreSQL
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"time"
 )
 
 type Config struct {
@@ -79,6 +80,7 @@ func CreateUser(user *models.User) error {
 	return nil
 }
 
+// GetUserByUsername получает пользователя из базы данных по имени пользователя
 func GetUserByUsername(username string) (*models.User, error) {
 	user := &models.User{}
 
@@ -88,8 +90,28 @@ func GetUserByUsername(username string) (*models.User, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Не удалось получить пользователя по имени: %v", err)
+		return nil, fmt.Errorf("не удалось получить пользователя по имени: %v", err)
 	}
 
 	return user, nil
+}
+
+// UpdateUserPassword обновляет пароль пользователя
+func UpdateUserPassword(username, newHashedPassword string) error {
+	query := `UPDATE users SET password_hash = $1, updated_at = $2 WHERE username = $3`
+	result, err := DB.Exec(query, newHashedPassword, time.Now(), username)
+	if err != nil {
+		return fmt.Errorf("не удалось обновить пароль: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("ошибка при получении количества затронутых строк: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("пользователь с именем %s не найден", username)
+	}
+
+	return nil
 }
