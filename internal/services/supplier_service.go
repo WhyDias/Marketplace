@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lib/pq"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -254,20 +255,32 @@ func (s *SupplierService) SendVerificationCode(phoneNumber string) error {
 	return nil
 }
 
-func (s *SupplierService) ValidateVerificationCode(phoneNumber, code string) bool {
-	verificationCode, err := db.GetLatestVerificationCode(phoneNumber)
+func (s *SupplierService) ValidateVerificationCode(username, code string) bool {
+	log.Printf("Валидация кода подтверждения %s для пользователя %s", code, username)
+	verificationCode, err := db.GetLatestVerificationCode(username)
 	if err != nil {
-		fmt.Println("Error fetching verification code:", err)
+		if err == sql.ErrNoRows {
+			log.Printf("Код подтверждения не найден для пользователя %s", username)
+		} else {
+			log.Printf("Ошибка при получении кода подтверждения для %s: %v", username, err)
+		}
 		return false
 	}
 
-	//// Проверяем, не истёк ли код
-	//if time.Now().After(verificationCode.ExpiresAt) {
-	//	return false
-	//}
+	// Проверяем, не истёк ли код
+	if time.Now().After(verificationCode.ExpiresAt) {
+		log.Printf("Код подтверждения %s для пользователя %s истёк в %s", code, username, verificationCode.ExpiresAt)
+		return false
+	}
 
 	// Сравниваем введённый код с сохранённым
-	return code == verificationCode.Code
+	if code == verificationCode.Code {
+		log.Printf("Код подтверждения %s для пользователя %s верен", code, username)
+		return true
+	}
+
+	log.Printf("Код подтверждения %s для пользователя %s неверен", code, username)
+	return false
 }
 
 func (s *SupplierService) LinkUserToSupplier(phoneNumber string, userID int) error {

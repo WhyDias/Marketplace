@@ -6,6 +6,7 @@ import (
 	"github.com/WhyDias/Marketplace/internal/services"
 	_ "github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/WhyDias/Marketplace/pkg/jwt"
+	"log"
 	"net/http"
 	"time"
 
@@ -322,29 +323,36 @@ type SetNewPasswordResponse struct {
 func (uc *UserController) RequestPasswordReset(c *gin.Context) {
 	var req RequestPasswordResetRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("Ошибка при связывании JSON для RequestPasswordReset: %v", err)
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
+	log.Printf("Инициация сброса пароля для пользователя %s", req.Username)
 	// Проверяем, существует ли пользователь с таким username (phone_number)
 	exists, err := uc.Service.CheckUserExists(req.Username)
 	if err != nil {
+		log.Printf("Ошибка при проверке существования пользователя %s: %v", req.Username, err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Ошибка при проверке пользователя"})
 		return
 	}
 
 	if !exists {
+		log.Printf("Пользователь с номером телефона %s не найден", req.Username)
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пользователь с таким номером телефона не найден"})
 		return
 	}
 
 	// Генерируем и отправляем код подтверждения
+	log.Printf("Отправка кода подтверждения для пользователя %s", req.Username)
 	err = uc.SupplierService.SendVerificationCode(req.Username)
 	if err != nil {
+		log.Printf("Не удалось отправить код подтверждения пользователю %s: %v", req.Username, err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось отправить код подтверждения"})
 		return
 	}
 
+	log.Printf("Код подтверждения успешно отправлен пользователю %s", req.Username)
 	c.JSON(http.StatusOK, RequestPasswordResetResponse{Message: "Код подтверждения отправлен"})
 }
 
@@ -398,15 +406,6 @@ func (uc *UserController) SetNewPassword(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
-
-	// Проверяем корректность паролей (эта проверка уже выполняется при валидации)
-	// Поэтому её можно удалить
-	/*
-		if req.NewPassword != req.ConfirmPassword {
-			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пароли не совпадают"})
-			return
-		}
-	*/
 
 	// Устанавливаем новый пароль
 	err := uc.Service.ResetPassword(req.Username, req.NewPassword)
