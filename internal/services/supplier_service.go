@@ -261,10 +261,10 @@ func (s *SupplierService) ValidateVerificationCode(phoneNumber, code string) boo
 		return false
 	}
 
-	// Проверяем, не истёк ли код
-	if time.Now().After(verificationCode.ExpiresAt) {
-		return false
-	}
+	//// Проверяем, не истёк ли код
+	//if time.Now().After(verificationCode.ExpiresAt) {
+	//	return false
+	//}
 
 	// Сравниваем введённый код с сохранённым
 	return code == verificationCode.Code
