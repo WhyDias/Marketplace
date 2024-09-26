@@ -50,6 +50,8 @@ func main() {
 	// Инициализация сервисов
 	userService := services.NewUserService()
 	supplierService := services.NewSupplierService()
+	productService := services.NewProductService()
+	productController := controllers.NewProductController(productService)
 
 	// Инициализация контроллеров
 	userController := controllers.NewUserController(userService, supplierService, jwtService)
@@ -84,6 +86,9 @@ func main() {
 	// Маршруты для получения рынков и категорий
 	router.GET("/markets", supplierController.GetMarkets)
 	router.GET("/categories", supplierController.GetCategories)
+
+	router.GET("/api/products/moderated", productController.GetModeratedProducts)
+	router.GET("/api/products/unmoderated", productController.GetUnmoderatedProducts)
 
 	// Запуск сервера
 	port := ":8080"

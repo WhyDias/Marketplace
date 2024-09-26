@@ -1,5 +1,40 @@
 basePath: /
 definitions:
+  github_com_WhyDias_Marketplace_internal_controllers.CheckPhoneRequest:
+    properties:
+      username:
+        description: Username используется как phone_number
+        type: string
+    required:
+    - username
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.CheckPhoneResponse:
+    properties:
+      exists:
+        type: boolean
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.ConfirmPasswordResetRequest:
+    properties:
+      code:
+        type: string
+      confirm_password:
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+      username:
+        type: string
+    required:
+    - code
+    - confirm_password
+    - new_password
+    - username
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.ConfirmPasswordResetResponse:
+    properties:
+      message:
+        type: string
+    type: object
   github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse:
     properties:
       error:
@@ -21,6 +56,23 @@ definitions:
         type: string
       expires_at:
         type: string
+      role:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.Product:
+    properties:
+      category_id:
+        type: integer
+      id:
+        type: integer
+      market_id:
+        type: integer
+      name:
+        type: string
+      status_id:
+        type: integer
+      supplier_id:
+        type: integer
     type: object
   github_com_WhyDias_Marketplace_internal_controllers.RegisterRequest:
     properties:
@@ -54,6 +106,39 @@ definitions:
       id:
         type: integer
       username:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.RequestPasswordResetRequest:
+    properties:
+      username:
+        description: Username используется как phone_number
+        type: string
+    required:
+    - username
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.RequestPasswordResetResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.SetNewPasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+      username:
+        description: Username используется как phone_number
+        type: string
+    required:
+    - confirm_password
+    - new_password
+    - username
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.SetNewPasswordResponse:
+    properties:
+      message:
         type: string
     type: object
   github_com_WhyDias_Marketplace_internal_controllers.SetPasswordRequest:
@@ -151,6 +236,41 @@ definitions:
     - name
     - places_rows
     type: object
+  internal_controllers.CheckPhoneRequest:
+    properties:
+      username:
+        description: Username используется как phone_number
+        type: string
+    required:
+    - username
+    type: object
+  internal_controllers.CheckPhoneResponse:
+    properties:
+      exists:
+        type: boolean
+    type: object
+  internal_controllers.ConfirmPasswordResetRequest:
+    properties:
+      code:
+        type: string
+      confirm_password:
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+      username:
+        type: string
+    required:
+    - code
+    - confirm_password
+    - new_password
+    - username
+    type: object
+  internal_controllers.ConfirmPasswordResetResponse:
+    properties:
+      message:
+        type: string
+    type: object
   internal_controllers.ErrorResponse:
     properties:
       error:
@@ -172,6 +292,23 @@ definitions:
         type: string
       expires_at:
         type: string
+      role:
+        type: string
+    type: object
+  internal_controllers.Product:
+    properties:
+      category_id:
+        type: integer
+      id:
+        type: integer
+      market_id:
+        type: integer
+      name:
+        type: string
+      status_id:
+        type: integer
+      supplier_id:
+        type: integer
     type: object
   internal_controllers.RegisterRequest:
     properties:
@@ -205,6 +342,39 @@ definitions:
       id:
         type: integer
       username:
+        type: string
+    type: object
+  internal_controllers.RequestPasswordResetRequest:
+    properties:
+      username:
+        description: Username используется как phone_number
+        type: string
+    required:
+    - username
+    type: object
+  internal_controllers.RequestPasswordResetResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  internal_controllers.SetNewPasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+      username:
+        description: Username используется как phone_number
+        type: string
+    required:
+    - confirm_password
+    - new_password
+    - username
+    type: object
+  internal_controllers.SetNewPasswordResponse:
+    properties:
+      message:
         type: string
     type: object
   internal_controllers.SetPasswordRequest:
@@ -252,6 +422,140 @@ info:
   title: Marketplace API
   version: "1.0"
 paths:
+  /api/products/moderated:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список продуктов, находящихся на модерации (status_id
+        = 3)
+      parameters:
+      - default: 1
+        description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Количество продуктов на странице
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_controllers.Product'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      summary: Получить продукты с модерацией
+      tags:
+      - Products
+  /api/products/unmoderated:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список продуктов, не находящихся на модерации (status_id
+        = 2)
+      parameters:
+      - default: 1
+        description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Количество продуктов на странице
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_controllers.Product'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      summary: Получить продукты без модерации
+      tags:
+      - Products
+  /api/users/check_phone:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет, существует ли пользователь с указанным номером телефона
+      parameters:
+      - description: Номер телефона для проверки
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controllers.CheckPhoneRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_controllers.CheckPhoneResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      summary: Проверка существования номера телефона
+      tags:
+      - Авторизация
+  /api/users/confirm_password_reset:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет код подтверждения и устанавливает новый пароль для пользователя
+      parameters:
+      - description: Данные для подтверждения сброса пароля
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controllers.ConfirmPasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_controllers.ConfirmPasswordResetResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      summary: Подтверждение сброса пароля
+      tags:
+      - Восстановление доступа
   /api/users/login:
     post:
       consumes:
@@ -263,26 +567,26 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginUserRequest'
+          $ref: '#/definitions/internal_controllers.LoginUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginUserResponse'
+            $ref: '#/definitions/internal_controllers.LoginUserResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       summary: Авторизация пользователя
       tags:
       - Авторизация
@@ -297,24 +601,120 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserRequest'
+          $ref: '#/definitions/internal_controllers.RegisterUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserResponse'
+            $ref: '#/definitions/internal_controllers.RegisterUserResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       tags:
       - users
+  /api/users/request_password_reset:
+    post:
+      consumes:
+      - application/json
+      description: Отправляет код подтверждения на указанный номер телефона для сброса
+        пароля
+      parameters:
+      - description: Номер телефона для сброса пароля
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controllers.RequestPasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_controllers.RequestPasswordResetResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      summary: Запрос на сброс пароля
+      tags:
+      - Восстановление доступа
+  /api/users/set_new_password:
+    post:
+      consumes:
+      - application/json
+      description: Устанавливает новый пароль для пользователя после верификации кода
+        сброса пароля
+      parameters:
+      - description: Данные для установки нового пароля
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controllers.SetNewPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_controllers.SetNewPasswordResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      summary: Установка нового пароля
+      tags:
+      - Восстановление доступа
+  /api/users/verify_code:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет код подтверждения, отправленный на номер телефона.
+      parameters:
+      - description: Данные для верификации
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controllers.VerifyCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_controllers.VerifyCodeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
+      summary: Верификация кода подтверждения
+      tags:
+      - Восстановление доступа
   /categories:
     get:
       consumes:
@@ -398,22 +798,22 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordRequest'
+          $ref: '#/definitions/internal_controllers.SetPasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordResponse'
+            $ref: '#/definitions/internal_controllers.SetPasswordResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       summary: Установка пароля
       tags:
       - Авторизация

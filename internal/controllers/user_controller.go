@@ -121,6 +121,7 @@ func (uc *UserController) LoginUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token": token,
 		"expires_at":   time.Now().Add(72 * time.Hour).Format(time.RFC3339),
+		"role":         user.Role,
 	})
 }
 
@@ -134,6 +135,7 @@ type LoginUserRequest struct {
 type LoginUserResponse struct {
 	AccessToken string `json:"access_token"`
 	ExpiresAt   string `json:"expires_at"`
+	Role        string `json:"role"`
 }
 
 // internal/controllers/user_controller.go
