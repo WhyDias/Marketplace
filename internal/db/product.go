@@ -50,3 +50,44 @@ func FetchProductsByStatus(statusID int) ([]models.Product, error) {
 	log.Printf("FetchProductsByStatus: найдено %d продуктов со статусом %d", len(products), statusID)
 	return products, nil
 }
+
+func FetchProductsBySupplierAndStatus(supplierID, statusID int) ([]models.Product, error) {
+	query := `
+		SELECT id, name, category_id, market_id, status_id, supplier_id
+		FROM product
+		WHERE supplier_id = $1 AND status_id = $2
+	`
+
+	rows, err := DB.Query(query, supplierID, statusID)
+	if err != nil {
+		log.Printf("FetchProductsBySupplierAndStatus: ошибка при выполнении запроса: %v", err)
+		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
+	}
+	defer rows.Close()
+
+	var products []models.Product
+
+	for rows.Next() {
+		var p models.Product
+		if err := rows.Scan(
+			&p.ID,
+			&p.Name,
+			&p.CategoryID,
+			&p.MarketID,
+			&p.StatusID,
+			&p.SupplierID,
+		); err != nil {
+			log.Printf("FetchProductsBySupplierAndStatus: ошибка при сканировании строки: %v", err)
+			return nil, fmt.Errorf("ошибка при сканировании строки: %v", err)
+		}
+		products = append(products, p)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("FetchProductsBySupplierAndStatus: ошибка при итерации по строкам: %v", err)
+		return nil, fmt.Errorf("ошибка при итерации по строкам: %v", err)
+	}
+
+	log.Printf("FetchProductsBySupplierAndStatus: найдено %d продуктов для supplier_id %d и status_id %d", len(products), supplierID, statusID)
+	return products, nil
+}

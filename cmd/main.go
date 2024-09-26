@@ -81,14 +81,13 @@ func main() {
 	authorized.Use(middlewares.AuthMiddleware(jwtService))
 	{
 		authorized.POST("/supplier/update_details", supplierController.UpdateSupplierDetails)
+		authorized.GET("/api/products/moderated", productController.GetModeratedProducts)
+		authorized.GET("/api/products/unmoderated", productController.GetUnmoderatedProducts)
 	}
 
 	// Маршруты для получения рынков и категорий
 	router.GET("/markets", supplierController.GetMarkets)
 	router.GET("/categories", supplierController.GetCategories)
-
-	router.GET("/api/products/moderated", productController.GetModeratedProducts)
-	router.GET("/api/products/unmoderated", productController.GetUnmoderatedProducts)
 
 	// Запуск сервера
 	port := ":8080"

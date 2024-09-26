@@ -98,19 +98,6 @@ func (sc *SupplierController) GetSuppliers(c *gin.Context) {
 // SupplierService структура сервиса поставщиков
 type SupplierService struct{}
 
-// UpdateSupplierDetails обновляет данные поставщика.
-// @Summary      Обновление данных поставщика
-// @Description  Обновляет информацию о поставщике.
-// @Tags         Поставщик
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Param        input  body      models.UpdateSupplierRequest  true  "Данные для обновления"
-// @Success      200    {object}  models.UpdateSupplierDetailsResponse
-// @Failure      400    {object}  ErrorResponse
-// @Failure      401    {object}  ErrorResponse
-// @Failure      500    {object}  ErrorResponse
-// @Router       /supplier/update_details [post]
 func (s *SupplierService) UpdateSupplierDetails(phoneNumber string, req models.UpdateSupplierRequest) error {
 	query := `UPDATE supplier 
 	          SET name = $1, 
@@ -204,6 +191,19 @@ type UpdateSupplierDetailsRequest struct {
 	Categories []int  `json:"categories" binding:"required"`
 }
 
+// UpdateSupplierDetails обновляет данные поставщика.
+// @Summary      Обновление данных поставщика
+// @Description  Обновляет информацию о поставщике.
+// @Tags         Поставщик
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      UpdateSupplierDetailsRequest  true  "Данные для обновления"
+// @Success      200    {object}  models.UpdateSupplierDetailsResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      401    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /supplier/update_details [post]
 func (sc *SupplierController) UpdateSupplierDetails(c *gin.Context) {
 	var req UpdateSupplierDetailsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

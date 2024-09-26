@@ -21,20 +21,47 @@ func NewProductController(service *services.ProductService) *ProductController {
 	}
 }
 
-// GetModeratedProducts получает продукты со статусом 3 (с модерацией)
-// @Summary Получить продукты с модерацией
-// @Description Возвращает список продуктов, находящихся на модерации (status_id = 3)
-// @Tags Products
-// @Accept json
-// @Produce json
-// @Success 200 {array} models.Product
-// @Failure 500 {object} ErrorResponse
-// @Router /api/products/moderated [get]
+// GetModeratedProducts возвращает список продуктов со статусом модерации (status_id = 3).
+// @Summary      Получение продуктов с модерацией
+// @Description  Возвращает список продуктов, находящихся на модерации (status_id = 3).
+// @Tags         Продукты
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {array}   models.Product
+// @Failure      401  {object}  ErrorResponse
+// @Failure      500  {object}  ErrorResponse
+// @Router       /products/moderated [get]
 func (pc *ProductController) GetModeratedProducts(c *gin.Context) {
 	statusID := 3
-	products, err := pc.Service.GetProductsByStatus(statusID)
+
+	// Извлекаем user_id из контекста (предполагается, что JWT middleware установил его)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		log.Printf("GetModeratedProducts: user_id не найден в контексте")
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неавторизованный доступ"})
+		return
+	}
+
+	// Приводим userID к типу int
+	userIDInt, ok := userID.(int)
+	if !ok {
+		log.Printf("GetModeratedProducts: user_id имеет неверный тип")
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Внутренняя ошибка сервера"})
+		return
+	}
+
+	// Получаем supplier_id по user_id
+	supplierID, err := pc.Service.GetSupplierIDByUserID(userIDInt)
 	if err != nil {
-		log.Printf("GetModeratedProducts: ошибка при получении продуктов со статусом %d: %v", statusID, err)
+		log.Printf("GetModeratedProducts: ошибка при получении supplier_id для user_id %d: %v", userIDInt, err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось получить данные поставщика"})
+		return
+	}
+
+	// Получаем продукты по supplier_id и status_id
+	products, err := pc.Service.GetProductsBySupplierAndStatus(supplierID, statusID)
+	if err != nil {
+		log.Printf("GetModeratedProducts: ошибка при получении продуктов для supplier_id %d и status_id %d: %v", supplierID, statusID, err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось получить продукты с модерацией"})
 		return
 	}
@@ -42,20 +69,47 @@ func (pc *ProductController) GetModeratedProducts(c *gin.Context) {
 	c.JSON(http.StatusOK, products)
 }
 
-// GetUnmoderatedProducts получает продукты со статусом 2 (без модерации)
-// @Summary Получить продукты без модерации
-// @Description Возвращает список продуктов, не находящихся на модерации (status_id = 2)
-// @Tags Products
-// @Accept json
-// @Produce json
-// @Success 200 {array} models.Product
-// @Failure 500 {object} ErrorResponse
-// @Router /api/products/unmoderated [get]
+// GetUnmoderatedProducts возвращает список продуктов без модерации (status_id = 2).
+// @Summary      Получение продуктов без модерации
+// @Description  Возвращает список продуктов, прошедших модерацию (status_id = 2).
+// @Tags         Продукты
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {array}   models.Product
+// @Failure      401  {object}  ErrorResponse
+// @Failure      500  {object}  ErrorResponse
+// @Router       /products/unmoderated [get]
 func (pc *ProductController) GetUnmoderatedProducts(c *gin.Context) {
 	statusID := 2
-	products, err := pc.Service.GetProductsByStatus(statusID)
+
+	// Извлекаем user_id из контекста (предполагается, что JWT middleware установил его)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		log.Printf("GetUnmoderatedProducts: user_id не найден в контексте")
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неавторизованный доступ"})
+		return
+	}
+
+	// Приводим userID к типу int
+	userIDInt, ok := userID.(int)
+	if !ok {
+		log.Printf("GetUnmoderatedProducts: user_id имеет неверный тип")
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Внутренняя ошибка сервера"})
+		return
+	}
+
+	// Получаем supplier_id по user_id
+	supplierID, err := pc.Service.GetSupplierIDByUserID(userIDInt)
 	if err != nil {
-		log.Printf("GetUnmoderatedProducts: ошибка при получении продуктов со статусом %d: %v", statusID, err)
+		log.Printf("GetUnmoderatedProducts: ошибка при получении supplier_id для user_id %d: %v", userIDInt, err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось получить данные поставщика"})
+		return
+	}
+
+	// Получаем продукты по supplier_id и status_id
+	products, err := pc.Service.GetProductsBySupplierAndStatus(supplierID, statusID)
+	if err != nil {
+		log.Printf("GetUnmoderatedProducts: ошибка при получении продуктов для supplier_id %d и status_id %d: %v", supplierID, statusID, err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось получить продукты без модерации"})
 		return
 	}
