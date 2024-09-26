@@ -10,14 +10,15 @@ import (
 )
 
 // FetchProductsByStatus получает продукты по status_id
-func FetchProductsByStatus(statusID, limit, offset int) ([]models.Product, error) {
+func FetchProductsByStatus(statusID int) ([]models.Product, error) {
 	query := `
 		SELECT id, name, category_id, market_id, status_id, supplier_id
 		FROM product
 		WHERE status_id = $1
+		ORDER BY created_at DESC
 	`
 
-	rows, err := DB.Query(query, statusID, limit, offset)
+	rows, err := DB.Query(query, statusID)
 	if err != nil {
 		log.Printf("FetchProductsByStatus: ошибка при выполнении запроса: %v", err)
 		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)

@@ -16,9 +16,8 @@ func NewProductService() *ProductService {
 	return &ProductService{}
 }
 
-// GetProductsByStatus получает список продуктов по заданному status_id
-func (s *ProductService) GetProductsByStatusWithPagination(statusID, limit, offset int) ([]models.Product, error) {
-	products, err := db.FetchProductsByStatus(statusID, limit, offset)
+func (s *ProductService) GetProductsByStatus(statusID int) ([]models.Product, error) {
+	products, err := db.FetchProductsByStatus(statusID)
 	if err != nil {
 		log.Printf("ProductService: ошибка при получении продуктов со статусом %d: %v", statusID, err)
 		return nil, fmt.Errorf("не удалось получить продукты: %v", err)
