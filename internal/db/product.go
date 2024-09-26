@@ -15,7 +15,6 @@ func FetchProductsByStatus(statusID int) ([]models.Product, error) {
 		SELECT id, name, category_id, market_id, status_id, supplier_id
 		FROM product
 		WHERE status_id = $1
-		ORDER BY created_at DESC
 	`
 
 	rows, err := DB.Query(query, statusID)
