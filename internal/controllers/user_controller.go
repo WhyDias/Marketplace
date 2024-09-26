@@ -378,7 +378,7 @@ func (uc *UserController) VerifyCode(c *gin.Context) {
 	}
 
 	// Проверяем корректность кода подтверждения
-	isValid := uc.SupplierService.ValidateVerificationCode(req.Usernamw, req.Code)
+	isValid := uc.SupplierService.ValidateVerificationCode(req.Phone_number, req.Code)
 	if !isValid {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверный или истекший код подтверждения"})
 		return

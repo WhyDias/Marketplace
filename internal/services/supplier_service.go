@@ -255,31 +255,31 @@ func (s *SupplierService) SendVerificationCode(phoneNumber string) error {
 	return nil
 }
 
-func (s *SupplierService) ValidateVerificationCode(username, code string) bool {
-	log.Printf("Валидация кода подтверждения %s для пользователя %s", code, username)
-	verificationCode, err := db.GetLatestVerificationCode(username)
+func (s *SupplierService) ValidateVerificationCode(phone_number, code string) bool {
+	log.Printf("Валидация кода подтверждения %s для пользователя %s", code, phone_number)
+	verificationCode, err := db.GetLatestVerificationCode(phone_number)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Printf("Код подтверждения не найден для пользователя %s", username)
+			log.Printf("Код подтверждения не найден для пользователя %s", phone_number)
 		} else {
-			log.Printf("Ошибка при получении кода подтверждения для %s: %v", username, err)
+			log.Printf("Ошибка при получении кода подтверждения для %s: %v", phone_number, err)
 		}
 		return false
 	}
 
 	// Проверяем, не истёк ли код
 	if time.Now().After(verificationCode.ExpiresAt) {
-		log.Printf("Код подтверждения %s для пользователя %s истёк в %s", code, username, verificationCode.ExpiresAt)
+		log.Printf("Код подтверждения %s для пользователя %s истёк в %s", code, phone_number, verificationCode.ExpiresAt)
 		return false
 	}
 
 	// Сравниваем введённый код с сохранённым
 	if code == verificationCode.Code {
-		log.Printf("Код подтверждения %s для пользователя %s верен", code, username)
+		log.Printf("Код подтверждения %s для пользователя %s верен", code, phone_number)
 		return true
 	}
 
-	log.Printf("Код подтверждения %s для пользователя %s неверен", code, username)
+	log.Printf("Код подтверждения %s для пользователя %s неверен", code, phone_number)
 	return false
 }
 

@@ -155,8 +155,8 @@ func (vc *VerificationController) SendVerificationCode(c *gin.Context) {
 }
 
 type VerifyCodeRequest struct {
-	Usernamw string `json:"phone_number"`
-	Code     string `json:"code"`
+	Phone_number string `json:"phone_number"`
+	Code         string `json:"code"`
 }
 type VerifyCodeResponse struct {
 	Message string `json:"message"`
