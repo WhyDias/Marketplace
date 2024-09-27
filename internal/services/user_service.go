@@ -4,8 +4,10 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"github.com/WhyDias/Marketplace/internal/db"
 	"github.com/WhyDias/Marketplace/internal/models"
+	"log"
 
 	"golang.org/x/crypto/bcrypt"
 	"time"
@@ -58,16 +60,20 @@ func (s *UserService) AuthenticateUser(username, password string) (*models.User,
 	// Получаем пользователя из базы данных по имени пользователя
 	user, err := db.GetUserByUsername(username)
 	if err != nil {
-		return nil, errors.New("пользователь не найден")
+		return nil, fmt.Errorf("ошибка при получении пользователя: %v", err)
 	}
 	if user == nil {
 		return nil, errors.New("пользователь не найден")
 	}
 
+	log.Printf("AuthenticateUser: Найден пользователь %s с ролями %v", username, user.Role)
+
 	// Сравниваем хеш пароля из базы данных с введённым паролем
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return nil, errors.New("неверный пароль")
+		return nil, errors.New("Неверный пароль")
 	}
+
+	log.Printf("AuthenticateUser: Пользователь %s успешно аутентифицирован", username)
 
 	return user, nil
 }

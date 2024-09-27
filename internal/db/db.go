@@ -89,10 +89,14 @@ func GetUserByUsername(username string) (*models.User, error) {
 	err := DB.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, pq.Array(&user.Role), &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			log.Printf("GetUserByUsername: Пользователь %s не найден", username)
 			return nil, nil
 		}
+		log.Printf("GetUserByUsername: ошибка при выполнении запроса для пользователя %s: %v", username, err)
 		return nil, fmt.Errorf("не удалось получить пользователя по имени: %v", err)
 	}
+
+	log.Printf("GetUserByUsername: Пользователь %s найден с ролями %v", username, user.Role)
 
 	return user, nil
 }
