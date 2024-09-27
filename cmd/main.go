@@ -67,6 +67,7 @@ func main() {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Публичные маршруты (доступны без токена)
+	// Публичные маршруты (доступны без токена)
 	router.POST("/register", verificationController.SendVerificationCode)
 	router.POST("/verify", verificationController.VerifyCode)
 	router.POST("/set_password", userController.SetPassword)
@@ -75,6 +76,9 @@ func main() {
 	router.POST("/api/users/request_password_reset", userController.RequestPasswordReset)
 	router.POST("/api/users/verify_code", userController.VerifyCode)          // Новый маршрут
 	router.POST("/api/users/set_new_password", userController.SetNewPassword) // Новый маршрут
+
+	// Новый публичный маршрут для поиска категории по path
+	router.GET("/api/categories/search", supplierController.GetCategoryByPath) // Перемещен в публичные маршруты
 
 	// Защищенные маршруты
 	authorized := router.Group("/")

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 // ErrorResponse структура для ошибок
@@ -45,46 +44,6 @@ func NewUserController(service *services.UserService, supplierService *services.
 		SupplierService: supplierService,
 		JWT:             jwtService,
 	}
-}
-
-// Validator экземпляр валидатора
-var validate = validator.New()
-
-// RegisterUser @Summary Register a new user
-// @Description Registers a new user with username and password
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param user body RegisterUserRequest true "User registration data"
-// @Success 201 {object} RegisterUserResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /api/users/register [post]
-func (uc *UserController) RegisterUser(c *gin.Context) {
-	var req RegisterUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	// Валидация данных
-	if err := validate.Struct(req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	// Регистрация пользователя
-	user, err := uc.Service.RegisterUser(req.Username, req.Password)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, RegisterUserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		CreatedAt: user.CreatedAt,
-	})
 }
 
 // LoginUser выполняет аутентификацию пользователя и возвращает JWT-токен.
@@ -147,7 +106,9 @@ type SetPasswordRequest struct {
 }
 
 type SetPasswordResponse struct {
-	Message string `json:"message"`
+	Message     string `json:"message"`
+	AccessToken string `json:"access_token"`
+	ExpiresAt   string `json:"expires_at"`
 }
 
 // SetPassword устанавливает пароль для пользователя после верификации номера телефона.
@@ -156,9 +117,10 @@ type SetPasswordResponse struct {
 // @Tags         Авторизация
 // @Accept       json
 // @Produce      json
-// @Param        input  body      SetPasswordRequest  true  "Данные для установки пароля"
+// @Param        input  body      SetPasswordRequest      true  "Данные для установки пароля"
 // @Success      200    {object}  SetPasswordResponse
 // @Failure      400    {object}  ErrorResponse
+// @Failure      401    {object}  ErrorResponse
 // @Failure      500    {object}  ErrorResponse
 // @Router       /set_password [post]
 func (uc *UserController) SetPassword(c *gin.Context) {
@@ -189,8 +151,20 @@ func (uc *UserController) SetPassword(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Пароль установлен, учетная запись создана",
+	// Генерируем JWT-токен
+	token, err := uc.JWT.GenerateToken(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать токен"})
+		return
+	}
+
+	expiresAt := time.Now().Add(72 * time.Hour).Format(time.RFC3339)
+
+	// Возвращаем ответ с токеном
+	c.JSON(http.StatusOK, SetPasswordResponse{
+		Message:     "Пароль установлен, учетная запись создана",
+		AccessToken: token,
+		ExpiresAt:   expiresAt,
 	})
 }
 
@@ -253,48 +227,6 @@ type ConfirmPasswordResetRequest struct {
 // ConfirmPasswordResetResponse структура ответа после подтверждения сброса пароля
 type ConfirmPasswordResetResponse struct {
 	Message string `json:"message"`
-}
-
-// ConfirmPasswordReset подтверждает код и устанавливает новый пароль
-// @Summary      Подтверждение сброса пароля
-// @Description  Проверяет код подтверждения и устанавливает новый пароль для пользователя
-// @Tags         Восстановление доступа
-// @Accept       json
-// @Produce      json
-// @Param        input  body      ConfirmPasswordResetRequest  true  "Данные для подтверждения сброса пароля"
-// @Success      200    {object}  ConfirmPasswordResetResponse
-// @Failure      400    {object}  ErrorResponse
-// @Failure      401    {object}  ErrorResponse
-// @Failure      500    {object}  ErrorResponse
-// @Router       /api/users/confirm_password_reset [post]
-func (uc *UserController) ConfirmPasswordReset(c *gin.Context) {
-	var req ConfirmPasswordResetRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	// Проверяем совпадение паролей
-	if req.NewPassword != req.ConfirmPassword {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пароли не совпадают"})
-		return
-	}
-
-	// Проверяем корректность кода подтверждения
-	isValid := uc.SupplierService.ValidateVerificationCode(req.Username, req.Code)
-	if !isValid {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверный или истекший код подтверждения"})
-		return
-	}
-
-	// Устанавливаем новый пароль
-	err := uc.Service.ResetPassword(req.Username, req.NewPassword)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось сбросить пароль"})
-		return
-	}
-
-	c.JSON(http.StatusOK, ConfirmPasswordResetResponse{Message: "Пароль успешно сброшен"})
 }
 
 // SetNewPasswordRequest структура запроса для установки нового пароля
@@ -388,8 +320,6 @@ func (uc *UserController) VerifyCode(c *gin.Context) {
 
 	c.JSON(http.StatusOK, VerifyCodeResponse{Message: "Код подтвержден"})
 }
-
-// internal/controllers/user_controller.go
 
 // SetNewPassword устанавливает новый пароль для пользователя после верификации кода сброса пароля.
 // @Summary      Установка нового пароля

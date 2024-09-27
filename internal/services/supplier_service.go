@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"github.com/lib/pq"
 	"log"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/WhyDias/Marketplace/internal/db"
@@ -34,56 +32,6 @@ func (s *SupplierService) CreateSupplier(supplier *models.Supplier) error {
 		return fmt.Errorf("failed to create supplier: %v", err)
 	}
 	return nil
-}
-
-// GetSupplierInfo получает информацию о поставщике по номеру телефона
-func (s *SupplierService) GetSupplierInfo(phoneNumber string) (*models.Supplier, error) {
-	supplier := &models.Supplier{}
-
-	query := `SELECT id, phone_number, is_verified, created_at, updated_at FROM supplier WHERE phone_number = $1`
-
-	err := db.DB.QueryRow(query, phoneNumber).Scan(
-		&supplier.ID,
-		&supplier.PhoneNumber,
-		&supplier.IsVerified,
-		&supplier.CreatedAt,
-		&supplier.UpdatedAt,
-	)
-
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return nil, errors.New("supplier not found")
-		}
-		return nil, fmt.Errorf("error fetching supplier: %v", err)
-	}
-
-	return supplier, nil
-}
-
-// GetAllSuppliers получает список всех поставщиков
-func (s *SupplierService) GetAllSuppliers() ([]models.Supplier, error) {
-	query := `SELECT id, name, phone_number, market_id, place_name, row_name, categories, created_at, updated_at, is_verified FROM supplier`
-
-	rows, err := db.DB.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching suppliers: %v", err)
-	}
-	defer rows.Close()
-
-	var suppliers []models.Supplier
-	for rows.Next() {
-		var supplier models.Supplier
-		if err := rows.Scan(&supplier.ID, &supplier.Name, &supplier.PhoneNumber, &supplier.MarketID, &supplier.Place, &supplier.RowName, &supplier.Categories, &supplier.CreatedAt, &supplier.UpdatedAt, &supplier.IsVerified); err != nil {
-			return nil, fmt.Errorf("error scanning supplier: %v", err)
-		}
-		suppliers = append(suppliers, supplier)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %v", err)
-	}
-
-	return suppliers, nil
 }
 
 // IsPhoneNumberVerified проверяет, верифицирован ли номер телефона
@@ -137,93 +85,6 @@ func (s *SupplierService) MarkPhoneNumberAsVerified(phoneNumber string) error {
 	return nil
 }
 
-// GetAllBazaars получает список всех базаров
-func (s *SupplierService) GetAllBazaars() ([]models.Bazaar, error) {
-	query := `SELECT id, name FROM bazaar`
-
-	rows, err := db.DB.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching bazaars: %v", err)
-	}
-	defer rows.Close()
-
-	var bazaars []models.Bazaar
-	for rows.Next() {
-		var bazaar models.Bazaar
-		if err := rows.Scan(&bazaar.ID, &bazaar.Name); err != nil {
-			return nil, fmt.Errorf("error scanning bazaar: %v", err)
-		}
-		bazaars = append(bazaars, bazaar)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %v", err)
-	}
-
-	return bazaars, nil
-}
-
-// CreatePlace создает новое место
-func (s *SupplierService) CreatePlace(place *models.Place) error {
-	query := `INSERT INTO places (name) VALUES ($1) RETURNING id`
-	err := db.DB.QueryRow(query, place.Name).Scan(&place.ID)
-	if err != nil {
-		return fmt.Errorf("failed to create place: %v", err)
-	}
-	return nil
-}
-
-// CreateRow создает новый ряд
-func (s *SupplierService) CreateRow(row *models.Row) error {
-	query := `INSERT INTO rows (name, place_id) VALUES ($1, $2) RETURNING id`
-	err := db.DB.QueryRow(query, row.Name, row.PlaceID).Scan(&row.ID)
-	if err != nil {
-		return fmt.Errorf("failed to create row: %v", err)
-	}
-	return nil
-}
-
-// Функция для преобразования []int в []string
-func intSliceToStringSlice(ints []int) []string {
-	strs := make([]string, len(ints))
-	for i, v := range ints {
-		strs[i] = strconv.Itoa(v)
-	}
-	return strs
-}
-
-func (s *SupplierService) CreateUser(phoneNumber string) error {
-	query := `INSERT INTO users (username, password_hash, created_at, updated_at, role) 
-              VALUES ($1, $2, $3, $4, 'supplier')` // Измените на подходящие значения
-
-	// Пример значений:
-	username := phoneNumber           // Или любое другое значение, которое вы хотите использовать
-	passwordHash := "hashed_password" // Замените на фактический хэш пароля
-
-	_, err := db.DB.Exec(query, username, passwordHash, time.Now(), time.Now())
-	return err
-}
-
-// UpdateSupplierDetails обновляет данные поставщика
-func (s *SupplierService) UpdateSupplierDetails(phoneNumber string, marketID int, placeName string, rowName string, categories []int) error {
-	query := `UPDATE supplier 
-	          SET market_id = $1, 
-	              place_name = $2, 
-	              row_name = $3, 
-	              category_ids = $4, 
-	              updated_at = $5 
-	          WHERE phone_number = $6`
-
-	// Преобразуем массив категорий в строку (например, через запятую)
-	categoryIDs := strings.Join(intSliceToStringSlice(categories), ",")
-
-	_, err := db.DB.Exec(query, marketID, placeName, rowName, categoryIDs, time.Now(), phoneNumber)
-	if err != nil {
-		return fmt.Errorf("failed to update supplier details: %v", err)
-	}
-
-	return nil
-}
 func (s *SupplierService) SendVerificationCode(phoneNumber string) error {
 	code := utils.GenerateSixDigitCode()
 
@@ -337,23 +198,11 @@ func (s *SupplierService) GetAllMarkets() ([]models.Market, error) {
 }
 
 func (s *SupplierService) GetAllCategories() ([]models.Category, error) {
-	query := `SELECT id, name, path FROM categories`
-
-	rows, err := db.DB.Query(query)
+	categories, err := db.GetAllCategories()
 	if err != nil {
-		return nil, fmt.Errorf("Ошибка при получении категорий: %v", err)
+		log.Printf("GetAllCategories: ошибка при получении категорий: %v", err)
+		return nil, fmt.Errorf("не удалось получить категории: %v", err)
 	}
-	defer rows.Close()
-
-	var categories []models.Category
-	for rows.Next() {
-		var category models.Category
-		if err := rows.Scan(&category.ID, &category.Name, &category.Path); err != nil {
-			return nil, fmt.Errorf("Ошибка при сканировании категории: %v", err)
-		}
-		categories = append(categories, category)
-	}
-
 	return categories, nil
 }
 
@@ -377,4 +226,13 @@ func (s *SupplierService) GetSupplierByPhoneNumber(phoneNumber string) (*models.
 	}
 
 	return supplier, nil
+}
+
+func (s *SupplierService) GetCategoryByPath(path string) (*models.Category, error) {
+	category, err := db.GetCategoryByPath(path)
+	if err != nil {
+		log.Printf("GetCategoryByPath: ошибка при получении категории по path %s: %v", path, err)
+		return nil, fmt.Errorf("не удалось получить категорию по path: %v", err)
+	}
+	return category, nil
 }

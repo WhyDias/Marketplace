@@ -4,13 +4,11 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/WhyDias/Marketplace/internal/db"
-	"net/http"
-	"time"
-
 	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/WhyDias/Marketplace/internal/services"
 	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
 )
 
 // RegisterSupplierRequest структура запроса для регистрации поставщика
@@ -32,155 +30,8 @@ func NewSupplierController(service *services.SupplierService) *SupplierControlle
 	}
 }
 
-func (sc *SupplierController) RegisterSupplier(c *gin.Context) {
-	var req models.RegisterSupplierRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	// Логика верификации и обновления
-	err := sc.Service.UpdateSupplierDetails(req.PhoneNumber, req.BazaarID, req.PlaceName, req.RowName, req.Categories)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier details"})
-		return
-	}
-
-	c.JSON(http.StatusOK, VerifyResponse{
-		Message: "Supplier details updated successfully",
-	})
-}
-
-// GetSupplierInfo @Summary Get supplier information
-// @Description Retrieves information about the authenticated supplier
-// @Tags suppliers
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} models.Supplier
-// @Failure 401 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Router /suppliers/info [get]
-func (sc *SupplierController) GetSupplierInfo(c *gin.Context) {
-	phoneNumber, exists := c.Get("phone_number")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Phone number not found in context"})
-		return
-	}
-
-	supplier, err := sc.Service.GetSupplierInfo(phoneNumber.(string))
-	if err != nil {
-		c.JSON(http.StatusNotFound, ErrorResponse{Error: "Supplier not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, supplier)
-}
-
-// GetSuppliers @Summary Get all suppliers
-// @Description Retrieves a list of all suppliers
-// @Tags suppliers
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.Supplier
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /suppliers [get]
-func (sc *SupplierController) GetSuppliers(c *gin.Context) {
-	suppliers, err := sc.Service.GetAllSuppliers()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to fetch suppliers"})
-		return
-	}
-
-	c.JSON(http.StatusOK, suppliers)
-}
-
 // SupplierService структура сервиса поставщиков
 type SupplierService struct{}
-
-func (s *SupplierService) UpdateSupplierDetails(phoneNumber string, req models.UpdateSupplierRequest) error {
-	query := `UPDATE supplier 
-	          SET name = $1, 
-	              market_name = $2, 
-	              places_rows = $3, 
-	              category = $4, 
-	              updated_at = $5 
-	          WHERE phone_number = $6`
-
-	result, err := db.DB.Exec(query, req.Name, req.MarketName, req.PlacesRows, req.Category, time.Now(), phoneNumber)
-	if err != nil {
-		return fmt.Errorf("failed to update supplier details: %v", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error fetching rows affected: %v", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("supplier with phone number %s not found", phoneNumber)
-	}
-
-	return nil
-}
-
-func (sc *SupplierController) GetBazaarList(c *gin.Context) {
-	bazaars, err := sc.Service.GetAllBazaars()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to fetch bazaars"})
-		return
-	}
-
-	c.JSON(http.StatusOK, bazaars)
-}
-
-func (sc *SupplierController) CreatePlace(c *gin.Context) {
-	var req models.Place
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	if err := sc.Service.CreatePlace(&req); err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create place"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, req)
-}
-
-func (sc *SupplierController) CreateRow(c *gin.Context) {
-	var req models.Row
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	if err := sc.Service.CreateRow(&req); err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to create row"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, req)
-}
-
-func (sc *SupplierController) UpdateSupplier(c *gin.Context) {
-	var req models.RegisterSupplierRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	err := sc.Service.UpdateSupplierDetails(req.PhoneNumber, req.BazaarID, req.PlaceName, req.RowName, req.Categories)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update supplier data"})
-		return
-	}
-
-	c.JSON(http.StatusOK, VerifyResponse{
-		Message: "Supplier details updated successfully",
-	})
-}
 
 // internal/controllers/supplier_controller.go
 
@@ -257,7 +108,7 @@ func (sc *SupplierController) GetMarkets(c *gin.Context) {
 
 // GetCategories возвращает список доступных категорий товаров.
 // @Summary      Получение списка категорий
-// @Description  Возвращает список всех доступных категорий товаров.
+// @Description  Возвращает список всех доступных категорий товаров вместе с URL изображений.
 // @Tags         Справочники
 // @Accept       json
 // @Produce      json
@@ -267,9 +118,43 @@ func (sc *SupplierController) GetMarkets(c *gin.Context) {
 func (sc *SupplierController) GetCategories(c *gin.Context) {
 	categories, err := sc.Service.GetAllCategories()
 	if err != nil {
+		log.Printf("GetCategories: ошибка при получении категорий: %v", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось получить список категорий"})
 		return
 	}
 
 	c.JSON(http.StatusOK, categories)
+}
+
+// GetCategoryByPath возвращает категорию по заданному path.
+// @Summary      Получение категории по path
+// @Description  Возвращает информацию о категории на основе переданного path.
+// @Tags         Категории
+// @Accept       json
+// @Produce      json
+// @Param        path  query     string  true  "Path категории"
+// @Success      200   {object}  models.Category
+// @Failure      400   {object}  ErrorResponse
+// @Failure      404   {object}  ErrorResponse
+// @Failure      500   {object}  ErrorResponse
+// @Router       /api/categories/search [get]
+func (sc *SupplierController) GetCategoryByPath(c *gin.Context) {
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Параметр path обязателен"})
+		return
+	}
+
+	category, err := sc.Service.GetCategoryByPath(path)
+	if err != nil {
+		if err.Error() == fmt.Sprintf("категория не найдена для path %s", path) {
+			c.JSON(http.StatusNotFound, ErrorResponse{Error: "Категория не найдена"})
+		} else {
+			log.Printf("GetCategoryByPath: ошибка при получении категории по path %s: %v", path, err)
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось получить категорию"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, category)
 }

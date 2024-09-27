@@ -11,26 +11,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/WhyDias/Marketplace/internal/db"
 	"golang.org/x/time/rate"
 )
-
-// ValidateWhatsAppCode валидирует код из WhatsApp
-func ValidateWhatsAppCode(phoneNumber, code string) bool {
-	// Получаем последний код для данного номера телефона
-	verificationCode, err := db.GetLatestVerificationCode(phoneNumber)
-	if err != nil {
-		return false
-	}
-
-	// Проверяем, не истёк ли код
-	if time.Now().After(verificationCode.ExpiresAt) {
-		return false
-	}
-
-	// Сравниваем введённый код с сохранённым
-	return code == verificationCode.Code
-}
 
 func SendTextMessage(messageBody string, recipient string) error {
 	// Ожидаем разрешения от лимитера (ограничиваем количество запросов)
@@ -100,34 +82,4 @@ var limiter = rate.NewLimiter(1, 3)
 // GenerateSixDigitCode генерирует случайный 6-значный код
 func GenerateSixDigitCode() string {
 	return fmt.Sprintf("%06d", seededRand.Intn(1000000))
-}
-
-// SendVerificationCode генерирует и отправляет код верификации через WhatsApp
-func SendVerificationCode(phoneNumber string) error {
-	// Генерация кода
-	code := GenerateSixDigitCode()
-
-	// Формирование сообщения
-	message := fmt.Sprintf("Ваш код подтверждения: %s", code)
-
-	// Отправка сообщения
-	err := SendTextMessage(message, phoneNumber)
-	if err != nil {
-		return err
-	}
-
-	// Удаление старых кодов для данного номера телефона
-	err = db.DeleteVerificationCodes(phoneNumber)
-	if err != nil {
-		return err
-	}
-
-	// Сохранение нового кода в базу данных с истечением через 10 минут
-	expiresAt := time.Now().Add(10 * time.Minute)
-	err = db.CreateVerificationCode(phoneNumber, code, expiresAt)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

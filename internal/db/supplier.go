@@ -41,3 +41,30 @@ func FetchSupplierByUserID(userID int) (*models.Supplier, error) {
 	log.Printf("FetchSupplierByUserID: получен поставщик id=%d для user_id %d", supplier.ID, userID)
 	return supplier, nil
 }
+
+func GetAllCategories() ([]models.Category, error) {
+	query := `SELECT id, name, path, image_url FROM categories`
+
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
+	}
+	defer rows.Close()
+
+	var categories []models.Category
+	for rows.Next() {
+		var category models.Category
+		if err := rows.Scan(&category.ID, &category.Name, &category.Path, &category.ImageURL); err != nil {
+			log.Printf("GetAllCategories: ошибка при сканировании строки: %v", err)
+			return nil, fmt.Errorf("ошибка при сканировании строки: %v", err)
+		}
+		categories = append(categories, category)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("GetAllCategories: ошибка при итерации по строкам: %v", err)
+		return nil, fmt.Errorf("ошибка при итерации по строкам: %v", err)
+	}
+
+	return categories, nil
+}
