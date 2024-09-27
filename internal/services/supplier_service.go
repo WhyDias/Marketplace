@@ -236,3 +236,29 @@ func (s *SupplierService) GetCategoryByPath(path string) (*models.Category, erro
 	}
 	return category, nil
 }
+
+func (s *SupplierService) AddCategory(name, path, imageURL string) (*models.Category, error) {
+	// Проверка уникальности path
+	existingCategory, err := db.GetCategoryByPath(path)
+	if err == nil && existingCategory != nil {
+		return nil, fmt.Errorf("категория с path '%s' уже существует", path)
+	} else if err != nil && err.Error() != "категория не найдена для path "+path {
+		log.Printf("AddCategory: ошибка при проверке существования категории: %v", err)
+		return nil, fmt.Errorf("ошибка при проверке существования категории: %v", err)
+	}
+
+	// Создание новой категории
+	category := &models.Category{
+		Name:     name,
+		Path:     path,
+		ImageURL: imageURL,
+	}
+
+	err = db.CreateCategory(category)
+	if err != nil {
+		log.Printf("AddCategory: ошибка при создании категории: %v", err)
+		return nil, fmt.Errorf("ошибка при создании категории: %v", err)
+	}
+
+	return category, nil
+}

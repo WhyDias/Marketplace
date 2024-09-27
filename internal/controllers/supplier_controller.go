@@ -158,3 +158,63 @@ func (sc *SupplierController) GetCategoryByPath(c *gin.Context) {
 
 	c.JSON(http.StatusOK, category)
 }
+
+// AddCategoryRequest структура запроса для добавления категории
+type AddCategoryRequest struct {
+	Name     string `json:"name" binding:"required"`
+	Path     string `json:"path" binding:"required"`
+	ImageURL string `json:"image_url" binding:"required,url"`
+}
+
+// AddCategoryResponse структура ответа при добавлении категории
+type AddCategoryResponse struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Path     string `json:"path"`
+	ImageURL string `json:"image_url"`
+}
+
+// AddCategory добавляет новую категорию.
+// @Summary      Добавление категории
+// @Description  Добавляет новую категорию с заданными параметрами.
+// @Tags         Категории
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      AddCategoryRequest  true  "Данные для добавления категории"
+// @Success      201    {object}  AddCategoryResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      401    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /api/categories [post]
+func (sc *SupplierController) AddCategory(c *gin.Context) {
+	var req AddCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("AddCategory: ошибка при связывании JSON: %v", err)
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Добавление категории через сервисный слой
+	category, err := sc.Service.AddCategory(req.Name, req.Path, req.ImageURL)
+	if err != nil {
+		log.Printf("AddCategory: ошибка при добавлении категории: %v", err)
+		// Проверяем, является ли ошибка связанной с уникальностью path
+		if err.Error() == "категория с path '"+req.Path+"' уже существует" {
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось добавить категорию"})
+		}
+		return
+	}
+
+	// Формирование ответа
+	response := AddCategoryResponse{
+		ID:       category.ID,
+		Name:     category.Name,
+		Path:     category.Path,
+		ImageURL: category.ImageURL,
+	}
+
+	c.JSON(http.StatusCreated, response)
+}

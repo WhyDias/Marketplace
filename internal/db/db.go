@@ -118,3 +118,16 @@ func GetCategoryByPath(path string) (*models.Category, error) {
 	log.Printf("GetCategoryByPath: получена категория id=%d для path %s", category.ID, path)
 	return category, nil
 }
+
+func CreateCategory(category *models.Category) error {
+	query := `INSERT INTO categories (name, path, image_url)
+	          VALUES ($1, $2, $3) RETURNING id`
+	err := DB.QueryRow(query, category.Name, category.Path, category.ImageURL).Scan(&category.ID)
+	if err != nil {
+		log.Printf("CreateCategory: ошибка при выполнении запроса: %v", err)
+		return fmt.Errorf("ошибка при создании категории: %v", err)
+	}
+
+	log.Printf("CreateCategory: создана категория id=%d, name=%s", category.ID, category.Name)
+	return nil
+}
