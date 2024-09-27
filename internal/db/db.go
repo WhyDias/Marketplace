@@ -85,8 +85,8 @@ func CreateUser(user *models.User) error {
 func GetUserByUsername(username string) (*models.User, error) {
 	user := &models.User{}
 
-	query := `SELECT id, username, email, password_hash, role, created_at, updated_at FROM users WHERE username = $1`
-	err := DB.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, pq.Array(&user.Role), &user.CreatedAt, &user.UpdatedAt)
+	query := `SELECT id, username, password_hash, role, created_at, updated_at FROM users WHERE username = $1`
+	err := DB.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, pq.Array(&user.Role), &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("GetUserByUsername: Пользователь %s не найден", username)
