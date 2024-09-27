@@ -7,6 +7,7 @@ import (
 	_ "github.com/lib/pq" // Импорт драйвера PostgreSQL
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"log"
 )
 
 type Config struct {
@@ -93,4 +94,27 @@ func GetUserByUsername(username string) (*models.User, error) {
 	}
 
 	return user, nil
+}
+
+func GetCategoryByPath(path string) (*models.Category, error) {
+	category := &models.Category{}
+
+	query := `SELECT id, name, path, image_url FROM categories WHERE path = $1 LIMIT 1`
+	err := DB.QueryRow(query, path).Scan(
+		&category.ID,
+		&category.Name,
+		&category.Path,
+		&category.ImageURL,
+	)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			log.Printf("GetCategoryByPath: категория не найдена для path %s", path)
+			return nil, fmt.Errorf("категория не найдена для path %s", path)
+		}
+		log.Printf("GetCategoryByPath: ошибка при выполнении запроса для path %s: %v", path, err)
+		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
+	}
+
+	log.Printf("GetCategoryByPath: получена категория id=%d для path %s", category.ID, path)
+	return category, nil
 }
