@@ -18,19 +18,6 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-// RegisterUserRequest структура запроса для регистрации пользователя
-type RegisterUserRequest struct {
-	Username string `json:"username" binding:"required" validate:"min=3,max=50"`
-	Password string `json:"password" binding:"required" validate:"min=6"`
-}
-
-// RegisterUserResponse структура ответа при регистрации пользователя
-type RegisterUserResponse struct {
-	ID        int       `json:"id"`
-	Username  string    `json:"username"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
 // UserController структура контроллера пользователей
 type UserController struct {
 	Service         *services.UserService
@@ -46,55 +33,63 @@ func NewUserController(service *services.UserService, supplierService *services.
 	}
 }
 
-// LoginUser выполняет аутентификацию пользователя и возвращает JWT-токен.
-// @Summary      Авторизация пользователя
-// @Description  Аутентифицирует пользователя и возвращает JWT-токен.
+// LoginUserRequest структура запроса для логина
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+// LoginResponse структура ответа при успешном логине
+type LoginResponse struct {
+	Message     string `json:"message"`
+	AccessToken string `json:"access_token"`
+	ExpiresAt   int64  `json:"expires_at"` // Unix timestamp
+}
+
+// LoginUser обрабатывает логин пользователя
+// @Summary      Логин пользователя
+// @Description  Аутентифицирует пользователя и возвращает JWT-токен с ролями.
 // @Tags         Авторизация
 // @Accept       json
 // @Produce      json
-// @Param        input  body      LoginUserRequest  true  "Данные для входа"
-// @Success      200    {object}  LoginUserResponse
+// @Param        input  body      LoginRequest      true  "Данные для логина"
+// @Success      200    {object}  LoginResponse
 // @Failure      400    {object}  ErrorResponse
 // @Failure      401    {object}  ErrorResponse
 // @Failure      500    {object}  ErrorResponse
 // @Router       /api/users/login [post]
 func (uc *UserController) LoginUser(c *gin.Context) {
-	var req LoginUserRequest
+	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("LoginUser: ошибка при связывании JSON: %v", err)
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	user, err := uc.Service.AuthenticateUser(req.Username, req.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверное имя пользователя или пароль"})
+		log.Printf("LoginUser: аутентификация не удалась для пользователя %s: %v", req.Username, err)
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверное имя пользователя или пароль"})
 		return
 	}
 
-	token, err := uc.JWT.GenerateToken(user.ID)
+	// Генерируем JWT-токен с ролями
+	token, err := uc.JWT.GenerateTokenWithRoles(user.ID, user.Role)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать токен"})
+		log.Printf("LoginUser: ошибка при генерации токена для пользователя %d: %v", user.ID, err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать токен"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token": token,
-		"expires_at":   time.Now().Add(72 * time.Hour).Format(time.RFC3339),
-		"role":         user.Role,
-	})
-}
+	expiresAt := time.Now().Add(72 * time.Hour).Unix()
 
-// LoginUserRequest структура запроса для входа пользователя
-type LoginUserRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
+	response := LoginResponse{
+		Message:     "Успешный вход",
+		AccessToken: token,
+		ExpiresAt:   expiresAt,
+	}
 
-// LoginUserResponse структура ответа при входе пользователя
-type LoginUserResponse struct {
-	AccessToken string `json:"access_token"`
-	ExpiresAt   string `json:"expires_at"`
-	Role        string `json:"role"`
+	c.JSON(http.StatusOK, response)
 }
 
 // internal/controllers/user_controller.go
@@ -113,7 +108,7 @@ type SetPasswordResponse struct {
 
 // SetPassword устанавливает пароль для пользователя после верификации номера телефона.
 // @Summary      Установка пароля
-// @Description  Устанавливает пароль для пользователя.
+// @Description  Устанавливает пароль для пользователя и возвращает JWT-токен с ролями.
 // @Tags         Авторизация
 // @Accept       json
 // @Produce      json
@@ -347,4 +342,64 @@ func (uc *UserController) SetNewPassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, SetNewPasswordResponse{Message: "Пароль успешно установлен"})
+}
+
+// RegisterUserRequest структура запроса для регистрации пользователя
+type RegisterUserRequest struct {
+	Username string   `json:"username" binding:"required"`
+	Email    string   `json:"email" binding:"required,email"`
+	Password string   `json:"password" binding:"required,min=6"`
+	Roles    []string `json:"roles" binding:"required"` // Добавлено поле для ролей
+}
+
+// RegisterUserResponse структура ответа при регистрации пользователя
+type RegisterUserResponse struct {
+	Message     string `json:"message"`
+	AccessToken string `json:"access_token"`
+	ExpiresAt   string `json:"expires_at"`
+}
+
+// RegisterUser регистрирует нового пользователя и возвращает токен
+// @Summary      Регистрация пользователя
+// @Description  Регистрация нового пользователя с указанными ролями.
+// @Tags         Пользователи
+// @Accept       json
+// @Produce      json
+// @Param        input  body      RegisterUserRequest  true  "Данные для регистрации пользователя"
+// @Success      201    {object}  RegisterUserResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /api/users/register [post]
+func (uc *UserController) RegisterUser(c *gin.Context) {
+	var req RegisterUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("RegisterUser: ошибка при связывании JSON: %v", err)
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Регистрация пользователя через сервисный слой
+	user, err := uc.Service.RegisterUser(req.Username, req.Password)
+	if err != nil {
+		log.Printf("RegisterUser: ошибка при регистрации пользователя: %v", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Генерация JWT-токена
+	token, err := uc.JWT.GenerateTokenWithRoles(user.ID, user.Role)
+	if err != nil {
+		log.Printf("RegisterUser: ошибка при генерации токена: %v", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать токен"})
+		return
+	}
+
+	expiresAt := time.Now().Add(72 * time.Hour).Format(time.RFC3339)
+
+	// Возвращаем ответ с токеном
+	c.JSON(http.StatusCreated, RegisterUserResponse{
+		Message:     "Пользователь успешно зарегистрирован",
+		AccessToken: token,
+		ExpiresAt:   expiresAt,
+	})
 }

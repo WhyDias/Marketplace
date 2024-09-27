@@ -72,6 +72,7 @@ func main() {
 	router.POST("/verify", verificationController.VerifyCode)
 	router.POST("/set_password", userController.SetPassword)
 	router.POST("/api/users/login", userController.LoginUser)
+	router.POST("/api/users/register", userController.RegisterUser)
 	router.POST("/api/users/check_phone", userController.CheckPhone)
 	router.POST("/api/users/request_password_reset", userController.RequestPasswordReset)
 	router.POST("/api/users/verify_code", userController.VerifyCode)          // Новый маршрут

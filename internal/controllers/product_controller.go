@@ -30,7 +30,7 @@ func NewProductController(service *services.ProductService) *ProductController {
 // @Success      200  {array}   models.Product
 // @Failure      401  {object}  ErrorResponse
 // @Failure      500  {object}  ErrorResponse
-// @Router       /products/moderated [get]
+// @Router       /api/products/moderated [get]
 func (pc *ProductController) GetModeratedProducts(c *gin.Context) {
 	statusID := 3
 
@@ -78,7 +78,7 @@ func (pc *ProductController) GetModeratedProducts(c *gin.Context) {
 // @Success      200  {array}   models.Product
 // @Failure      401  {object}  ErrorResponse
 // @Failure      500  {object}  ErrorResponse
-// @Router       /products/unmoderated [get]
+// @Router       /api/products/unmoderated [get]
 func (pc *ProductController) GetUnmoderatedProducts(c *gin.Context) {
 	statusID := 2
 

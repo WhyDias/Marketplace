@@ -13,12 +13,14 @@ import (
 // JWTService интерфейс для генерации и валидации токенов
 type JWTService interface {
 	GenerateToken(userID int) (string, error)
+	GenerateTokenWithRoles(userID int, roles []string) (string, error) // Новый метод
 	ValidateToken(tokenString string) (*jwt.Token, error)
 }
 
 // JWTCustomClaim структура для пользовательских claims
 type JWTCustomClaim struct {
-	UserID int `json:"user_id"`
+	UserID int      `json:"user_id"`
+	Roles  []string `json:"roles"` // Новое поле для ролей
 	jwt.RegisteredClaims
 }
 
@@ -72,6 +74,23 @@ func (j *jwtService) GenerateToken(userID int) (string, error) {
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Subject:   "user_token",
+			Issuer:    j.issuer,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(j.secretKey))
+}
+
+// GenerateTokenWithRoles генерирует JWT токен с ролями
+func (j *jwtService) GenerateTokenWithRoles(userID int, roles []string) (string, error) {
+	claims := &JWTCustomClaim{
+		UserID: userID,
+		Roles:  roles, // Устанавливаем роли
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   "user_token",
 			Issuer:    j.issuer,

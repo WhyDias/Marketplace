@@ -8,8 +8,9 @@ import "time"
 type User struct {
 	ID           int       `json:"id"`
 	Username     string    `json:"username"`
+	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
-	Role         string    `json:"role"` // Например, 'supplier'
+	Role         []string  `json:"role"` // Изменено с string на []string
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

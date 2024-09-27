@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/WhyDias/Marketplace/internal/models"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq" // Импорт драйвера PostgreSQL
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -70,11 +71,11 @@ func InitDB(configPath string) error {
 
 func CreateUser(user *models.User) error {
 	query := `INSERT INTO users (username, password_hash, role, created_at, updated_at)
-              VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	          VALUES ($1, $2, $3, $4, $5) RETURNING id`
 
-	err := DB.QueryRow(query, user.Username, user.PasswordHash, user.Role, user.CreatedAt, user.UpdatedAt).Scan(&user.ID)
+	err := DB.QueryRow(query, user.Username, user.PasswordHash, pq.Array(user.Role), user.CreatedAt, user.UpdatedAt).Scan(&user.ID)
 	if err != nil {
-		return fmt.Errorf("Не удалось создать пользователя: %v", err)
+		return fmt.Errorf("не удалось создать пользователя: %v", err)
 	}
 
 	return nil
@@ -84,8 +85,8 @@ func CreateUser(user *models.User) error {
 func GetUserByUsername(username string) (*models.User, error) {
 	user := &models.User{}
 
-	query := `SELECT id, username, password_hash, role, created_at, updated_at FROM users WHERE username = $1`
-	err := DB.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	query := `SELECT id, username, email, password_hash, role, created_at, updated_at FROM users WHERE username = $1`
+	err := DB.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, pq.Array(&user.Role), &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
