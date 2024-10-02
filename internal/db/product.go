@@ -318,19 +318,22 @@ func GetImmediateSubcategoriesByPath(path string) ([]models.Category, error) {
 	query := `
         SELECT id, name, path, image_url
         FROM categories
-        WHERE path ~ $1 AND nlevel(path) = nlevel($1) + 1
+        WHERE path ~ $1 AND nlevel(path) = nlevel($2::ltree) + 1
     `
 
-	pattern := fmt.Sprintf(`^%s\.[^.]+$`, path)
+	// Параметр для сопоставления пути (lquery)
+	lqueryPattern := fmt.Sprintf(`%s.*{1}`, path)
 
-	rows, err := DB.Query(query, pattern)
+	// Параметр для nlevel (ltree)
+	ltreePath := path
+
+	rows, err := DB.Query(query, lqueryPattern, ltreePath)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
 	}
 	defer rows.Close()
 
 	var categories []models.Category
-
 	for rows.Next() {
 		var category models.Category
 		if err := rows.Scan(&category.ID, &category.Name, &category.Path, &category.ImageURL); err != nil {
