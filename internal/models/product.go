@@ -9,6 +9,7 @@ type Product struct {
 	CategoryID  int                `json:"category_id"`
 	SupplierID  int                `json:"supplier_id"`
 	MarketID    int                `json:"market_id"`
+	StatusID    int                `json:"status_id"` // Добавляем это поле
 	Price       float64            `json:"price"`
 	Stock       int                `json:"stock"`
 	Images      []ProductImage     `json:"images,omitempty"`
