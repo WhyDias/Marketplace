@@ -31,10 +31,16 @@ func (s *UserService) RegisterUser(username, password string, roleNames []string
 		return nil, errors.New("Пользователь уже существует")
 	}
 
-	// Хешируем пароль
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, fmt.Errorf("Ошибка при хешировании пароля: %v", err)
+	var hashedPassword []byte
+	if password != "" {
+		// Хешируем пароль, если он указан
+		hashedPassword, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, fmt.Errorf("Ошибка при хешировании пароля: %v", err)
+		}
+	} else {
+		// Если пароль пустой, устанавливаем его в NULL или используем специальное значение
+		hashedPassword = []byte{}
 	}
 
 	// Получаем IDs ролей по их именам
@@ -141,4 +147,19 @@ func (s *UserService) GetUserByUsername(username string) (*models.User, error) {
 		return nil, err
 	}
 	return user, nil
+}
+
+func (s *UserService) SetPassword(userID int, password string) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("Ошибка при хешировании пароля: %v", err)
+	}
+
+	query := `UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3`
+	_, err = db.DB.Exec(query, string(hashedPassword), time.Now(), userID)
+	if err != nil {
+		return fmt.Errorf("Ошибка при обновлении пароля: %v", err)
+	}
+
+	return nil
 }

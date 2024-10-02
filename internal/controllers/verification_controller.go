@@ -3,10 +3,9 @@
 package controllers
 
 import (
-	"net/http"
-
 	"github.com/WhyDias/Marketplace/internal/services"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 // VerificationController структура контроллера верификации
@@ -63,15 +62,24 @@ func (vc *VerificationController) SendVerificationCode(c *gin.Context) {
 		return
 	}
 
-	// Получаем пользователя по номеру телефона
+	// Проверяем, существует ли пользователь с указанным номером телефона
 	user, err := vc.UserService.GetUserByUsername(req.PhoneNumber)
-	if err != nil || user == nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пользователь не найден"})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Ошибка при проверке пользователя"})
 		return
 	}
 
+	if user == nil {
+		// Если пользователь не существует, создаем нового пользователя без пароля
+		user, err = vc.UserService.RegisterUser(req.PhoneNumber, "", []string{"supplier"})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать пользователя"})
+			return
+		}
+	}
+
 	// Отправляем код подтверждения
-	err = vc.SupplierService.SendVerificationCode(user.ID)
+	err = vc.SupplierService.SendVerificationCode(user.ID, req.PhoneNumber)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось отправить код подтверждения"})
 		return
@@ -122,14 +130,14 @@ func (vc *VerificationController) VerifyCode(c *gin.Context) {
 		return
 	}
 
-	// Отмечаем номер телефона как верифицированный
+	// Отмечаем пользователя как верифицированного
 	err = vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить статус поставщика"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить статус верификации"})
 		return
 	}
 
-	c.JSON(http.StatusOK, VerifyCodeResponse{
+	c.JSON(http.StatusOK, VerifyResponse{
 		Message: "Верификация успешна",
 	})
 }

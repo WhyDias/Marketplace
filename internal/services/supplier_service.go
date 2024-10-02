@@ -58,10 +58,11 @@ type UpdateSupplierRequest struct {
 
 // MarkPhoneNumberAsVerified обновляет поле is_verified для поставщика
 func (s *SupplierService) MarkPhoneNumberAsVerified(phoneNumber string) error {
+	// Получаем поставщика по номеру телефона
 	supplier, err := s.GetSupplierByPhoneNumber(phoneNumber)
 	if err != nil {
 		if err.Error() == "supplier not found" {
-			// Если поставщик не найден, создаём новую запись
+			// Если поставщик не найден, создаем новую запись
 			supplier = &models.Supplier{
 				PhoneNumber: phoneNumber,
 				IsVerified:  true,
@@ -84,33 +85,27 @@ func (s *SupplierService) MarkPhoneNumberAsVerified(phoneNumber string) error {
 	return nil
 }
 
-func (s *SupplierService) SendVerificationCode(userID int) error {
+func (s *SupplierService) SendVerificationCode(userID int, phoneNumber string) error {
 	code := utils.GenerateSixDigitCode()
-	message := fmt.Sprintf("Your verification code is: %s", code)
+	message := fmt.Sprintf("Ваш код подтверждения: %s", code)
 
-	// Get user's phone number
-	phoneNumber, err := db.GetPhoneNumberByUserID(userID)
+	// Отправляем сообщение через WhatsApp
+	err := utils.SendTextMessage(message, phoneNumber)
 	if err != nil {
-		return fmt.Errorf("could not get phone number: %v", err)
+		return fmt.Errorf("Ошибка при отправке сообщения: %v", err)
 	}
 
-	// Send message
-	err = utils.SendTextMessage(message, phoneNumber)
-	if err != nil {
-		return err
-	}
-
-	// Delete old codes
+	// Удаляем старые коды подтверждения для пользователя
 	err = db.DeleteVerificationCodes(userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("Ошибка при удалении старых кодов подтверждения: %v", err)
 	}
 
-	// Save new code
+	// Сохраняем новый код подтверждения в базе данных
 	expiresAt := time.Now().Add(10 * time.Minute)
 	err = db.CreateVerificationCode(userID, code, expiresAt)
 	if err != nil {
-		return err
+		return fmt.Errorf("Ошибка при сохранении кода подтверждения: %v", err)
 	}
 
 	return nil

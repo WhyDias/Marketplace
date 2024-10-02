@@ -130,6 +130,13 @@ func (uc *UserController) SetPassword(c *gin.Context) {
 		return
 	}
 
+	// Получаем пользователя по номеру телефона
+	user, err := uc.Service.GetUserByUsername(req.PhoneNumber)
+	if err != nil || user == nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пользователь не найден"})
+		return
+	}
+
 	// Проверяем, что номер телефона верифицирован
 	isVerified, err := uc.SupplierService.IsPhoneNumberVerified(req.PhoneNumber)
 	if err != nil || !isVerified {
@@ -137,17 +144,10 @@ func (uc *UserController) SetPassword(c *gin.Context) {
 		return
 	}
 
-	// Создаем учетную запись пользователя с ролью 'supplier'
-	user, err := uc.Service.RegisterUser(req.PhoneNumber, req.Password, []string{"supplier"})
+	// Устанавливаем пароль для пользователя
+	err = uc.Service.SetPassword(user.ID, req.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать учетную запись пользователя"})
-		return
-	}
-
-	// Связываем пользователя с поставщиком
-	err = uc.SupplierService.LinkUserToSupplier(req.PhoneNumber, user.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось связать пользователя с поставщиком"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось установить пароль"})
 		return
 	}
 
@@ -167,7 +167,7 @@ func (uc *UserController) SetPassword(c *gin.Context) {
 
 	// Возвращаем ответ с токеном
 	c.JSON(http.StatusOK, SetPasswordResponse{
-		Message:     "Пароль установлен, учетная запись создана",
+		Message:     "Пароль установлен, учетная запись обновлена",
 		AccessToken: token,
 		ExpiresAt:   expiresAt,
 	})
@@ -277,9 +277,9 @@ func (uc *UserController) RequestPasswordReset(c *gin.Context) {
 		return
 	}
 
-	// Отправляем код подтверждения
+	// Отправляем код подтверждения, передавая user.ID и user.Username
 	log.Printf("Отправка кода подтверждения для пользователя %s", req.Username)
-	err = uc.SupplierService.SendVerificationCode(user.ID)
+	err = uc.SupplierService.SendVerificationCode(user.ID, user.Username)
 	if err != nil {
 		log.Printf("Не удалось отправить код подтверждения пользователю %s: %v", req.Username, err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось отправить код подтверждения"})

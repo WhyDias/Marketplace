@@ -185,10 +185,10 @@ func GetRoleIDsByNames(roleNames []string) ([]int, error) {
 
 func GetPhoneNumberByUserID(userID int) (string, error) {
 	var phoneNumber string
-	query := `SELECT phone_number FROM supplier WHERE user_id = $1`
+	query := `SELECT username FROM users WHERE id = $1`
 	err := DB.QueryRow(query, userID).Scan(&phoneNumber)
 	if err != nil {
-		return "", fmt.Errorf("could not get phone number: %v", err)
+		return "", fmt.Errorf("Не удалось получить номер телефона пользователя: %v", err)
 	}
 	return phoneNumber, nil
 }
