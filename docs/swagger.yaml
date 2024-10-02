@@ -1,5 +1,15 @@
 basePath: /
 definitions:
+  github_com_WhyDias_Marketplace_internal_controllers.AddCategoryAttributeRequest:
+    properties:
+      category_id:
+        type: integer
+      name:
+        type: string
+    required:
+    - category_id
+    - name
+    type: object
   github_com_WhyDias_Marketplace_internal_controllers.AddCategoryRequest:
     properties:
       image_url:
@@ -24,38 +34,32 @@ definitions:
       path:
         type: string
     type: object
-  github_com_WhyDias_Marketplace_internal_controllers.AddProductRequest:
-    properties:
-      category_id:
-        type: integer
-      description:
-        type: string
-      images:
-        items:
-          type: string
-        type: array
-      name:
-        type: string
-      variations:
-        items:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ProductVariationRequest'
-        type: array
-    required:
-    - category_id
-    - name
-    type: object
-  github_com_WhyDias_Marketplace_internal_controllers.AttributeValueRequest:
-    properties:
-      name:
-        type: string
-      value:
-        type: string
-    required:
-    - name
-    - value
-    type: object
   github_com_WhyDias_Marketplace_internal_controllers.Category:
     properties:
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: integer
+      path:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.CategoryAttribute:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_controllers.CategoryNode:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CategoryNode'
+        type: array
       id:
         type: integer
       image_url:
@@ -102,27 +106,6 @@ definitions:
         type: integer
       message:
         type: string
-    type: object
-  github_com_WhyDias_Marketplace_internal_controllers.ProductVariationRequest:
-    properties:
-      attributes:
-        items:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.AttributeValueRequest'
-        type: array
-      images:
-        items:
-          type: string
-        type: array
-      price:
-        type: number
-      sku:
-        type: string
-      stock:
-        type: integer
-    required:
-    - price
-    - sku
-    - stock
     type: object
   github_com_WhyDias_Marketplace_internal_controllers.RegisterRequest:
     properties:
@@ -262,6 +245,18 @@ definitions:
       value:
         type: string
     type: object
+  github_com_WhyDias_Marketplace_internal_models.AttributeValueRequest:
+    properties:
+      name:
+        type: string
+      values:
+        items:
+          type: string
+        type: array
+    required:
+    - name
+    - values
+    type: object
   github_com_WhyDias_Marketplace_internal_models.Category:
     properties:
       id:
@@ -270,7 +265,16 @@ definitions:
         type: string
       name:
         type: string
+      parent_id:
+        type: integer
       path:
+        type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_models.Color:
+    properties:
+      code:
+        type: string
+      name:
         type: string
     type: object
   github_com_WhyDias_Marketplace_internal_models.Market:
@@ -296,7 +300,9 @@ definitions:
         type: integer
       name:
         type: string
-      status_id:
+      price:
+        type: number
+      stock:
         type: integer
       supplier_id:
         type: integer
@@ -321,6 +327,11 @@ definitions:
       attributes:
         items:
           $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.AttributeValue'
+        type: array
+      colors:
+        description: Добавили поле Colors
+        items:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.Color'
         type: array
       id:
         type: integer
@@ -348,10 +359,68 @@ definitions:
       product_variation_id:
         type: integer
     type: object
+  github_com_WhyDias_Marketplace_internal_models.ProductVariationRequest:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.AttributeValueRequest'
+        type: array
+      colors:
+        description: Добавили поле Colors
+        items:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.Color'
+        type: array
+      images:
+        items:
+          type: string
+        type: array
+      price:
+        type: number
+      sku:
+        type: string
+      stock:
+        type: integer
+    required:
+    - price
+    - sku
+    - stock
+    type: object
+  github_com_WhyDias_Marketplace_internal_models.UpdateProductRequest:
+    properties:
+      category_id:
+        type: integer
+      description:
+        type: string
+      images:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      variations:
+        items:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.ProductVariationRequest'
+        type: array
+    type: object
   github_com_WhyDias_Marketplace_internal_models.UpdateSupplierDetailsResponse:
     properties:
       message:
         type: string
+    type: object
+  github_com_WhyDias_Marketplace_internal_utils.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  internal_controllers.AddCategoryAttributeRequest:
+    properties:
+      category_id:
+        type: integer
+      name:
+        type: string
+    required:
+    - category_id
+    - name
     type: object
   internal_controllers.AddCategoryRequest:
     properties:
@@ -377,38 +446,32 @@ definitions:
       path:
         type: string
     type: object
-  internal_controllers.AddProductRequest:
-    properties:
-      category_id:
-        type: integer
-      description:
-        type: string
-      images:
-        items:
-          type: string
-        type: array
-      name:
-        type: string
-      variations:
-        items:
-          $ref: '#/definitions/internal_controllers.ProductVariationRequest'
-        type: array
-    required:
-    - category_id
-    - name
-    type: object
-  internal_controllers.AttributeValueRequest:
-    properties:
-      name:
-        type: string
-      value:
-        type: string
-    required:
-    - name
-    - value
-    type: object
   internal_controllers.Category:
     properties:
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: integer
+      path:
+        type: string
+    type: object
+  internal_controllers.CategoryAttribute:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  internal_controllers.CategoryNode:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/internal_controllers.CategoryNode'
+        type: array
       id:
         type: integer
       image_url:
@@ -455,27 +518,6 @@ definitions:
         type: integer
       message:
         type: string
-    type: object
-  internal_controllers.ProductVariationRequest:
-    properties:
-      attributes:
-        items:
-          $ref: '#/definitions/internal_controllers.AttributeValueRequest'
-        type: array
-      images:
-        items:
-          type: string
-        type: array
-      price:
-        type: number
-      sku:
-        type: string
-      stock:
-        type: integer
-    required:
-    - price
-    - sku
-    - stock
     type: object
   internal_controllers.RegisterRequest:
     properties:
@@ -619,6 +661,26 @@ info:
   version: "1.0"
 paths:
   /api/categories:
+    get:
+      consumes:
+      - application/json
+      description: Получает все категории и подкатегории в иерархическом формате
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CategoryNode'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+      summary: Get all categories
+      tags:
+      - Categories
     post:
       consumes:
       - application/json
@@ -654,6 +716,98 @@ paths:
       summary: Добавление категории
       tags:
       - Категории
+  /api/categories/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Получает информацию о категории по её ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.Category'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+      summary: Get category by ID
+      tags:
+      - Categories
+  /api/categories/{id}/attributes:
+    get:
+      consumes:
+      - application/json
+      description: Получает список атрибутов, связанных с категорией по её ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CategoryAttribute'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+      summary: Get category attributes
+      tags:
+      - Categories
+  /api/categories/attributes:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новый атрибут, связанный с определенной категорией
+      parameters:
+      - description: Attribute to add
+        in: body
+        name: attribute
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.AddCategoryAttributeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+      summary: Add a new attribute to a category
+      tags:
+      - Categories
   /api/categories/search:
     get:
       consumes:
@@ -691,9 +845,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Возвращает список всех подкатегорий для заданного path категории.
+      description: Получает подкатегории первого уровня для заданного пути категории
       parameters:
-      - description: Path категории
+      - description: Category path
         in: query
         name: path
         required: true
@@ -710,57 +864,117 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
-      summary: Получение подкатегорий по path
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+      summary: Get immediate subcategories
       tags:
-      - Категории
+      - Categories
   /api/products:
     post:
       consumes:
-      - application/json
-      description: Добавляет новый продукт с изображениями и вариациями
+      - multipart/form-data
+      description: Создает новый продукт с вариациями на основе предоставленных атрибутов
       parameters:
-      - description: Данные продукта
-        in: body
-        name: product
+      - description: Product name
+        in: formData
+        name: name
         required: true
-        schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.AddProductRequest'
+        type: string
+      - description: Product description
+        in: formData
+        name: description
+        type: string
+      - description: Category ID
+        in: formData
+        name: category_id
+        required: true
+        type: integer
+      - description: Product price
+        in: formData
+        name: price
+        required: true
+        type: number
+      - description: Product stock
+        in: formData
+        name: stock
+        required: true
+        type: integer
+      - description: JSON-строка атрибутов
+        in: formData
+        name: attributes
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "201":
-          description: Продукт успешно добавлен
+          description: Created
           schema:
             additionalProperties: true
             type: object
         "400":
-          description: Некорректный запрос
+          description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
         "401":
-          description: Неавторизован
+          description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
         "500":
-          description: Внутренняя ошибка сервера
+          description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Добавление нового продукта
+      summary: Add a new product
       tags:
-      - Продукты
+      - Products
+  /api/products/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о продукте и его вариациях
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Product data
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a product
+      tags:
+      - Products
   /api/products/moderated:
     get:
       description: Возвращает список продуктов, находящихся на модерации (status_id
@@ -823,22 +1037,22 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CheckPhoneRequest'
+          $ref: '#/definitions/internal_controllers.CheckPhoneRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CheckPhoneResponse'
+            $ref: '#/definitions/internal_controllers.CheckPhoneResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       summary: Проверка существования номера телефона
       tags:
       - Авторизация
@@ -853,26 +1067,26 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginRequest'
+          $ref: '#/definitions/internal_controllers.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginResponse'
+            $ref: '#/definitions/internal_controllers.LoginResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       summary: Логин пользователя
       tags:
       - Авторизация
@@ -887,22 +1101,22 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserRequest'
+          $ref: '#/definitions/internal_controllers.RegisterUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserResponse'
+            $ref: '#/definitions/internal_controllers.RegisterUserResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       summary: Регистрация пользователя
       tags:
       - Пользователи
@@ -918,22 +1132,22 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RequestPasswordResetRequest'
+          $ref: '#/definitions/internal_controllers.RequestPasswordResetRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RequestPasswordResetResponse'
+            $ref: '#/definitions/internal_controllers.RequestPasswordResetResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       summary: Запрос на сброс пароля
       tags:
       - Восстановление доступа
@@ -949,22 +1163,22 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetNewPasswordRequest'
+          $ref: '#/definitions/internal_controllers.SetNewPasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetNewPasswordResponse'
+            $ref: '#/definitions/internal_controllers.SetNewPasswordResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       summary: Установка нового пароля
       tags:
       - Восстановление доступа
@@ -979,26 +1193,26 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeRequest'
+          $ref: '#/definitions/internal_controllers.VerifyCodeRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeResponse'
+            $ref: '#/definitions/internal_controllers.VerifyCodeResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       summary: Верификация кода подтверждения
       tags:
       - Восстановление доступа
@@ -1056,22 +1270,22 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/internal_controllers.RegisterRequest'
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_controllers.RegisterResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/internal_controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
       summary: Отправка кода подтверждения
       tags:
       - Авторизация
@@ -1087,26 +1301,26 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordRequest'
+          $ref: '#/definitions/internal_controllers.SetPasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordResponse'
+            $ref: '#/definitions/internal_controllers.SetPasswordResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       summary: Установка пароля
       tags:
       - Авторизация
@@ -1157,22 +1371,22 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/internal_controllers.VerifyCodeRequest'
+          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_controllers.VerifyCodeResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/internal_controllers.ErrorResponse'
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
       summary: Верификация кода подтверждения
       tags:
       - Авторизация

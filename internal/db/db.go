@@ -277,3 +277,64 @@ func GetAttributeValueImageByAttributeValueID(attributeValueID int) (*models.Att
 	}
 	return &image, nil
 }
+
+func GetAllCategories() ([]models.Category, error) {
+	query := `SELECT id, name, path, image_url, parent_id FROM categories ORDER BY path`
+
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
+	}
+	defer rows.Close()
+
+	var categories []models.Category
+	for rows.Next() {
+		var category models.Category
+		if err := rows.Scan(&category.ID, &category.Name, &category.Path, &category.ImageURL, &category.ParentID); err != nil {
+			return nil, fmt.Errorf("ошибка при сканировании строки: %v", err)
+		}
+		categories = append(categories, category)
+	}
+
+	return categories, nil
+}
+
+func CreateCategoryAttribute(categoryID int, name string) error {
+	query := `INSERT INTO category_attributes (category_id, name) VALUES ($1, $2)`
+	_, err := DB.Exec(query, categoryID, name)
+	if err != nil {
+		return fmt.Errorf("Не удалось создать атрибут категории: %v", err)
+	}
+	return nil
+}
+
+func GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
+	query := `SELECT id, name FROM category_attributes WHERE category_id = $1`
+
+	rows, err := DB.Query(query, categoryID)
+	if err != nil {
+		return nil, fmt.Errorf("Не удалось получить атрибуты категории: %v", err)
+	}
+	defer rows.Close()
+
+	var attributes []models.CategoryAttribute
+	for rows.Next() {
+		var attr models.CategoryAttribute
+		if err := rows.Scan(&attr.ID, &attr.Name); err != nil {
+			return nil, fmt.Errorf("Ошибка при чтении атрибута: %v", err)
+		}
+		attributes = append(attributes, attr)
+	}
+
+	return attributes, nil
+}
+
+func GetCategoryByID(categoryID int) (*models.Category, error) {
+	query := `SELECT id, name, path, image_url FROM categories WHERE id = $1`
+	category := &models.Category{}
+	err := DB.QueryRow(query, categoryID).Scan(&category.ID, &category.Name, &category.Path, &category.ImageURL)
+	if err != nil {
+		return nil, fmt.Errorf("Не удалось получить категорию: %v", err)
+	}
+	return category, nil
+}

@@ -192,3 +192,152 @@ func GetSupplierIDByUserID(userID int) (int, error) {
 	}
 	return supplierID, nil
 }
+
+func GetProductByID(productID int) (*models.Product, error) {
+	query := `
+        SELECT id, name, description, category_id, market_id, status_id, supplier_id
+        FROM product
+        WHERE id = $1
+    `
+
+	var product models.Product
+	err := DB.QueryRow(query, productID).Scan(
+		&product.ID,
+		&product.Name,
+		&product.Description,
+		&product.CategoryID,
+		&product.MarketID,
+		&product.StatusID,
+		&product.SupplierID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Не удалось получить продукт: %v", err)
+	}
+
+	return &product, nil
+}
+
+type UpdateProductRequest struct {
+	Name        string                    `json:"name"`
+	Description string                    `json:"description"`
+	CategoryID  int                       `json:"category_id"`
+	Images      []string                  `json:"images"`
+	Variations  []ProductVariationRequest `json:"variations"`
+}
+
+type ProductVariationRequest struct {
+	SKU        string                  `json:"sku" binding:"required"`
+	Price      float64                 `json:"price" binding:"required"`
+	Stock      int                     `json:"stock" binding:"required"`
+	Images     []string                `json:"images"`
+	Attributes []AttributeValueRequest `json:"attributes"`
+	Colors     []Color                 `json:"colors"` // Добавили поле Colors
+}
+
+type Color struct {
+	Name string `json:"name"`
+	Code string `json:"code"`
+}
+
+type AttributeValueRequest struct {
+	Name  string `json:"name" binding:"required"`
+	Value string `json:"value" binding:"required"`
+}
+
+func UpdateProduct(productID int, req *models.UpdateProductRequest) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return fmt.Errorf("Не удалось начать транзакцию: %v", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	// Обновляем информацию о продукте
+	query := `UPDATE product SET name = $1, description = $2, category_id = $3 WHERE id = $4`
+	_, err = tx.Exec(query, req.Name, req.Description, req.CategoryID, productID)
+	if err != nil {
+		return fmt.Errorf("Не удалось обновить продукт: %v", err)
+	}
+
+	// Обновляем изображения продукта
+	// Сначала удаляем старые
+	_, err = tx.Exec(`DELETE FROM product_images WHERE product_id = $1`, productID)
+	if err != nil {
+		return fmt.Errorf("Не удалось удалить старые изображения продукта: %v", err)
+	}
+
+	// Затем добавляем новые
+	for _, imageURL := range req.Images {
+		_, err = tx.Exec(`INSERT INTO product_images (product_id, image_url) VALUES ($1, $2)`, productID, imageURL)
+		if err != nil {
+			return fmt.Errorf("Не удалось добавить новое изображение продукта: %v", err)
+		}
+	}
+
+	// Обновляем вариации продукта
+	// Здесь можно реализовать логику обновления, удаления и добавления вариаций
+
+	return nil
+}
+
+func GetColorIDByNameAndCode(tx *sql.Tx, name, code string) (int, error) {
+	var id int
+	query := `SELECT id FROM colors WHERE name = $1 AND code = $2`
+	err := tx.QueryRow(query, name, code).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func CreateColorTx(tx *sql.Tx, color models.Color) (int, error) {
+	var id int
+	query := `INSERT INTO colors (name, code) VALUES ($1, $2) RETURNING id`
+	err := tx.QueryRow(query, color.Name, color.Code).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("Не удалось создать цвет: %v", err)
+	}
+	return id, nil
+}
+
+func CreateVariationColorLinkTx(tx *sql.Tx, variationID, colorID int) error {
+	query := `INSERT INTO variation_colors (variation_id, color_id) VALUES ($1, $2)`
+	_, err := tx.Exec(query, variationID, colorID)
+	if err != nil {
+		return fmt.Errorf("Не удалось создать связь вариации и цвета: %v", err)
+	}
+	return nil
+}
+
+func GetImmediateSubcategoriesByPath(path string) ([]models.Category, error) {
+	query := `
+        SELECT id, name, path, image_url
+        FROM categories
+        WHERE path ~ $1 AND nlevel(path) = nlevel($1) + 1
+    `
+
+	pattern := fmt.Sprintf(`^%s\.[^.]+$`, path)
+
+	rows, err := DB.Query(query, pattern)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
+	}
+	defer rows.Close()
+
+	var categories []models.Category
+
+	for rows.Next() {
+		var category models.Category
+		if err := rows.Scan(&category.ID, &category.Name, &category.Path, &category.ImageURL); err != nil {
+			return nil, fmt.Errorf("ошибка при сканировании строки: %v", err)
+		}
+		categories = append(categories, category)
+	}
+
+	return categories, nil
+}

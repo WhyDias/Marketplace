@@ -3,8 +3,10 @@
 package services
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/WhyDias/Marketplace/internal/db"
 	"github.com/WhyDias/Marketplace/internal/models"
@@ -43,7 +45,7 @@ func (s *ProductService) GetSupplierIDByUserID(userID int) (int, error) {
 	return supplier.ID, nil
 }
 
-func (s *ProductService) AddProduct(product *models.Product) error {
+func (s *ProductService) AddProduct(product *models.Product, attributes []models.AttributeValueRequest) error {
 	tx, err := db.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("Не удалось начать транзакцию: %v", err)
@@ -57,61 +59,44 @@ func (s *ProductService) AddProduct(product *models.Product) error {
 		}
 	}()
 
-	// Создаем продукт
+	// Создаём продукт
 	err = db.CreateProductTx(tx, product)
 	if err != nil {
 		return err
 	}
 
-	// Добавляем изображения продукта
-	if len(product.Images) > 0 {
-		productImage := &models.ProductImage{
-			ProductID: product.ID,
-			ImageURLs: product.Images[0].ImageURLs,
+	// Генерируем вариации
+	variations := s.GenerateVariations(attributes)
+
+	// Создаём вариации продукта
+	for _, variationAttributes := range variations {
+		variation := &models.ProductVariation{
+			ProductID:  product.ID,
+			SKU:        generateSKU(product.ID, variationAttributes),
+			Price:      product.Price,
+			Stock:      product.Stock,
+			Attributes: []models.AttributeValue{},
 		}
-		err = db.CreateProductImageTx(tx, productImage)
+
+		// Добавляем вариацию в базу данных
+		err = db.CreateProductVariationTx(tx, variation)
 		if err != nil {
 			return err
 		}
-	}
 
-	// Добавляем вариации продукта
-	for i, variation := range product.Variations {
-		variation.ProductID = product.ID
-		err = db.CreateProductVariationTx(tx, &variation)
-		if err != nil {
-			return err
-		}
-		product.Variations[i].ID = variation.ID
-
-		// Добавляем изображения вариации
-		if len(variation.Images) > 0 {
-			variationImage := &models.ProductVariationImage{
-				ProductVariationID: variation.ID,
-				ImageURLs:          variation.Images[0].ImageURLs,
-			}
-			err = db.CreateProductVariationImageTx(tx, variationImage)
+		// Связываем вариацию с атрибутами
+		for name, value := range variationAttributes {
+			// Получаем или создаём атрибут и его значение
+			attributeID, err := db.GetAttributeIDByName(tx, name)
 			if err != nil {
 				return err
 			}
-		}
-
-		// Обрабатываем атрибуты вариации
-		for _, attr := range variation.Attributes {
-			// Получаем или создаем атрибут
-			attributeID, err := db.GetAttributeIDByName(tx, attr.Name)
+			attributeValueID, err := db.GetAttributeValueID(tx, attributeID, value)
 			if err != nil {
-				return err
-			}
-			attr.AttributeID = attributeID
-
-			// Получаем или создаем значение атрибута
-			attributeValueID, err := db.GetAttributeValueID(tx, attributeID, attr.Value)
-			if err != nil {
-				// Создаем новое значение атрибута
+				// Создаём новое значение атрибута
 				attrValue := &models.AttributeValue{
 					AttributeID: attributeID,
-					Value:       attr.Value,
+					Value:       value,
 				}
 				err = db.CreateAttributeValueTx(tx, attrValue)
 				if err != nil {
@@ -129,4 +114,114 @@ func (s *ProductService) AddProduct(product *models.Product) error {
 	}
 
 	return nil
+}
+
+func generateSKU(productID int, attributes map[string]string) string {
+	// Реализуйте генерацию уникального SKU на основе атрибутов
+	// Например: "PROD123-SIZE-M-COLOR-RED"
+	sku := fmt.Sprintf("PROD%d", productID)
+	for name, value := range attributes {
+		sku += fmt.Sprintf("-%s-%s", strings.ToUpper(name), strings.ToUpper(value))
+	}
+	return sku
+}
+
+func (s *ProductService) GetMarketIDBySupplierID(supplierID int) (int, error) {
+	return db.GetMarketIDBySupplierID(supplierID)
+}
+
+type UpdateProductRequest struct {
+	Name        string                    `json:"name"`
+	Description string                    `json:"description"`
+	CategoryID  int                       `json:"category_id"`
+	Images      []string                  `json:"images"`
+	Variations  []ProductVariationRequest `json:"variations"`
+}
+
+type ProductVariationRequest struct {
+	SKU        string                  `json:"sku" binding:"required"`
+	Price      float64                 `json:"price" binding:"required"`
+	Stock      int                     `json:"stock" binding:"required"`
+	Images     []string                `json:"images"`
+	Attributes []AttributeValueRequest `json:"attributes"`
+	Colors     []Color                 `json:"colors"` // Добавили поле Colors
+}
+
+type Color struct {
+	Name string `json:"name"`
+	Code string `json:"code"`
+}
+
+type AttributeValueRequest struct {
+	Name  string `json:"name" binding:"required"`
+	Value string `json:"value" binding:"required"`
+}
+
+func (s *ProductService) UpdateProduct(userID, productID int, req *models.UpdateProductRequest) error {
+	// Получаем supplier_id по user_id
+	supplierID, err := s.GetSupplierIDByUserID(userID)
+	if err != nil {
+		return fmt.Errorf("Не удалось получить supplier_id: %v", err)
+	}
+
+	// Проверяем, что продукт принадлежит поставщику
+	product, err := db.GetProductByID(productID)
+	if err != nil {
+		return fmt.Errorf("Не удалось получить продукт: %v", err)
+	}
+
+	if product.SupplierID != supplierID {
+		return fmt.Errorf("У вас нет прав для обновления этого продукта")
+	}
+
+	// Обновляем продукт в базе данных
+	return db.UpdateProduct(productID, req)
+}
+
+func (s *ProductService) addVariationColorsTx(tx *sql.Tx, variationID int, colors []models.Color) error {
+	for _, color := range colors {
+		// Проверяем, существует ли цвет
+		colorID, err := db.GetColorIDByNameAndCode(tx, color.Name, color.Code)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				// Создаём новый цвет
+				colorID, err = db.CreateColorTx(tx, color)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+
+		// Создаём связь между вариацией и цветом
+		err = db.CreateVariationColorLinkTx(tx, variationID, colorID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *ProductService) GenerateVariations(attributes []models.AttributeValueRequest) []map[string]string {
+	var results []map[string]string
+	s.generateVariationsHelper(attributes, 0, map[string]string{}, &results)
+	return results
+}
+
+func (s *ProductService) generateVariationsHelper(attributes []models.AttributeValueRequest, index int, current map[string]string, results *[]map[string]string) {
+	if index == len(attributes) {
+		temp := make(map[string]string)
+		for k, v := range current {
+			temp[k] = v
+		}
+		*results = append(*results, temp)
+		return
+	}
+
+	attr := attributes[index]
+	for _, value := range attr.Values {
+		current[attr.Name] = value
+		s.generateVariationsHelper(attributes, index+1, current, results)
+	}
 }

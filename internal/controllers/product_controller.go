@@ -5,9 +5,11 @@ package controllers
 import (
 	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/WhyDias/Marketplace/internal/services"
+	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 // ProductController структура контроллера продуктов
@@ -120,11 +122,13 @@ func (pc *ProductController) GetUnmoderatedProducts(c *gin.Context) {
 }
 
 type AddProductRequest struct {
-	Name        string                    `json:"name" binding:"required"`
-	Description string                    `json:"description"`
-	CategoryID  int                       `json:"category_id" binding:"required"`
-	Images      []string                  `json:"images"`
-	Variations  []ProductVariationRequest `json:"variations"`
+	Name        string                         `json:"name" binding:"required"`
+	Description string                         `json:"description"`
+	CategoryID  int                            `json:"category_id" binding:"required"`
+	Images      []string                       `json:"images"`
+	Attributes  []models.AttributeValueRequest `json:"attributes"`
+	Price       float64                        `json:"price" binding:"required"`
+	Stock       int                            `json:"stock" binding:"required"`
 }
 
 type ProductVariationRequest struct {
@@ -133,100 +137,129 @@ type ProductVariationRequest struct {
 	Stock      int                     `json:"stock" binding:"required"`
 	Images     []string                `json:"images"`
 	Attributes []AttributeValueRequest `json:"attributes"`
+	Colors     []Color                 `json:"colors"` // Добавили поле Colors
+}
+
+type Color struct {
+	Name string `json:"name"`
+	Code string `json:"code"`
 }
 
 type AttributeValueRequest struct {
-	Name  string `json:"name" binding:"required"`
-	Value string `json:"value" binding:"required"`
+	Name   string   `json:"name" binding:"required"`
+	Values []string `json:"values" binding:"required"`
 }
 
 // AddProduct добавляет новый продукт
-// @Summary Добавление нового продукта
-// @Description Добавляет новый продукт с изображениями и вариациями
-// @Tags Продукты
-// @Security BearerAuth
-// @Accept json
+// @Summary Add a new product
+// @Description Создает новый продукт с вариациями на основе предоставленных атрибутов
+// @Tags Products
+// @Accept multipart/form-data
 // @Produce json
-// @Param product body AddProductRequest true "Данные продукта"
-// @Success 201 {object} map[string]interface{} "Продукт успешно добавлен"
-// @Failure 400 {object} map[string]string "Некорректный запрос"
-// @Failure 401 {object} map[string]string "Неавторизован"
-// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Param name formData string true "Product name"
+// @Param description formData string false "Product description"
+// @Param category_id formData int true "Category ID"
+// @Param price formData number true "Product price"
+// @Param stock formData int true "Product stock"
+// @Param attributes formData string true "JSON-строка атрибутов"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
 // @Router /api/products [post]
 func (pc *ProductController) AddProduct(c *gin.Context) {
-	var req AddProductRequest
+	var req models.AddProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	// Получаем userID из контекста
-	userID, exists := c.Get("user_id")
+	// Получаем user_id из контекста
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
+		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Пользователь не авторизован"})
 		return
 	}
+	userID := userIDInterface.(int)
 
-	// Получаем supplierID через SupplierService
-	supplierID, err := pc.SupplierService.GetSupplierIDByUserID(userID.(int))
+	// Получаем supplier_id и market_id
+	supplierID, err := pc.Service.GetSupplierIDByUserID(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить ID поставщика"})
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить supplier_id"})
+		return
+	}
+	marketID, err := pc.Service.GetMarketIDBySupplierID(supplierID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить market_id"})
 		return
 	}
 
-	product := models.Product{
+	// Создаём продукт
+	product := &models.Product{
 		Name:        req.Name,
 		Description: req.Description,
 		CategoryID:  req.CategoryID,
 		SupplierID:  supplierID,
+		MarketID:    marketID,
+		Price:       req.Price,
+		Stock:       req.Stock,
+		Images:      []models.ProductImage{},     // Добавьте обработку изображений при необходимости
+		Variations:  []models.ProductVariation{}, // Вариации будут созданы на основе атрибутов
 	}
 
-	// Добавляем изображения продукта
-	if len(req.Images) > 0 {
-		product.Images = []models.ProductImage{
-			{
-				ImageURLs: req.Images,
-			},
-		}
-	}
-
-	// Обрабатываем вариации
-	for _, varReq := range req.Variations {
-		variation := models.ProductVariation{
-			SKU:   varReq.SKU,
-			Price: varReq.Price,
-			Stock: varReq.Stock,
-		}
-
-		// Добавляем изображения вариации
-		if len(varReq.Images) > 0 {
-			variation.Images = []models.ProductVariationImage{
-				{
-					ImageURLs: varReq.Images,
-				},
-			}
-		}
-
-		// Обрабатываем атрибуты вариации
-		for _, attrReq := range varReq.Attributes {
-			variation.Attributes = append(variation.Attributes, models.AttributeValue{
-				Name:  attrReq.Name,
-				Value: attrReq.Value,
-			})
-		}
-
-		product.Variations = append(product.Variations, variation)
-	}
-
-	// Добавляем продукт через сервис
-	err = pc.Service.AddProduct(&product)
+	// Добавляем продукт и вариации
+	err = pc.Service.AddProduct(product, req.Attributes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось добавить продукт"})
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить продукт"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message":    "Продукт успешно добавлен",
-		"product_id": product.ID,
-	})
+	c.JSON(http.StatusCreated, gin.H{"message": "Продукт успешно добавлен", "product_id": product.ID})
+}
+
+// UpdateProduct обновляет существующий продукт
+// @Summary Update a product
+// @Description Обновляет информацию о продукте и его вариациях
+// @Tags Products
+// @Accept json
+// @Produce json
+// @Param id path int true "Product ID"
+// @Param product body models.UpdateProductRequest true "Product data"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
+// @Router /api/products/{id} [put]
+func (pc *ProductController) UpdateProduct(c *gin.Context) {
+	productIDStr := c.Param("id")
+	productID, err := strconv.Atoi(productIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Некорректный ID продукта"})
+		return
+	}
+
+	var req models.UpdateProductRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Получаем user_id из контекста (из JWT)
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Пользователь не авторизован"})
+		return
+	}
+	userID := userIDInterface.(int)
+
+	// Обновляем продукт через сервис
+	err = pc.Service.UpdateProduct(userID, productID, &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить продукт"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Продукт успешно обновлен"})
 }

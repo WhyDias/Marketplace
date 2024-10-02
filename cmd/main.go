@@ -81,12 +81,16 @@ func main() {
 	router.POST("/api/users/request_password_reset", userController.RequestPasswordReset)
 	router.POST("/api/users/verify_code", userController.VerifyCode)          // Новый маршрут
 	router.POST("/api/users/set_new_password", userController.SetNewPassword) // Новый маршрут
-	router.GET("/api/categories/subcategories", categoryController.GetSubcategoriesByPath)
+	router.GET("/api/categories/subcategories", categoryController.GetImmediateSubcategories)
 	router.POST("/api/attributes/values/images", attributeController.AddAttributeValueImage)
 	router.GET("/api/attributes/values/:attribute_value_id/images", attributeController.GetAttributeValueImage)
 
 	// Новый публичный маршрут для поиска категории по path
 	router.GET("/api/categories/search", supplierController.GetCategoryByPath) // Перемещен в публичные маршруты
+	router.GET("/api/categories", categoryController.GetAllCategories)
+	router.POST("/api/categories/attributes", categoryController.AddCategoryAttribute)
+	router.GET("/api/categories/:id/attributes", categoryController.GetCategoryAttributes)
+	router.GET("/api/categories/:id", categoryController.GetCategoryByID)
 
 	// Защищенные маршруты
 	authorized := router.Group("/")

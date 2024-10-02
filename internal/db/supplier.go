@@ -43,33 +43,6 @@ func FetchSupplierByUserID(userID int) (*models.Supplier, error) {
 	return supplier, nil
 }
 
-func GetAllCategories() ([]models.Category, error) {
-	query := `SELECT id, name, path, image_url FROM categories`
-
-	rows, err := DB.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
-	}
-	defer rows.Close()
-
-	var categories []models.Category
-	for rows.Next() {
-		var category models.Category
-		if err := rows.Scan(&category.ID, &category.Name, &category.Path, &category.ImageURL); err != nil {
-			log.Printf("GetAllCategories: ошибка при сканировании строки: %v", err)
-			return nil, fmt.Errorf("ошибка при сканировании строки: %v", err)
-		}
-		categories = append(categories, category)
-	}
-
-	if err := rows.Err(); err != nil {
-		log.Printf("GetAllCategories: ошибка при итерации по строкам: %v", err)
-		return nil, fmt.Errorf("ошибка при итерации по строкам: %v", err)
-	}
-
-	return categories, nil
-}
-
 func UpdateSupplierDetailsByUserID(userID int, marketID int, place string, rowName string, categoryIDs []int) error {
 	tx, err := DB.Begin()
 	if err != nil {
@@ -113,4 +86,14 @@ func UpdateSupplierDetailsByUserID(userID int, marketID int, place string, rowNa
 	}
 
 	return nil
+}
+
+func GetMarketIDBySupplierID(supplierID int) (int, error) {
+	var marketID int
+	query := `SELECT market_id FROM supplier WHERE id = $1`
+	err := DB.QueryRow(query, supplierID).Scan(&marketID)
+	if err != nil {
+		return 0, fmt.Errorf("Не удалось получить market_id для supplier_id %d: %v", supplierID, err)
+	}
+	return marketID, nil
 }
