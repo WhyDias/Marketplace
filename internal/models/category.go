@@ -24,6 +24,9 @@ type CategoryNode struct {
 }
 
 type CategoryAttribute struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID           int    `json:"id"`
+	CategoryID   int    `json:"category_id"`
+	Name         string `json:"name"`
+	Description  string `json:"description,omitempty"`
+	TypeOfOption string `json:"type_of_option,omitempty"`
 }

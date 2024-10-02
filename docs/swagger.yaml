@@ -4,7 +4,11 @@ definitions:
     properties:
       category_id:
         type: integer
+      description:
+        type: string
       name:
+        type: string
+      type_of_option:
         type: string
     required:
     - category_id
@@ -270,6 +274,19 @@ definitions:
       path:
         type: string
     type: object
+  github_com_WhyDias_Marketplace_internal_models.CategoryAttribute:
+    properties:
+      category_id:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      type_of_option:
+        type: string
+    type: object
   github_com_WhyDias_Marketplace_internal_models.Color:
     properties:
       code:
@@ -288,6 +305,9 @@ definitions:
     properties:
       category_id:
         type: integer
+      category_name:
+        description: Добавляем это поле
+        type: string
       description:
         type: string
       id:
@@ -302,6 +322,8 @@ definitions:
         type: string
       price:
         type: number
+      status_id:
+        type: integer
       stock:
         type: integer
       supplier_id:
@@ -416,7 +438,11 @@ definitions:
     properties:
       category_id:
         type: integer
+      description:
+        type: string
       name:
+        type: string
+      type_of_option:
         type: string
     required:
     - category_id
@@ -672,7 +698,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CategoryNode'
+              $ref: '#/definitions/internal_controllers.CategoryNode'
             type: array
         "500":
           description: Internal Server Error
@@ -733,7 +759,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.Category'
+            $ref: '#/definitions/internal_controllers.Category'
         "400":
           description: Bad Request
           schema:
@@ -763,7 +789,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CategoryAttribute'
+              $ref: '#/definitions/internal_controllers.CategoryAttribute'
             type: array
         "400":
           description: Bad Request
@@ -777,6 +803,36 @@ paths:
       tags:
       - Categories
   /api/categories/attributes:
+    get:
+      consumes:
+      - application/json
+      description: Получает список атрибутов, связанных с категорией по её ID
+      parameters:
+      - description: Category ID
+        in: query
+        name: category_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_models.CategoryAttribute'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse'
+      summary: Get category attributes by category ID
+      tags:
+      - Categories
     post:
       consumes:
       - application/json
@@ -787,7 +843,7 @@ paths:
         name: attribute
         required: true
         schema:
-          $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.AddCategoryAttributeRequest'
+          $ref: '#/definitions/internal_controllers.AddCategoryAttributeRequest'
       produces:
       - application/json
       responses:
@@ -859,7 +915,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.Category'
+              $ref: '#/definitions/internal_controllers.Category'
             type: array
         "400":
           description: Bad Request

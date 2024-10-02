@@ -299,9 +299,12 @@ func GetAllCategories() ([]models.Category, error) {
 	return categories, nil
 }
 
-func CreateCategoryAttribute(categoryID int, name string) error {
-	query := `INSERT INTO category_attributes (category_id, name) VALUES ($1, $2)`
-	_, err := DB.Exec(query, categoryID, name)
+func CreateCategoryAttribute(attribute *models.CategoryAttribute) error {
+	query := `
+        INSERT INTO category_attributes (category_id, name, description, type_of_option)
+        VALUES ($1, $2, $3, $4) RETURNING id
+    `
+	err := DB.QueryRow(query, attribute.CategoryID, attribute.Name, attribute.Description, attribute.TypeOfOption).Scan(&attribute.ID)
 	if err != nil {
 		return fmt.Errorf("Не удалось создать атрибут категории: %v", err)
 	}
@@ -309,8 +312,11 @@ func CreateCategoryAttribute(categoryID int, name string) error {
 }
 
 func GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
-	query := `SELECT id, name FROM category_attributes WHERE category_id = $1`
-
+	query := `
+        SELECT id, category_id, name, description, type_of_option
+        FROM category_attributes
+        WHERE category_id = $1
+    `
 	rows, err := DB.Query(query, categoryID)
 	if err != nil {
 		return nil, fmt.Errorf("Не удалось получить атрибуты категории: %v", err)
@@ -320,7 +326,8 @@ func GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
 	var attributes []models.CategoryAttribute
 	for rows.Next() {
 		var attr models.CategoryAttribute
-		if err := rows.Scan(&attr.ID, &attr.Name); err != nil {
+		err := rows.Scan(&attr.ID, &attr.CategoryID, &attr.Name, &attr.Description, &attr.TypeOfOption)
+		if err != nil {
 			return nil, fmt.Errorf("Ошибка при чтении атрибута: %v", err)
 		}
 		attributes = append(attributes, attr)
@@ -328,7 +335,6 @@ func GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
 
 	return attributes, nil
 }
-
 func GetCategoryByID(categoryID int) (*models.Category, error) {
 	query := `SELECT id, name, path, image_url FROM categories WHERE id = $1`
 	category := &models.Category{}

@@ -344,3 +344,51 @@ func GetImmediateSubcategoriesByPath(path string) ([]models.Category, error) {
 
 	return categories, nil
 }
+
+func GetProductsBySupplierAndStatus(supplierID int, statusID int) ([]models.Product, error) {
+	query := `
+        SELECT 
+            p.id, 
+            p.name, 
+            p.description, 
+            p.category_id, 
+            c.name AS category_name, 
+            p.supplier_id, 
+            p.market_id, 
+            p.status_id, 
+            p.price, 
+            p.stock
+        FROM product p
+        JOIN categories c ON p.category_id = c.id
+        WHERE p.supplier_id = $1 AND p.status_id = $2
+    `
+
+	rows, err := DB.Query(query, supplierID, statusID)
+	if err != nil {
+		return nil, fmt.Errorf("Не удалось получить продукты: %v", err)
+	}
+	defer rows.Close()
+
+	var products []models.Product
+	for rows.Next() {
+		var product models.Product
+		err := rows.Scan(
+			&product.ID,
+			&product.Name,
+			&product.Description,
+			&product.CategoryID,
+			&product.CategoryName, // Добавлено поле
+			&product.SupplierID,
+			&product.MarketID,
+			&product.StatusID,
+			&product.Price,
+			&product.Stock,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("Ошибка при чтении продукта: %v", err)
+		}
+		products = append(products, product)
+	}
+
+	return products, nil
+}

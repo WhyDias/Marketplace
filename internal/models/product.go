@@ -3,17 +3,18 @@
 package models
 
 type Product struct {
-	ID          int                `json:"id"`
-	Name        string             `json:"name"`
-	Description string             `json:"description"`
-	CategoryID  int                `json:"category_id"`
-	SupplierID  int                `json:"supplier_id"`
-	MarketID    int                `json:"market_id"`
-	StatusID    int                `json:"status_id"` // Добавляем это поле
-	Price       float64            `json:"price"`
-	Stock       int                `json:"stock"`
-	Images      []ProductImage     `json:"images,omitempty"`
-	Variations  []ProductVariation `json:"variations,omitempty"`
+	ID           int                `json:"id"`
+	Name         string             `json:"name"`
+	Description  string             `json:"description"`
+	CategoryID   int                `json:"category_id"`
+	CategoryName string             `json:"category_name"` // Добавляем это поле
+	SupplierID   int                `json:"supplier_id"`
+	MarketID     int                `json:"market_id"`
+	StatusID     int                `json:"status_id"`
+	Price        float64            `json:"price"`
+	Stock        int                `json:"stock"`
+	Images       []ProductImage     `json:"images,omitempty"`
+	Variations   []ProductVariation `json:"variations,omitempty"`
 }
 
 type AttributeValueImage struct {

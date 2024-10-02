@@ -43,7 +43,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CategoryNode"
+                                "$ref": "#/definitions/internal_controllers.CategoryNode"
                             }
                         }
                     },
@@ -112,6 +112,51 @@ const docTemplate = `{
             }
         },
         "/api/categories/attributes": {
+            "get": {
+                "description": "Получает список атрибутов, связанных с категорией по её ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Get category attributes by category ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.CategoryAttribute"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Добавляет новый атрибут, связанный с определенной категорией",
                 "consumes": [
@@ -131,7 +176,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.AddCategoryAttributeRequest"
+                            "$ref": "#/definitions/internal_controllers.AddCategoryAttributeRequest"
                         }
                     }
                 ],
@@ -238,7 +283,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.Category"
+                                "$ref": "#/definitions/internal_controllers.Category"
                             }
                         }
                     },
@@ -283,7 +328,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.Category"
+                            "$ref": "#/definitions/internal_controllers.Category"
                         }
                     },
                     "400": {
@@ -329,7 +374,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CategoryAttribute"
+                                "$ref": "#/definitions/internal_controllers.CategoryAttribute"
                             }
                         }
                     },
@@ -1150,7 +1195,13 @@ const docTemplate = `{
                 "category_id": {
                     "type": "integer"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "name": {
+                    "type": "string"
+                },
+                "type_of_option": {
                     "type": "string"
                 }
             }
@@ -1547,6 +1598,26 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_WhyDias_Marketplace_internal_models.CategoryAttribute": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type_of_option": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_WhyDias_Marketplace_internal_models.Color": {
             "type": "object",
             "properties": {
@@ -1575,6 +1646,10 @@ const docTemplate = `{
                 "category_id": {
                     "type": "integer"
                 },
+                "category_name": {
+                    "description": "Добавляем это поле",
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -1595,6 +1670,9 @@ const docTemplate = `{
                 },
                 "price": {
                     "type": "number"
+                },
+                "status_id": {
+                    "type": "integer"
                 },
                 "stock": {
                     "type": "integer"
@@ -1773,7 +1851,13 @@ const docTemplate = `{
                 "category_id": {
                     "type": "integer"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "name": {
+                    "type": "string"
+                },
+                "type_of_option": {
                     "type": "string"
                 }
             }

@@ -3,6 +3,7 @@
 package controllers
 
 import (
+	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/WhyDias/Marketplace/internal/services"
 	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -83,8 +84,10 @@ func (cc *CategoryController) GetAllCategories(c *gin.Context) {
 }
 
 type AddCategoryAttributeRequest struct {
-	CategoryID int    `json:"category_id" binding:"required"`
-	Name       string `json:"name" binding:"required"`
+	CategoryID   int    `json:"category_id" binding:"required"`
+	Name         string `json:"name" binding:"required"`
+	Description  string `json:"description"`
+	TypeOfOption string `json:"type_of_option"`
 }
 
 // AddCategoryAttribute добавляет новый атрибут к категории
@@ -105,7 +108,14 @@ func (cc *CategoryController) AddCategoryAttribute(c *gin.Context) {
 		return
 	}
 
-	err := cc.Service.AddCategoryAttribute(req.CategoryID, req.Name)
+	attribute := models.CategoryAttribute{
+		CategoryID:   req.CategoryID,
+		Name:         req.Name,
+		Description:  req.Description,
+		TypeOfOption: req.TypeOfOption,
+	}
+
+	err := cc.Service.AddCategoryAttribute(&attribute)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить атрибут категории"})
 		return
@@ -173,4 +183,32 @@ func (cc *CategoryController) GetCategoryByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, category)
+}
+
+// GetCategoryAttributesByCategoryID возвращает список атрибутов для категории
+// @Summary Get category attributes by category ID
+// @Description Получает список атрибутов, связанных с категорией по её ID
+// @Tags Categories
+// @Accept json
+// @Produce json
+// @Param category_id query int true "Category ID"
+// @Success 200 {array} models.CategoryAttribute
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /api/categories/attributes [get]
+func (cc *CategoryController) GetCategoryAttributesByCategoryID(c *gin.Context) {
+	categoryIDStr := c.Query("category_id")
+	categoryID, err := strconv.Atoi(categoryIDStr)
+	if err != nil || categoryID <= 0 {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный category_id"})
+		return
+	}
+
+	attributes, err := cc.Service.GetCategoryAttributes(categoryID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить атрибуты категории"})
+		return
+	}
+
+	c.JSON(http.StatusOK, attributes)
 }

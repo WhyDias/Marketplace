@@ -63,8 +63,8 @@ func buildCategoryTree(categories []models.Category) []models.CategoryNode {
 	return roots
 }
 
-func (s *CategoryService) AddCategoryAttribute(categoryID int, name string) error {
-	return db.CreateCategoryAttribute(categoryID, name)
+func (s *CategoryService) AddCategoryAttribute(attribute *models.CategoryAttribute) error {
+	return db.CreateCategoryAttribute(attribute)
 }
 
 func (s *CategoryService) GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
