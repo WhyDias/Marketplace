@@ -130,10 +130,10 @@ func (vc *VerificationController) VerifyCode(c *gin.Context) {
 		return
 	}
 
-	// Отмечаем пользователя как верифицированного
-	err = vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber)
+	// Отмечаем номер телефона как верифицированный и связываем с userID
+	err = vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber, user.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить статус верификации"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить статус поставщика"})
 		return
 	}
 

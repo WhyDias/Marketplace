@@ -57,15 +57,15 @@ type UpdateSupplierRequest struct {
 }
 
 // MarkPhoneNumberAsVerified обновляет поле is_verified для поставщика
-func (s *SupplierService) MarkPhoneNumberAsVerified(phoneNumber string) error {
-	// Получаем поставщика по номеру телефона
+func (s *SupplierService) MarkPhoneNumberAsVerified(phoneNumber string, userID int) error {
 	supplier, err := s.GetSupplierByPhoneNumber(phoneNumber)
 	if err != nil {
 		if err.Error() == "supplier not found" {
-			// Если поставщик не найден, создаем новую запись
+			// Если поставщик не найден, создаём новую запись
 			supplier = &models.Supplier{
 				PhoneNumber: phoneNumber,
 				IsVerified:  true,
+				UserID:      userID, // Устанавливаем userID
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
 			}
@@ -75,9 +75,9 @@ func (s *SupplierService) MarkPhoneNumberAsVerified(phoneNumber string) error {
 		}
 	}
 
-	// Если поставщик найден, обновляем его статус
-	query := `UPDATE supplier SET is_verified = $1, updated_at = $2 WHERE phone_number = $3`
-	_, err = db.DB.Exec(query, true, time.Now(), phoneNumber)
+	// Если поставщик найден, обновляем его статус и userID
+	query := `UPDATE supplier SET is_verified = $1, user_id = $2, updated_at = $3 WHERE phone_number = $4`
+	_, err = db.DB.Exec(query, true, userID, time.Now(), phoneNumber)
 	if err != nil {
 		return fmt.Errorf("Не удалось обновить статус поставщика: %v", err)
 	}
