@@ -6,19 +6,19 @@ import (
 	"net/http"
 
 	"github.com/WhyDias/Marketplace/internal/services"
-	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
 // VerificationController структура контроллера верификации
 type VerificationController struct {
 	SupplierService *services.SupplierService
+	UserService     *services.UserService
 }
 
-// NewVerificationController конструктор контроллера верификации
-func NewVerificationController(supplierService *services.SupplierService) *VerificationController {
+func NewVerificationController(supplierService *services.SupplierService, userService *services.UserService) *VerificationController {
 	return &VerificationController{
 		SupplierService: supplierService,
+		UserService:     userService,
 	}
 }
 
@@ -63,8 +63,15 @@ func (vc *VerificationController) SendVerificationCode(c *gin.Context) {
 		return
 	}
 
-	// Отправка кода верификации через WhatsApp
-	err := vc.SupplierService.SendVerificationCode(req.PhoneNumber)
+	// Получаем пользователя по номеру телефона
+	user, err := vc.UserService.GetUserByUsername(req.PhoneNumber)
+	if err != nil || user == nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пользователь не найден"})
+		return
+	}
+
+	// Отправляем код подтверждения
+	err = vc.SupplierService.SendVerificationCode(user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось отправить код подтверждения"})
 		return
@@ -97,25 +104,32 @@ type VerifyCodeResponse struct {
 func (vc *VerificationController) VerifyCode(c *gin.Context) {
 	var req VerifyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	// Проверяем код верификации
-	isValid := vc.SupplierService.ValidateVerificationCode(req.PhoneNumber, req.Code)
+	// Получаем пользователя по номеру телефона
+	user, err := vc.UserService.GetUserByUsername(req.PhoneNumber)
+	if err != nil || user == nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пользователь не найден"})
+		return
+	}
+
+	// Проверяем код подтверждения
+	isValid := vc.SupplierService.ValidateVerificationCode(user.ID, req.Code)
 	if !isValid {
-		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Неверный или истекший код подтверждения"})
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверный или истекший код подтверждения"})
 		return
 	}
 
-	// Обновляем статус поставщика или создаём запись, если её нет
-	err := vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber)
+	// Отмечаем номер телефона как верифицированный
+	err = vc.SupplierService.MarkPhoneNumberAsVerified(req.PhoneNumber)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось обновить статус поставщика"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить статус поставщика"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Верификация успешна",
+	c.JSON(http.StatusOK, VerifyCodeResponse{
+		Message: "Верификация успешна",
 	})
 }

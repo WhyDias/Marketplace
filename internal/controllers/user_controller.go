@@ -73,8 +73,13 @@ func (uc *UserController) LoginUser(c *gin.Context) {
 		return
 	}
 
-	// Генерируем JWT-токен с ролями
-	token, err := uc.JWT.GenerateTokenWithRoles(user.ID, user.Role)
+	var roleNames []string
+	for _, role := range user.Roles {
+		roleNames = append(roleNames, role.Name)
+	}
+
+	// Generate token with roles
+	token, err := uc.JWT.GenerateTokenWithRoles(user.ID, roleNames)
 	if err != nil {
 		log.Printf("LoginUser: ошибка при генерации токена для пользователя %d: %v", user.ID, err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать токен"})
@@ -132,8 +137,8 @@ func (uc *UserController) SetPassword(c *gin.Context) {
 		return
 	}
 
-	// Создаем учетную запись пользователя
-	user, err := uc.Service.RegisterUser(req.PhoneNumber, req.Password)
+	// Создаем учетную запись пользователя с ролью 'supplier'
+	user, err := uc.Service.RegisterUser(req.PhoneNumber, req.Password, []string{"supplier"})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать учетную запись пользователя"})
 		return
@@ -146,8 +151,13 @@ func (uc *UserController) SetPassword(c *gin.Context) {
 		return
 	}
 
-	// Генерируем JWT-токен
-	token, err := uc.JWT.GenerateToken(user.ID)
+	// Генерируем JWT-токен с ролями
+	var roleNames []string
+	for _, role := range user.Roles {
+		roleNames = append(roleNames, role.Name)
+	}
+
+	token, err := uc.JWT.GenerateTokenWithRoles(user.ID, roleNames)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать токен"})
 		return
@@ -258,23 +268,18 @@ func (uc *UserController) RequestPasswordReset(c *gin.Context) {
 	}
 
 	log.Printf("Инициация сброса пароля для пользователя %s", req.Username)
-	// Проверяем, существует ли пользователь с таким username (phone_number)
-	exists, err := uc.Service.CheckUserExists(req.Username)
-	if err != nil {
-		log.Printf("Ошибка при проверке существования пользователя %s: %v", req.Username, err)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Ошибка при проверке пользователя"})
-		return
-	}
 
-	if !exists {
+	// Получаем пользователя по номеру телефона (username)
+	user, err := uc.Service.GetUserByUsername(req.Username)
+	if err != nil || user == nil {
 		log.Printf("Пользователь с номером телефона %s не найден", req.Username)
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пользователь с таким номером телефона не найден"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пользователь не найден"})
 		return
 	}
 
-	// Генерируем и отправляем код подтверждения
+	// Отправляем код подтверждения
 	log.Printf("Отправка кода подтверждения для пользователя %s", req.Username)
-	err = uc.SupplierService.SendVerificationCode(req.Username)
+	err = uc.SupplierService.SendVerificationCode(user.ID)
 	if err != nil {
 		log.Printf("Не удалось отправить код подтверждения пользователю %s: %v", req.Username, err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось отправить код подтверждения"})
@@ -306,14 +311,21 @@ func (uc *UserController) VerifyCode(c *gin.Context) {
 		return
 	}
 
-	// Проверяем корректность кода подтверждения
-	isValid := uc.SupplierService.ValidateVerificationCode(req.Phone_number, req.Code)
+	// Получаем пользователя по номеру телефона (username)
+	user, err := uc.Service.GetUserByUsername(req.Phone_number)
+	if err != nil || user == nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Пользователь не найден"})
+		return
+	}
+
+	// Проверяем код подтверждения
+	isValid := uc.SupplierService.ValidateVerificationCode(user.ID, req.Code)
 	if !isValid {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Неверный или истекший код подтверждения"})
 		return
 	}
 
-	c.JSON(http.StatusOK, VerifyCodeResponse{Message: "Код подтвержден"})
+	c.JSON(http.StatusOK, VerifyCodeResponse{Message: "Код подтверждён"})
 }
 
 // SetNewPassword устанавливает новый пароль для пользователя после верификации кода сброса пароля.
@@ -379,15 +391,21 @@ func (uc *UserController) RegisterUser(c *gin.Context) {
 	}
 
 	// Регистрация пользователя через сервисный слой
-	user, err := uc.Service.RegisterUser(req.Username, req.Password)
+	user, err := uc.Service.RegisterUser(req.Username, req.Password, req.Roles)
 	if err != nil {
 		log.Printf("RegisterUser: ошибка при регистрации пользователя: %v", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
 	}
 
+	// Извлекаем имена ролей
+	var roleNames []string
+	for _, role := range user.Roles {
+		roleNames = append(roleNames, role.Name)
+	}
+
 	// Генерация JWT-токена
-	token, err := uc.JWT.GenerateTokenWithRoles(user.ID, user.Role)
+	token, err := uc.JWT.GenerateTokenWithRoles(user.ID, roleNames)
 	if err != nil {
 		log.Printf("RegisterUser: ошибка при генерации токена: %v", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать токен"})

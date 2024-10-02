@@ -22,34 +22,45 @@ func NewUserService() *UserService {
 }
 
 // RegisterUser регистрирует нового пользователя
-func (s *UserService) RegisterUser(phoneNumber, password string) (*models.User, error) {
-	// Проверка существования пользователя
-	existingUser, err := db.GetUserByUsername(phoneNumber)
+func (s *UserService) RegisterUser(username, password string, roleNames []string) (*models.User, error) {
+	existingUser, err := db.GetUserByUsername(username)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Ошибка при проверке существования пользователя: %v", err)
 	}
 	if existingUser != nil {
-		return nil, errors.New("пользователь уже существует")
+		return nil, errors.New("Пользователь уже существует")
 	}
 
-	// Хеширование пароля
+	// Хешируем пароль
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, errors.New("не удалось хешировать пароль")
+		return nil, fmt.Errorf("Ошибка при хешировании пароля: %v", err)
 	}
 
-	// Создание пользователя с ролью "customer"
+	// Получаем IDs ролей по их именам
+	roleIDs, err := db.GetRoleIDsByNames(roleNames)
+	if err != nil {
+		return nil, fmt.Errorf("Ошибка при получении IDs ролей: %v", err)
+	}
+
+	// Создаем объект пользователя
 	user := &models.User{
-		Username:     phoneNumber,
+		Username:     username,
 		PasswordHash: string(hashedPassword),
-		Role:         []string{"supplier"}, // Устанавливаем роль как массив
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
 
-	err = db.CreateUser(user)
+	// Создаем пользователя в базе данных
+	err = db.CreateUser(user, roleIDs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Ошибка при создании пользователя: %v", err)
+	}
+
+	// Получаем роли пользователя для включения в модель
+	user.Roles, err = db.GetRolesByUserID(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("Ошибка при получении ролей пользователя: %v", err)
 	}
 
 	return user, nil
@@ -65,8 +76,6 @@ func (s *UserService) AuthenticateUser(username, password string) (*models.User,
 	if user == nil {
 		return nil, errors.New("пользователь не найден")
 	}
-
-	log.Printf("AuthenticateUser: Найден пользователь %s с ролями %v", username, user.Role)
 
 	// Сравниваем хеш пароля из базы данных с введённым паролем
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
@@ -125,4 +134,11 @@ func (s *UserService) ResetPassword(username, newPassword string) error {
 	}
 
 	return nil
+}
+func (s *UserService) GetUserByUsername(username string) (*models.User, error) {
+	user, err := db.GetUserByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

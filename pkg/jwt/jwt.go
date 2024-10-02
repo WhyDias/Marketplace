@@ -88,7 +88,7 @@ func (j *jwtService) GenerateToken(userID int) (string, error) {
 func (j *jwtService) GenerateTokenWithRoles(userID int, roles []string) (string, error) {
 	claims := &JWTCustomClaim{
 		UserID: userID,
-		Roles:  roles, // Устанавливаем роли
+		Roles:  roles,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

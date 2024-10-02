@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/lib/pq"
 	"log"
 	"time"
 
@@ -85,63 +84,49 @@ func (s *SupplierService) MarkPhoneNumberAsVerified(phoneNumber string) error {
 	return nil
 }
 
-func (s *SupplierService) SendVerificationCode(phoneNumber string) error {
+func (s *SupplierService) SendVerificationCode(userID int) error {
 	code := utils.GenerateSixDigitCode()
+	message := fmt.Sprintf("Your verification code is: %s", code)
 
-	// Шаг 2: Формирование сообщения
-	message := fmt.Sprintf("Ваш код подтверждения: %s", code)
-
-	// Шаг 3: Отправка сообщения пользователю
-	err := utils.SendTextMessage(message, phoneNumber)
+	// Get user's phone number
+	phoneNumber, err := db.GetPhoneNumberByUserID(userID)
 	if err != nil {
-		fmt.Println("Error sending message:", err)
+		return fmt.Errorf("could not get phone number: %v", err)
+	}
+
+	// Send message
+	err = utils.SendTextMessage(message, phoneNumber)
+	if err != nil {
 		return err
 	}
 
-	// Шаг 4: Удаление старых кодов для данного номера телефона
-	err = db.DeleteVerificationCodes(phoneNumber)
+	// Delete old codes
+	err = db.DeleteVerificationCodes(userID)
 	if err != nil {
-		fmt.Println("Error deleting old verification codes:", err)
 		return err
 	}
 
-	// Шаг 5: Сохранение нового кода в базе данных с временем истечения
+	// Save new code
 	expiresAt := time.Now().Add(10 * time.Minute)
-	err = db.CreateVerificationCode(phoneNumber, code, expiresAt)
+	err = db.CreateVerificationCode(userID, code, expiresAt)
 	if err != nil {
-		fmt.Println("Error saving verification code:", err)
 		return err
 	}
 
 	return nil
 }
 
-func (s *SupplierService) ValidateVerificationCode(phone_number, code string) bool {
-	log.Printf("Валидация кода подтверждения %s для пользователя %s", code, phone_number)
-	verificationCode, err := db.GetLatestVerificationCode(phone_number)
+func (s *SupplierService) ValidateVerificationCode(userID int, code string) bool {
+	verificationCode, err := db.GetLatestVerificationCode(userID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Printf("Код подтверждения не найден для пользователя %s", phone_number)
-		} else {
-			log.Printf("Ошибка при получении кода подтверждения для %s: %v", phone_number, err)
-		}
 		return false
 	}
 
-	// Проверяем, не истёк ли код
 	if time.Now().After(verificationCode.ExpiresAt) {
-		log.Printf("Код подтверждения %s для пользователя %s истёк в %s", code, phone_number, verificationCode.ExpiresAt)
 		return false
 	}
 
-	// Сравниваем введённый код с сохранённым
-	if code == verificationCode.Code {
-		log.Printf("Код подтверждения %s для пользователя %s верен", code, phone_number)
-		return true
-	}
-
-	log.Printf("Код подтверждения %s для пользователя %s неверен", code, phone_number)
-	return false
+	return code == verificationCode.Code
 }
 
 func (s *SupplierService) LinkUserToSupplier(phoneNumber string, userID int) error {
@@ -163,16 +148,11 @@ func (s *SupplierService) LinkUserToSupplier(phoneNumber string, userID int) err
 	return nil
 }
 
-func (s *SupplierService) UpdateSupplierDetailsByUserID(userID int, marketID int, place string, row_name string, categories []int) error {
-	query := `UPDATE supplier 
-              SET market_id = $1, place_name = $2, row_name = $3, categories = $4, updated_at = $5
-              WHERE user_id = $6`
-
-	_, err := db.DB.Exec(query, marketID, place, row_name, pq.Array(categories), time.Now(), userID)
+func (s *SupplierService) UpdateSupplierDetailsByUserID(userID int, marketID int, place string, rowName string, categoryIDs []int) error {
+	err := db.UpdateSupplierDetailsByUserID(userID, marketID, place, rowName, categoryIDs)
 	if err != nil {
-		return fmt.Errorf("Не удалось обновить данные поставщика: %v", err)
+		return fmt.Errorf("could not update supplier details: %v", err)
 	}
-
 	return nil
 }
 
@@ -261,4 +241,12 @@ func (s *SupplierService) AddCategory(name, path, imageURL string) (*models.Cate
 	}
 
 	return category, nil
+}
+
+func (s *SupplierService) GetSupplierIDByUserID(userID int) (int, error) {
+	supplierID, err := db.GetSupplierIDByUserID(userID)
+	if err != nil {
+		return 0, fmt.Errorf("Не удалось получить supplier_id для user_id %d: %v", userID, err)
+	}
+	return supplierID, nil
 }

@@ -6,17 +6,17 @@ import "time"
 
 // Supplier модель для хранения информации о поставщике
 type Supplier struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	PhoneNumber string    `json:"phone_number"`
-	Categories  []int     `json:"categories"`
-	Place       string    `json:"place"`
-	MarketID    int       `json:"market_id"`
-	RowName     string    `json:"row_name"`
-	UserID      int       `json:"user_id"`
-	IsVerified  bool      `json:"is_verified"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	PhoneNumber string     `json:"phone_number"`
+	Place       string     `json:"place"`
+	MarketID    int        `json:"market_id"`
+	RowName     string     `json:"row_name"`
+	UserID      int        `json:"user_id"`
+	IsVerified  bool       `json:"is_verified"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	Categories  []Category `json:"categories,omitempty"` // Populated as needed
 }
 
 type RegisterSupplierRequest struct {

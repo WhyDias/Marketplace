@@ -49,7 +49,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.AddCategoryRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.AddCategoryRequest"
                         }
                     }
                 ],
@@ -57,25 +57,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.AddCategoryResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.AddCategoryResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -113,19 +113,133 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/categories/subcategories": {
+            "get": {
+                "description": "Возвращает список всех подкатегорий для заданного path категории.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Категории"
+                ],
+                "summary": "Получение подкатегорий по path",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Path категории",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.Category"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/products": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Добавляет новый продукт с изображениями и вариациями",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Продукты"
+                ],
+                "summary": "Добавление нового продукта",
+                "parameters": [
+                    {
+                        "description": "Данные продукта",
+                        "name": "product",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.AddProductRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Продукт успешно добавлен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -152,7 +266,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.Product"
+                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.Product"
                             }
                         }
                     },
@@ -192,7 +306,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.Product"
+                                "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.Product"
                             }
                         }
                     },
@@ -525,7 +639,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -557,7 +671,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -686,7 +800,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.UpdateSupplierDetailsRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.UpdateSupplierDetailsRequest"
                         }
                     }
                 ],
@@ -700,19 +814,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -802,6 +916,68 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_WhyDias_Marketplace_internal_controllers.AddProductRequest": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "name"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "variations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ProductVariationRequest"
+                    }
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_controllers.AttributeValueRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "value"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_controllers.Category": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_WhyDias_Marketplace_internal_controllers.CheckPhoneRequest": {
             "type": "object",
             "required": [
@@ -860,25 +1036,33 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_WhyDias_Marketplace_internal_controllers.Product": {
+        "github_com_WhyDias_Marketplace_internal_controllers.ProductVariationRequest": {
             "type": "object",
+            "required": [
+                "price",
+                "sku",
+                "stock"
+            ],
             "properties": {
-                "category_id": {
-                    "type": "integer"
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.AttributeValueRequest"
+                    }
                 },
-                "id": {
-                    "type": "integer"
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
-                "market_id": {
-                    "type": "integer"
+                "price": {
+                    "type": "number"
                 },
-                "name": {
+                "sku": {
                     "type": "string"
                 },
-                "status_id": {
-                    "type": "integer"
-                },
-                "supplier_id": {
+                "stock": {
                     "type": "integer"
                 }
             }
@@ -1072,6 +1256,23 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_WhyDias_Marketplace_internal_models.AttributeValue": {
+            "type": "object",
+            "properties": {
+                "attribute_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_WhyDias_Marketplace_internal_models.Category": {
             "type": "object",
             "properties": {
@@ -1079,7 +1280,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "image_url": {
-                    "description": "Новое поле",
                     "type": "string"
                 },
                 "name": {
@@ -1098,6 +1298,110 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_models.Product": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.ProductImage"
+                    }
+                },
+                "market_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status_id": {
+                    "type": "integer"
+                },
+                "supplier_id": {
+                    "type": "integer"
+                },
+                "variations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.ProductVariation"
+                    }
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_models.ProductImage": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "product_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_models.ProductVariation": {
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.AttributeValue"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.ProductVariationImage"
+                    }
+                },
+                "price": {
+                    "type": "number"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "sku": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_models.ProductVariationImage": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "product_variation_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -1129,6 +1433,68 @@ const docTemplate = `{
             }
         },
         "internal_controllers.AddCategoryResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.AddProductRequest": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "name"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "variations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_controllers.ProductVariationRequest"
+                    }
+                }
+            }
+        },
+        "internal_controllers.AttributeValueRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "value"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.Category": {
             "type": "object",
             "properties": {
                 "id": {
@@ -1203,25 +1569,33 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_controllers.Product": {
+        "internal_controllers.ProductVariationRequest": {
             "type": "object",
+            "required": [
+                "price",
+                "sku",
+                "stock"
+            ],
             "properties": {
-                "category_id": {
-                    "type": "integer"
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_controllers.AttributeValueRequest"
+                    }
                 },
-                "id": {
-                    "type": "integer"
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
-                "market_id": {
-                    "type": "integer"
+                "price": {
+                    "type": "number"
                 },
-                "name": {
+                "sku": {
                     "type": "string"
                 },
-                "status_id": {
-                    "type": "integer"
-                },
-                "supplier_id": {
+                "stock": {
                     "type": "integer"
                 }
             }

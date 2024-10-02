@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/WhyDias/Marketplace/internal/models"
 )
@@ -67,4 +68,49 @@ func GetAllCategories() ([]models.Category, error) {
 	}
 
 	return categories, nil
+}
+
+func UpdateSupplierDetailsByUserID(userID int, marketID int, place string, rowName string, categoryIDs []int) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return fmt.Errorf("could not begin transaction: %v", err)
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	// Update supplier details
+	query := `UPDATE supplier SET market_id = $1, place_name = $2, row_name = $3, updated_at = $4 WHERE user_id = $5`
+	_, err = tx.Exec(query, marketID, place, rowName, time.Now(), userID)
+	if err != nil {
+		return fmt.Errorf("could not update supplier details: %v", err)
+	}
+
+	// Get supplier ID
+	var supplierID int
+	err = tx.QueryRow(`SELECT id FROM supplier WHERE user_id = $1`, userID).Scan(&supplierID)
+	if err != nil {
+		return fmt.Errorf("could not get supplier ID: %v", err)
+	}
+
+	// Delete existing categories
+	_, err = tx.Exec(`DELETE FROM supplier_categories WHERE supplier_id = $1`, supplierID)
+	if err != nil {
+		return fmt.Errorf("could not delete existing categories: %v", err)
+	}
+
+	// Insert new categories
+	for _, categoryID := range categoryIDs {
+		_, err = tx.Exec(`INSERT INTO supplier_categories (supplier_id, category_id) VALUES ($1, $2)`, supplierID, categoryID)
+		if err != nil {
+			return fmt.Errorf("could not insert category: %v", err)
+		}
+	}
+
+	return nil
 }

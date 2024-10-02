@@ -51,12 +51,16 @@ func main() {
 	userService := services.NewUserService()
 	supplierService := services.NewSupplierService()
 	productService := services.NewProductService()
-	productController := controllers.NewProductController(productService)
+	categoryService := services.NewCategoryService()
+	attributeService := services.NewAttributeService()
 
 	// Инициализация контроллеров
+	attributeController := controllers.NewAttributeController(attributeService)
+	productController := controllers.NewProductController(productService, supplierService)
 	userController := controllers.NewUserController(userService, supplierService, jwtService)
 	supplierController := controllers.NewSupplierController(supplierService)
-	verificationController := controllers.NewVerificationController(supplierService)
+	verificationController := controllers.NewVerificationController(supplierService, userService)
+	categoryController := controllers.NewCategoryController(categoryService)
 
 	// Создание роутера Gin
 	router := gin.Default()
@@ -77,6 +81,9 @@ func main() {
 	router.POST("/api/users/request_password_reset", userController.RequestPasswordReset)
 	router.POST("/api/users/verify_code", userController.VerifyCode)          // Новый маршрут
 	router.POST("/api/users/set_new_password", userController.SetNewPassword) // Новый маршрут
+	router.GET("/api/categories/subcategories", categoryController.GetSubcategoriesByPath)
+	router.POST("/api/attributes/values/images", attributeController.AddAttributeValueImage)
+	router.GET("/api/attributes/values/:attribute_value_id/images", attributeController.GetAttributeValueImage)
 
 	// Новый публичный маршрут для поиска категории по path
 	router.GET("/api/categories/search", supplierController.GetCategoryByPath) // Перемещен в публичные маршруты

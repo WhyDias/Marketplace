@@ -10,9 +10,9 @@ type User struct {
 	Username     string    `json:"username"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
-	Role         []string  `json:"role"` // Изменено с string на []string
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+	Roles        []Role    `json:"roles,omitempty"`
 }
 
 type SetPasswordResponse struct {
