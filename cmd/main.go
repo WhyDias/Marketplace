@@ -101,7 +101,7 @@ func main() {
 		authorized.GET("/api/products/moderated", productController.GetModeratedProducts)
 		authorized.GET("/api/products/unmoderated", productController.GetUnmoderatedProducts)
 		authorized.POST("/api/categories", supplierController.AddCategory)
-		authorized.POST("/api/products", productController.AddProduct)
+		//authorized.POST("/api/products", productController.AddProduct)
 	}
 
 	// Маршруты для получения рынков и категорий

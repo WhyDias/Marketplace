@@ -12,14 +12,11 @@ import (
 )
 
 type ProductService struct {
-	YandexDisk *YandexDiskService
 }
 
 // NewProductService конструктор сервиса продуктов
-func NewProductService(yandexDisk *YandexDiskService) *ProductService {
-	return &ProductService{
-		YandexDisk: yandexDisk,
-	}
+func NewProductService() *ProductService {
+	return &ProductService{}
 }
 
 func (s *ProductService) GetProductsByStatus(statusID int) ([]models.Product, error) {
