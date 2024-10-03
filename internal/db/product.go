@@ -94,6 +94,41 @@ func FetchProductsBySupplierAndStatus(supplierID, statusID int) ([]models.Produc
 	return products, nil
 }
 
+func CreateProductTx(tx *sql.Tx, product *models.Product) error {
+	query := `
+        INSERT INTO product (name, description, category_id, supplier_id)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+    `
+	err := tx.QueryRow(query, product.Name, product.Description, product.CategoryID, product.SupplierID).Scan(&product.ID)
+	if err != nil {
+		return fmt.Errorf("Не удалось создать продукт: %v", err)
+	}
+	return nil
+}
+
+func CreateProductImageTx(tx *sql.Tx, image *models.ProductImage) error {
+	query := `INSERT INTO product_images (product_id, image_url) VALUES ($1, $2)`
+	_, err := tx.Exec(query, image.ProductID, pq.Array(image.ImageURLs))
+	if err != nil {
+		return fmt.Errorf("Не удалось добавить изображения продукта: %v", err)
+	}
+	return nil
+}
+
+func CreateProductVariationTx(tx *sql.Tx, variation *models.ProductVariation) error {
+	query := `
+        INSERT INTO product_variation (product_id, sku, price, stock)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+    `
+	err := tx.QueryRow(query, variation.ProductID, variation.SKU, variation.Price, variation.Stock).Scan(&variation.ID)
+	if err != nil {
+		return fmt.Errorf("Не удалось создать вариацию продукта: %v", err)
+	}
+	return nil
+}
+
 func CreateProductVariationImageTx(tx *sql.Tx, image *models.ProductVariationImage) error {
 	query := `INSERT INTO product_variation_images (product_variation_id, image_url) VALUES ($1, $2)`
 	_, err := tx.Exec(query, image.ProductVariationID, pq.Array(image.ImageURLs))
@@ -121,6 +156,31 @@ func GetAttributeValueID(tx *sql.Tx, attributeID int, value string) (int, error)
 		return 0, fmt.Errorf("Значение атрибута '%s' не найдено: %v", value, err)
 	}
 	return id, nil
+}
+
+func CreateAttributeValueTx(tx *sql.Tx, attrValue *models.AttributeValue) error {
+	query := `
+        INSERT INTO attribute_value (attribute_id, value)
+        VALUES ($1, $2)
+        RETURNING id
+    `
+	err := tx.QueryRow(query, attrValue.AttributeID, attrValue.Value).Scan(&attrValue.ID)
+	if err != nil {
+		return fmt.Errorf("Не удалось создать значение атрибута: %v", err)
+	}
+	return nil
+}
+
+func CreateVariationAttributeValueTx(tx *sql.Tx, variationID int, attributeValueID int) error {
+	query := `
+        INSERT INTO variation_attribute_values (product_variation_id, attribute_value_id)
+        VALUES ($1, $2)
+    `
+	_, err := tx.Exec(query, variationID, attributeValueID)
+	if err != nil {
+		return fmt.Errorf("Не удалось связать вариацию с атрибутом: %v", err)
+	}
+	return nil
 }
 
 func GetSupplierIDByUserID(userID int) (int, error) {
@@ -331,86 +391,4 @@ func GetProductsBySupplierAndStatus(supplierID int, statusID int) ([]models.Prod
 	}
 
 	return products, nil
-}
-
-func CreateProductTx(tx *sql.Tx, product *models.Product) error {
-	query := `
-        INSERT INTO products (name, description, category_id, sku, price, stock)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id
-    `
-	err := tx.QueryRow(query, product.Name, product.Description, product.CategoryID, product.SKU, product.Price, product.Stock).Scan(&product.ID)
-	if err != nil {
-		return fmt.Errorf("не удалось создать продукт: %v", err)
-	}
-	return nil
-}
-
-// CreateProductImageTx создаёт изображения продукта внутри транзакции
-func CreateProductImageTx(tx *sql.Tx, image *models.ProductImage) error {
-	query := `
-        INSERT INTO product_images (product_id, image_urls)
-        VALUES ($1, $2)
-        RETURNING id
-    `
-	err := tx.QueryRow(query, image.ProductID, pq.Array(image.ImageURLs)).Scan(&image.ID)
-	if err != nil {
-		return fmt.Errorf("не удалось создать изображения продукта: %v", err)
-	}
-	return nil
-}
-
-// UpdateProductTx обновляет продукт внутри транзакции
-func UpdateProductTx(tx *sql.Tx, product *models.Product) error {
-	query := `
-        UPDATE products
-        SET name = $1, description = $2, category_id = $3, sku = $4, price = $5, stock = $6, updated_at = NOW()
-        WHERE id = $7
-    `
-	_, err := tx.Exec(query, product.Name, product.Description, product.CategoryID, product.SKU, product.Price, product.Stock, product.ID)
-	if err != nil {
-		return fmt.Errorf("не удалось обновить продукт: %v", err)
-	}
-	return nil
-}
-
-// CreateProductVariationTx создаёт вариацию продукта внутри транзакции
-func CreateProductVariationTx(tx *sql.Tx, variation *models.ProductVariation) error {
-	query := `
-        INSERT INTO product_variations (product_id, sku, price, stock)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id
-    `
-	err := tx.QueryRow(query, variation.ProductID, variation.SKU, variation.Price, variation.Stock).Scan(&variation.ID)
-	if err != nil {
-		return fmt.Errorf("не удалось создать вариацию продукта: %v", err)
-	}
-	return nil
-}
-
-// CreateVariationAttributeValueTx связывает вариацию с атрибутом значения внутри транзакции
-func CreateVariationAttributeValueTx(tx *sql.Tx, variationID, attributeValueID int) error {
-	query := `
-        INSERT INTO variation_attribute_values (variation_id, attribute_value_id)
-        VALUES ($1, $2)
-    `
-	_, err := tx.Exec(query, variationID, attributeValueID)
-	if err != nil {
-		return fmt.Errorf("не удалось связать вариацию с атрибутом значения: %v", err)
-	}
-	return nil
-}
-
-// CreateAttributeValueTx создаёт значение атрибута внутри транзакции
-func CreateAttributeValueTx(tx *sql.Tx, attrValue *models.AttributeValue) error {
-	query := `
-        INSERT INTO attribute_values (attribute_id, value)
-        VALUES ($1, $2)
-        RETURNING id
-    `
-	err := tx.QueryRow(query, attrValue.AttributeID, attrValue.Value).Scan(&attrValue.ID)
-	if err != nil {
-		return fmt.Errorf("не удалось создать значение атрибута: %v", err)
-	}
-	return nil
 }
