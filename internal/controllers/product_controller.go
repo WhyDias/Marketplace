@@ -5,11 +5,9 @@ package controllers
 import (
 	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/WhyDias/Marketplace/internal/services"
-	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 // ProductController структура контроллера продуктов
@@ -148,116 +146,208 @@ type AttributeValueRequest struct {
 	Values []string `json:"values" binding:"required"`
 }
 
+//type AddProductForm struct {
+//	Name        string            `form:"name" binding:"required"`
+//	Description string            `form:"description"`
+//	CategoryID  int               `form:"category_id" binding:"required"`
+//	SKU         string            `form:"sku" binding:"required"`
+//	Price       float64           `form:"price" binding:"required"`
+//	Stock       int               `form:"stock" binding:"required"`
+//	Attributes  string            `form:"attributes" binding:"required"` // JSON-строка
+//	Images      []*gin.FileHeader `form:"images" binding:"omitempty,dive,required"`
+//}
+//
+//type ProductVariationForm struct {
+//	SKU        string                         `form:"sku" binding:"required"`
+//	Price      float64                        `form:"price" binding:"required"`
+//	Stock      int                            `form:"stock" binding:"required"`
+//	Attributes []models.AttributeValueRequest `form:"attributes" binding:"required,dive,required"`
+//	Images     []*gin.FileHeader              `form:"images" binding:"omitempty,dive,required"`
+//}
+
 // AddProduct добавляет новый продукт
-// @Summary Add a new product
-// @Description Создает новый продукт с вариациями на основе предоставленных атрибутов
+// @Summary Добавить новый продукт
+// @Description Добавляет новый продукт с изображениями и вариациями
 // @Tags Products
 // @Accept multipart/form-data
 // @Produce json
-// @Param name formData string true "Product name"
-// @Param description formData string false "Product description"
-// @Param category_id formData int true "Category ID"
-// @Param price formData number true "Product price"
-// @Param stock formData int true "Product stock"
-// @Param attributes formData string true "JSON-строка атрибутов"
+// @Param product body AddProductForm true "Продукт для добавления"
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
-// @Failure 401 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
-// @Security BearerAuth
 // @Router /api/products [post]
-func (pc *ProductController) AddProduct(c *gin.Context) {
-	var req models.AddProductRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	// Получаем user_id из контекста
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Пользователь не авторизован"})
-		return
-	}
-	userID := userIDInterface.(int)
-
-	// Получаем supplier_id и market_id
-	supplierID, err := pc.Service.GetSupplierIDByUserID(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить supplier_id"})
-		return
-	}
-	marketID, err := pc.Service.GetMarketIDBySupplierID(supplierID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить market_id"})
-		return
-	}
-
-	// Создаём продукт
-	product := &models.Product{
-		Name:        req.Name,
-		Description: req.Description,
-		CategoryID:  req.CategoryID,
-		SupplierID:  supplierID,
-		MarketID:    marketID,
-		Price:       req.Price,
-		Stock:       req.Stock,
-		Images:      []models.ProductImage{},     // Добавьте обработку изображений при необходимости
-		Variations:  []models.ProductVariation{}, // Вариации будут созданы на основе атрибутов
-	}
-
-	// Добавляем продукт и вариации
-	err = pc.Service.AddProduct(product, req.Attributes)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить продукт"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "Продукт успешно добавлен", "product_id": product.ID})
-}
+//func (pc *ProductController) AddProduct(c *gin.Context) {
+//	var form AddProductForm
+//	if err := c.ShouldBind(&form); err != nil {
+//		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
+//		return
+//	}
+//
+//	userIDInterface, exists := c.Get("user_id")
+//	if !exists {
+//		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Пользователь не авторизован"})
+//		return
+//	}
+//	userID := userIDInterface.(int)
+//
+//	// Получаем supplier_id и market_id
+//	supplierID, err := pc.SupplierService.GetSupplierIDByUserID(userID)
+//	if err != nil {
+//		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить supplier_id"})
+//		return
+//	}
+//	marketID, err := pc.SupplierService.GetMarketIDBySupplierID(supplierID)
+//	if err != nil {
+//		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить market_id"})
+//		return
+//	}
+//
+//	// Парсинг JSON-строки с атрибутами
+//	var attributes []models.AttributeValueRequest
+//	if err := json.Unmarshal([]byte(form.Attributes), &attributes); err != nil {
+//		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат атрибутов"})
+//		return
+//	}
+//
+//	product := &models.Product{
+//		Name:        form.Name,
+//		Description: form.Description,
+//		CategoryID:  form.CategoryID,
+//		SKU:         form.SKU,
+//		Price:       form.Price,
+//		Stock:       form.Stock,
+//		Images:      []models.ProductImage{},
+//		Variations:  []models.ProductVariation{},
+//	}
+//
+//	// Обработка загрузки изображений
+//	formImages := form.Images
+//	for _, fileHeader := range formImages {
+//		// Сохраняем файл локально
+//		filename := filepath.Base(fileHeader.Filename)
+//		localPath := filepath.Join("uploads", filename)
+//		if err := c.SaveUploadedFile(fileHeader, localPath); err != nil {
+//			c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось сохранить изображение"})
+//			return
+//		}
+//
+//		// Загружаем изображение на Яндекс.Диск и получаем публичный URL
+//		yandexURL, err := pc.Service.UploadImageToYandexDisk(localPath)
+//		if err != nil {
+//			c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось загрузить изображение на Яндекс.Диск"})
+//			return
+//		}
+//
+//		// Добавляем URL в массив изображений продукта
+//		product.Images = append(product.Images, models.ProductImage{
+//			ImageURLs: []string{yandexURL},
+//		})
+//	}
+//
+//	// Добавляем продукт и вариации
+//	err = pc.Service.AddProduct(product, attributes)
+//	if err != nil {
+//		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить продукт: " + err.Error()})
+//		return
+//	}
+//
+//	c.JSON(http.StatusCreated, gin.H{"message": "Продукт успешно добавлен", "product_id": product.ID})
+//}
 
 // UpdateProduct обновляет существующий продукт
-// @Summary Update a product
-// @Description Обновляет информацию о продукте и его вариациях
+// @Summary Обновить продукт
+// @Description Обновляет существующий продукт с возможностью добавления новых изображений
 // @Tags Products
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param id path int true "Product ID"
-// @Param product body models.UpdateProductRequest true "Product data"
-// @Success 200 {object} map[string]string
+// @Param id path int true "ID продукта"
+// @Param product body AddProductForm true "Продукт для обновления"
+// @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
-// @Failure 401 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
-// @Security BearerAuth
 // @Router /api/products/{id} [put]
-func (pc *ProductController) UpdateProduct(c *gin.Context) {
-	productIDStr := c.Param("id")
-	productID, err := strconv.Atoi(productIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Некорректный ID продукта"})
-		return
-	}
-
-	var req models.UpdateProductRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	// Получаем user_id из контекста (из JWT)
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Пользователь не авторизован"})
-		return
-	}
-	userID := userIDInterface.(int)
-
-	// Обновляем продукт через сервис
-	err = pc.Service.UpdateProduct(userID, productID, &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить продукт"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Продукт успешно обновлен"})
-}
+//func (pc *ProductController) UpdateProduct(c *gin.Context) {
+//	productIDStr := c.Param("id")
+//	productID, err := strconv.Atoi(productIDStr)
+//	if err != nil {
+//		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный ID продукта"})
+//		return
+//	}
+//
+//	var form AddProductForm
+//	if err := c.ShouldBind(&form); err != nil {
+//		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
+//		return
+//	}
+//
+//	userIDInterface, exists := c.Get("user_id")
+//	if !exists {
+//		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Пользователь не авторизован"})
+//		return
+//	}
+//	userID := userIDInterface.(int)
+//
+//	// Получаем supplier_id и market_id
+//	supplierID, err := pc.SupplierService.GetSupplierIDByUserID(userID)
+//	if err != nil {
+//		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить supplier_id"})
+//		return
+//	}
+//	marketID, err := pc.SupplierService.GetMarketIDBySupplierID(supplierID)
+//	if err != nil {
+//		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить market_id"})
+//		return
+//	}
+//
+//	// Парсинг JSON-строки с атрибутами
+//	var attributes []models.AttributeValueRequest
+//	if err := json.Unmarshal([]byte(form.Attributes), &attributes); err != nil {
+//		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат атрибутов"})
+//		return
+//	}
+//
+//	product := &models.Product{
+//		ID:          productID,
+//		Name:        form.Name,
+//		Description: form.Description,
+//		CategoryID:  form.CategoryID,
+//		SKU:         form.SKU,
+//		Price:       form.Price,
+//		Stock:       form.Stock,
+//		Images:      []models.ProductImage{},
+//		Variations:  []models.ProductVariation{},
+//	}
+//
+//	// Обработка загрузки изображений
+//	formImages := form.Images
+//	for _, fileHeader := range formImages {
+//		// Сохраняем файл локально
+//		filename := filepath.Base(fileHeader.Filename)
+//		localPath := filepath.Join("uploads", filename)
+//		if err := c.SaveUploadedFile(fileHeader, localPath); err != nil {
+//			c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось сохранить изображение"})
+//			return
+//		}
+//
+//		// Загружаем изображение на Яндекс.Диск и получаем публичный URL
+//		yandexURL, err := pc.Service.UploadImageToYandexDisk(localPath)
+//		if err != nil {
+//			c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось загрузить изображение на Яндекс.Диск"})
+//			return
+//		}
+//
+//		// Добавляем URL в массив изображений продукта
+//		product.Images = append(product.Images, models.ProductImage{
+//			ImageURLs: []string{yandexURL},
+//		})
+//	}
+//
+//	// Обновляем продукт и вариации
+//	err = pc.Service.UpdateProduct(userID, productID, product, attributes)
+//	if err != nil {
+//		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось обновить продукт: " + err.Error()})
+//		return
+//	}
+//
+//	c.JSON(http.StatusOK, gin.H{"message": "Продукт успешно обновлен"})
+//}

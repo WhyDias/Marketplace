@@ -344,3 +344,16 @@ func GetCategoryByID(categoryID int) (*models.Category, error) {
 	}
 	return category, nil
 }
+
+func CreateCategoryAttributeTx(tx *sql.Tx, attribute *models.CategoryAttribute) error {
+	query := `
+        INSERT INTO category_attributes (category_id, name, description, type_of_option, value)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+    `
+	err := tx.QueryRow(query, attribute.CategoryID, attribute.Name, attribute.Description, attribute.TypeOfOption, attribute.Value).Scan(&attribute.ID)
+	if err != nil {
+		return fmt.Errorf("не удалось создать атрибут категории: %v", err)
+	}
+	return nil
+}

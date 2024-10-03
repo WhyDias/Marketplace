@@ -3,6 +3,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/WhyDias/Marketplace/internal/services"
 	"github.com/WhyDias/Marketplace/internal/utils"
@@ -84,44 +85,65 @@ func (cc *CategoryController) GetAllCategories(c *gin.Context) {
 }
 
 type AddCategoryAttributeRequest struct {
-	CategoryID   int    `json:"category_id" binding:"required"`
-	Name         string `json:"name" binding:"required"`
-	Description  string `json:"description"`
-	TypeOfOption string `json:"type_of_option"`
+	CategoryID   int             `json:"category_id" binding:"required"`
+	Name         string          `json:"name" binding:"required"`
+	Description  string          `json:"description"`
+	TypeOfOption string          `json:"type_of_option" binding:"required,oneof=dropdown range switcher text number"`
+	Value        json.RawMessage `json:"value" binding:"required"` // Добавляем поле Value
 }
 
-// AddCategoryAttribute добавляет новый атрибут к категории
-// @Summary Add a new attribute to a category
-// @Description Добавляет новый атрибут, связанный с определенной категорией
+type AddCategoryAttributesRequest struct {
+	Attributes []models.CategoryAttribute `json:"attributes" binding:"required,dive,required"`
+}
+
+// AddCategoryAttributes добавляет несколько атрибутов к категории
+// @Summary Добавить несколько атрибутов к категории
+// @Description Добавляет массив атрибутов, связанных с определенной категорией
 // @Tags Categories
 // @Accept json
 // @Produce json
-// @Param attribute body AddCategoryAttributeRequest true "Attribute to add"
+// @Param id path int true "Category ID"
+// @Param attributes body AddCategoryAttributesRequest true "Массив атрибутов для добавления"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
-// @Router /api/categories/attributes [post]
-func (cc *CategoryController) AddCategoryAttribute(c *gin.Context) {
-	var req AddCategoryAttributeRequest
+// @Router /api/categories/{id}/attributes [post]
+func (cc *CategoryController) AddCategoryAttributes(c *gin.Context) {
+	// Извлечение category_id из пути
+	categoryIDStr := c.Param("id")
+	categoryID, err := strconv.Atoi(categoryIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный category_id"})
+		return
+	}
+
+	var req AddCategoryAttributesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	attribute := models.CategoryAttribute{
-		CategoryID:   req.CategoryID,
-		Name:         req.Name,
-		Description:  req.Description,
-		TypeOfOption: req.TypeOfOption,
+	// Преобразование входных данных в модель CategoryAttribute
+	var attributes []models.CategoryAttribute
+	for _, input := range req.Attributes {
+		attribute := models.CategoryAttribute{
+			CategoryID:   categoryID,
+			Name:         input.Name,
+			Description:  input.Description,
+			TypeOfOption: input.TypeOfOption,
+			Value:        input.Value,
+		}
+		attributes = append(attributes, attribute)
 	}
 
-	err := cc.Service.AddCategoryAttribute(&attribute)
+	// Передаём массив атрибутов в сервисный слой
+	err = cc.Service.AddCategoryAttributes(attributes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить атрибут категории"})
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить атрибуты категории: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Атрибут категории успешно добавлен"})
+	c.JSON(http.StatusOK, gin.H{"message": "Атрибуты категории успешно добавлены"})
 }
 
 type CategoryAttribute struct {

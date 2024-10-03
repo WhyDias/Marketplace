@@ -3,8 +3,11 @@
 package services
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/WhyDias/Marketplace/internal/db"
 	"github.com/WhyDias/Marketplace/internal/models"
+	"log"
 )
 
 type CategoryService struct{}
@@ -63,8 +66,68 @@ func buildCategoryTree(categories []models.Category) []models.CategoryNode {
 	return roots
 }
 
-func (s *CategoryService) AddCategoryAttribute(attribute *models.CategoryAttribute) error {
-	return db.CreateCategoryAttribute(attribute)
+func (s *CategoryService) AddCategoryAttributes(attributes []models.CategoryAttribute) error {
+	// Начинаем транзакцию
+	tx, err := db.DB.Begin()
+	if err != nil {
+		log.Printf("Не удалось начать транзакцию: %v", err)
+		return fmt.Errorf("не удалось начать транзакцию: %v", err)
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			log.Printf("Транзакция откатилась: %v", err)
+		} else {
+			tx.Commit()
+			log.Println("Транзакция успешно завершена")
+		}
+	}()
+
+	for _, attr := range attributes {
+		// Валидация значения в зависимости от типа опции
+		switch attr.TypeOfOption {
+		case "dropdown":
+			var dropdown []string
+			if err := json.Unmarshal(attr.Value, &dropdown); err != nil {
+				return fmt.Errorf("некорректное значение для dropdown: %v", err)
+			}
+		case "range":
+			var rng struct {
+				From string `json:"from"`
+				To   string `json:"to"`
+			}
+			if err := json.Unmarshal(attr.Value, &rng); err != nil {
+				return fmt.Errorf("некорректное значение для range: %v", err)
+			}
+		case "switcher":
+			var sw bool
+			if err := json.Unmarshal(attr.Value, &sw); err != nil {
+				return fmt.Errorf("некорректное значение для switcher: %v", err)
+			}
+		case "text":
+			var txt string
+			if err := json.Unmarshal(attr.Value, &txt); err != nil {
+				return fmt.Errorf("некорректное значение для text: %v", err)
+			}
+		case "number":
+			var num int
+			if err := json.Unmarshal(attr.Value, &num); err != nil {
+				return fmt.Errorf("некорректное значение для number: %v", err)
+			}
+		default:
+			return fmt.Errorf("неподдерживаемый type_of_option: %s", attr.TypeOfOption)
+		}
+
+		// Добавляем атрибут в базу данных внутри транзакции
+		err = db.CreateCategoryAttributeTx(tx, &attr)
+		if err != nil {
+			log.Printf("Ошибка при добавлении атрибута: %v", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *CategoryService) GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {

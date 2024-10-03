@@ -7,14 +7,15 @@ type Product struct {
 	Name         string             `json:"name"`
 	Description  string             `json:"description"`
 	CategoryID   int                `json:"category_id"`
-	CategoryName string             `json:"category_name"` // Добавляем это поле
 	SupplierID   int                `json:"supplier_id"`
 	MarketID     int                `json:"market_id"`
-	StatusID     int                `json:"status_id"`
+	SKU          string             `json:"sku"`
 	Price        float64            `json:"price"`
 	Stock        int                `json:"stock"`
-	Images       []ProductImage     `json:"images,omitempty"`
-	Variations   []ProductVariation `json:"variations,omitempty"`
+	Images       []ProductImage     `json:"images"`
+	Variations   []ProductVariation `json:"variations"`
+	CategoryName string             `json:"category_name"`
+	StatusID     int                `json:"status_id"`
 }
 
 type AttributeValueImage struct {
@@ -53,9 +54,8 @@ type ProductVariation struct {
 	SKU        string                  `json:"sku"`
 	Price      float64                 `json:"price"`
 	Stock      int                     `json:"stock"`
-	Images     []ProductVariationImage `json:"images,omitempty"`
-	Attributes []AttributeValue        `json:"attributes,omitempty"`
-	Colors     []Color                 `json:"colors,omitempty"` // Добавили поле Colors
+	Attributes []AttributeValue        `json:"attributes"`
+	Images     []ProductVariationImage `json:"images"`
 }
 
 type UpdateProductRequest struct {

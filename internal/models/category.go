@@ -2,6 +2,8 @@
 
 package models
 
+import "encoding/json"
+
 type SupplierCategory struct {
 	SupplierID int `json:"supplier_id"`
 	CategoryID int `json:"category_id"`
@@ -24,9 +26,10 @@ type CategoryNode struct {
 }
 
 type CategoryAttribute struct {
-	ID           int    `json:"id"`
-	CategoryID   int    `json:"category_id"`
-	Name         string `json:"name"`
-	Description  string `json:"description,omitempty"`
-	TypeOfOption string `json:"type_of_option,omitempty"`
+	ID           int             `json:"id"`
+	CategoryID   int             `json:"category_id"`
+	Name         string          `json:"name"`
+	Description  string          `json:"description,omitempty"`
+	TypeOfOption string          `json:"type_of_option"`
+	Value        json.RawMessage `json:"value"` // Используем json.RawMessage для гибкости
 }
