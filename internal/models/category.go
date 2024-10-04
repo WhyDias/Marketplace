@@ -3,6 +3,7 @@
 package models
 
 import (
+	"database/sql"
 	"encoding/json"
 )
 
@@ -12,11 +13,11 @@ type SupplierCategory struct {
 }
 
 type Category struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	ImageURL string `json:"image_url"`
-	ParentID *int   `json:"parent_id"` // Изменено с int на *int
+	ID       int           `json:"id"`
+	Name     string        `json:"name"`
+	Path     string        `json:"path"`
+	ImageURL string        `json:"image_url"`
+	ParentID sql.NullInt64 `json:"parent_id"` // Используем sql.NullInt64
 }
 
 type CategoryNode struct {

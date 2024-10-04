@@ -320,7 +320,7 @@ func GetCategoryByID(categoryID int) (*models.Category, error) {
 		&category.Name,
 		&category.Path,
 		&category.ImageURL,
-		&category.ParentID, // Теперь ParentID это *int
+		&category.ParentID, // Теперь ParentID это sql.NullInt64
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
