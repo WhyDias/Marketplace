@@ -90,7 +90,7 @@ func main() {
 	router.GET("/api/categories/search", supplierController.GetCategoryByPath) // Перемещен в публичные маршруты
 	router.GET("/api/categories", categoryController.GetAllCategories)
 	//router.POST("/api/categories/attributes", categoryController.AddCategoryAttributes)
-	router.GET("/api/categories/:id/attributes", categoryController.GetCategoryAttributesByCategoryID)
+	//router.GET("/api/categories/:id/attributes", categoryController.GetCategoryAttributesByCategoryID)
 	router.GET("/api/categories/:id", categoryController.GetCategoryByID)
 
 	// Защищенные маршруты
