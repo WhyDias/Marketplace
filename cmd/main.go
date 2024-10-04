@@ -84,13 +84,13 @@ func main() {
 	router.GET("/api/categories/subcategories", categoryController.GetImmediateSubcategories)
 	router.POST("/api/attributes/values/images", attributeController.AddAttributeValueImage)
 	router.GET("/api/attributes/values/:attribute_value_id/images", attributeController.GetAttributeValueImage)
-	router.GET("/api/categories/attributes", categoryController.GetCategoryAttributesByCategoryID)
+	router.GET("/api/categories/attributes", categoryController.GetCategoryAttributes)
 
 	// Новый публичный маршрут для поиска категории по path
 	router.GET("/api/categories/search", supplierController.GetCategoryByPath) // Перемещен в публичные маршруты
 	router.GET("/api/categories", categoryController.GetAllCategories)
 	router.POST("/api/categories/attributes", categoryController.AddCategoryAttributes)
-	router.GET("/api/categories/:id/attributes", categoryController.GetCategoryAttributes)
+	router.GET("/api/categories/:id/attributes", categoryController.GetCategoryAttributesByCategoryID)
 	router.GET("/api/categories/:id", categoryController.GetCategoryByID)
 
 	// Защищенные маршруты
