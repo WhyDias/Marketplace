@@ -8,6 +8,7 @@ import (
 	"github.com/WhyDias/Marketplace/internal/services"
 	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -93,7 +94,15 @@ type AddCategoryAttributeRequest struct {
 }
 
 type AddCategoryAttributesRequest struct {
-	Attributes []models.CategoryAttribute `json:"attributes" binding:"required,dive,required"`
+	CategoryID int                        `json:"category_id" binding:"required"`
+	Attributes []CategoryAttributePayload `json:"attributes" binding:"required,dive,required"`
+}
+
+type CategoryAttributePayload struct {
+	Name         string      `json:"name" binding:"required"`
+	Description  string      `json:"description"`
+	TypeOfOption string      `json:"type_of_option" binding:"required"`
+	Value        interface{} `json:"value" binding:"required"`
 }
 
 // AddCategoryAttributes добавляет несколько атрибутов к категории
@@ -109,41 +118,46 @@ type AddCategoryAttributesRequest struct {
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /api/categories/{id}/attributes [post]
 func (cc *CategoryController) AddCategoryAttributes(c *gin.Context) {
-	// Извлечение category_id из пути
-	categoryIDStr := c.Param("id")
-	categoryID, err := strconv.Atoi(categoryIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный category_id"})
-		return
-	}
-
 	var req AddCategoryAttributesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
+		log.Printf("AddCategoryAttributes: ошибка при связывании JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Преобразование входных данных в модель CategoryAttribute
+	// Подготовка атрибутов для сервиса
 	var attributes []models.CategoryAttribute
-	for _, input := range req.Attributes {
-		attribute := models.CategoryAttribute{
-			CategoryID:   categoryID,
-			Name:         input.Name,
-			Description:  input.Description,
-			TypeOfOption: input.TypeOfOption,
-			Value:        input.Value,
+	for _, attrPayload := range req.Attributes {
+		// Сериализуем значение в JSON
+		valueBytes, err := json.Marshal(attrPayload.Value)
+		if err != nil {
+			log.Printf("AddCategoryAttributes: ошибка при маршалинге значения атрибута: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное значение атрибута"})
+			return
 		}
-		attributes = append(attributes, attribute)
+
+		categoryAttribute := models.CategoryAttribute{
+			CategoryID:   req.CategoryID,
+			Name:         attrPayload.Name,
+			Description:  attrPayload.Description,
+			TypeOfOption: attrPayload.TypeOfOption,
+			Value:        valueBytes,
+		}
+
+		attributes = append(attributes, categoryAttribute)
 	}
 
-	// Передаём массив атрибутов в сервисный слой
-	err = cc.Service.AddCategoryAttributes(attributes)
+	// Вызов сервиса для добавления атрибутов
+	err := cc.Service.AddCategoryAttributes(attributes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить атрибуты категории: " + err.Error()})
+		log.Printf("AddCategoryAttributes: ошибка при добавлении атрибутов: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось добавить атрибуты категории"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Атрибуты категории успешно добавлены"})
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Атрибуты успешно добавлены к категории",
+	})
 }
 
 type CategoryAttribute struct {
