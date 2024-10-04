@@ -100,7 +100,7 @@ type AddCategoryAttributesRequest struct {
 
 type CategoryAttributePayload struct {
 	Name         string      `json:"name" binding:"required"`
-	Description  string      `json:"description"`
+	Description  *string     `json:"description"` // Изменено с string на *string
 	TypeOfOption string      `json:"type_of_option" binding:"required"`
 	Value        interface{} `json:"value" binding:"required"`
 }
@@ -321,7 +321,7 @@ func (cc *CategoryController) GetCategoryAttributesByCategoryID(c *gin.Context) 
 		response = append(response, models.CategoryAttributeResponse{
 			ID:           attr.ID,
 			Name:         attr.Name,
-			Description:  attr.Description,
+			Description:  attr.Description, // *string
 			TypeOfOption: attr.TypeOfOption,
 			Value:        value,
 		})
