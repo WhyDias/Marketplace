@@ -2,7 +2,9 @@
 
 package models
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type SupplierCategory struct {
 	SupplierID int `json:"supplier_id"`
@@ -14,7 +16,7 @@ type Category struct {
 	Name     string `json:"name"`
 	Path     string `json:"path"`
 	ImageURL string `json:"image_url"`
-	ParentID int    `json:"parent_id"`
+	ParentID *int   `json:"parent_id"` // Изменено с int на *int
 }
 
 type CategoryNode struct {

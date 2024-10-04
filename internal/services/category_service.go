@@ -53,10 +53,11 @@ func buildCategoryTree(categories []models.Category) []models.CategoryNode {
 
 	// Строим дерево
 	for _, category := range categories {
-		if category.ParentID == 0 {
+		if category.ParentID == nil {
 			roots = append(roots, *categoryMap[category.ID])
 		} else {
-			parent, exists := categoryMap[category.ParentID]
+			parentID := *category.ParentID
+			parent, exists := categoryMap[parentID]
 			if exists {
 				parent.Children = append(parent.Children, *categoryMap[category.ID])
 			}
