@@ -111,17 +111,16 @@ func StringPtr(s string) *string {
 }
 
 // AddCategoryAttributes добавляет несколько атрибутов к категории
-// @Summary Добавить несколько атрибутов к категории
-// @Description Добавляет массив атрибутов, связанных с определенной категорией
+// @Summary Добавить атрибуты к категории
+// @Description Добавляет один или несколько атрибутов к заданной категории
 // @Tags Categories
-// @Accept json
-// @Produce json
-// @Param id path int true "Category ID"
-// @Param attributes body AddCategoryAttributesRequest true "Массив атрибутов для добавления"
-// @Success 200 {object} map[string]string
+// @Accept  json
+// @Produce  json
+// @Param attributes body AddCategoryAttributesRequest true "Данные атрибутов"
+// @Success 201 {object} utils.ErrorResponse
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
-// @Router /api/categories/{id}/attributes [post]
+// @Router /categories/attributes [post]
 func (cc *CategoryController) AddCategoryAttributes(c *gin.Context) {
 	var req AddCategoryAttributesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -230,16 +229,17 @@ func (cc *CategoryController) GetCategoryByID(c *gin.Context) {
 }
 
 // GetCategoryAttributesByCategoryID возвращает список атрибутов для категории
-// @Summary Get category attributes by category ID
-// @Description Получает список атрибутов, связанных с категорией по её ID
+// @Summary Получить атрибуты категории по ID
+// @Description Возвращает список атрибутов для заданной категории
 // @Tags Categories
-// @Accept json
-// @Produce json
-// @Param category_id query int true "Category ID"
-// @Success 200 {array} models.CategoryAttribute
+// @Accept  json
+// @Produce  json
+// @Param id path int true "ID категории"
+// @Success 200 {array} models.CategoryAttributeResponse
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
-// @Router /api/categories/attributes [get]
+// @Router /categories/{id}/attributes [get]
 func (cc *CategoryController) GetCategoryAttributesByCategoryID(c *gin.Context) {
 	categoryIDStr := c.Param("id")
 	log.Printf("Получен category_id: %s", categoryIDStr)
