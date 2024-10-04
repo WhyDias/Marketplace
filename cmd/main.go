@@ -103,6 +103,7 @@ func main() {
 		authorized.POST("/api/categories", supplierController.AddCategory)
 		authorized.POST("/api/products", productController.AddProduct)
 		authorized.POST("/api/categories/attributes", categoryController.AddCategoryAttributes)
+		authorized.GET("/api/categories/:id/attributes", categoryController.GetCategoryAttributesByCategoryID)
 	}
 
 	// Маршруты для получения рынков и категорий
