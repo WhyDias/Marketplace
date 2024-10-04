@@ -33,3 +33,11 @@ type CategoryAttribute struct {
 	TypeOfOption string          `json:"type_of_option"`
 	Value        json.RawMessage `json:"value"` // Используем json.RawMessage для гибкости
 }
+
+type CategoryAttributeResponse struct {
+	ID           int         `json:"id"`
+	Name         string      `json:"name"`
+	Description  string      `json:"description,omitempty"`
+	TypeOfOption string      `json:"type_of_option"`
+	Value        interface{} `json:"value"`
+}

@@ -130,10 +130,12 @@ func (s *CategoryService) AddCategoryAttributes(attributes []models.CategoryAttr
 	return nil
 }
 
-func (s *CategoryService) GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
-	return db.GetCategoryAttributes(categoryID)
-}
-
+// GetCategoryByID возвращает категорию по её ID
 func (s *CategoryService) GetCategoryByID(categoryID int) (*models.Category, error) {
 	return db.GetCategoryByID(categoryID)
+}
+
+// GetCategoryAttributes возвращает атрибуты для заданной категории
+func (s *CategoryService) GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
+	return db.GetCategoryAttributes(categoryID)
 }

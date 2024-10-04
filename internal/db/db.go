@@ -311,38 +311,60 @@ func CreateCategoryAttribute(attribute *models.CategoryAttribute) error {
 	return nil
 }
 
+func GetCategoryByID(categoryID int) (*models.Category, error) {
+	category := &models.Category{}
+
+	query := `SELECT id, name, path, image_url, parent_id FROM categories WHERE id = $1`
+	err := DB.QueryRow(query, categoryID).Scan(
+		&category.ID,
+		&category.Name,
+		&category.Path,
+		&category.ImageURL,
+		&category.ParentID,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("GetCategoryByID: категория с id=%d не найдена", categoryID)
+			return nil, nil
+		}
+		log.Printf("GetCategoryByID: ошибка при выполнении запроса для id=%d: %v", categoryID, err)
+		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
+	}
+
+	return category, nil
+}
+
+// GetCategoryAttributes получает атрибуты для заданной категории
 func GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
 	query := `
-        SELECT id, category_id, name, description, type_of_option
+        SELECT id, category_id, name, description, type_of_option, value
         FROM category_attributes
         WHERE category_id = $1
     `
+
 	rows, err := DB.Query(query, categoryID)
 	if err != nil {
-		return nil, fmt.Errorf("Не удалось получить атрибуты категории: %v", err)
+		log.Printf("GetCategoryAttributes: ошибка при выполнении запроса: %v", err)
+		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
 	}
 	defer rows.Close()
 
 	var attributes []models.CategoryAttribute
 	for rows.Next() {
 		var attr models.CategoryAttribute
-		err := rows.Scan(&attr.ID, &attr.CategoryID, &attr.Name, &attr.Description, &attr.TypeOfOption)
-		if err != nil {
-			return nil, fmt.Errorf("Ошибка при чтении атрибута: %v", err)
+		if err := rows.Scan(&attr.ID, &attr.CategoryID, &attr.Name, &attr.Description, &attr.TypeOfOption, &attr.Value); err != nil {
+			log.Printf("GetCategoryAttributes: ошибка при сканировании строки: %v", err)
+			return nil, fmt.Errorf("ошибка при сканировании строки: %v", err)
 		}
 		attributes = append(attributes, attr)
 	}
 
-	return attributes, nil
-}
-func GetCategoryByID(categoryID int) (*models.Category, error) {
-	query := `SELECT id, name, path, image_url FROM categories WHERE id = $1`
-	category := &models.Category{}
-	err := DB.QueryRow(query, categoryID).Scan(&category.ID, &category.Name, &category.Path, &category.ImageURL)
-	if err != nil {
-		return nil, fmt.Errorf("Не удалось получить категорию: %v", err)
+	if err := rows.Err(); err != nil {
+		log.Printf("GetCategoryAttributes: ошибка при итерации по строкам: %v", err)
+		return nil, fmt.Errorf("ошибка при итерации по строкам: %v", err)
 	}
-	return category, nil
+
+	return attributes, nil
 }
 
 func CreateCategoryAttributeTx(tx *sql.Tx, attribute *models.CategoryAttribute) error {
