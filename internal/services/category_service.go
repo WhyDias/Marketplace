@@ -68,14 +68,14 @@ func buildCategoryTree(categories []models.Category) []models.CategoryNode {
 }
 
 func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCategoryAttributesRequest) error {
-	// Здесь можно добавить проверку прав пользователя, если необходимо
+	// Логирование информации о пользователе, добавляющем атрибуты
+	log.Printf("User ID %d добавляет атрибуты для категории ID %d", userID, req.CategoryID)
 
 	for _, attrReq := range req.Attributes {
 		var valueJSON json.RawMessage
 
 		switch attrReq.TypeOfOption {
 		case "dropdown":
-			// Ожидаем слайс строк
 			values, ok := attrReq.Value.([]interface{})
 			if !ok {
 				return fmt.Errorf("некорректный тип value для dropdown")
@@ -91,14 +91,13 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			valueJSON, _ = json.Marshal(stringValues)
 
 		case "range":
-			// Ожидаем слайс из двух чисел
 			values, ok := attrReq.Value.([]interface{})
 			if !ok || len(values) != 2 {
 				return fmt.Errorf("некорректный тип value для range")
 			}
 			rangeValues := make([]int, 2)
 			for i, v := range values {
-				num, ok := v.(float64) // JSON числа unmarshaled as float64
+				num, ok := v.(float64)
 				if !ok {
 					return fmt.Errorf("некорректное значение в range")
 				}
@@ -107,7 +106,6 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			valueJSON, _ = json.Marshal(rangeValues)
 
 		case "switcher":
-			// Ожидаем bool или пустое значение
 			if attrReq.Value != nil {
 				boolVal, ok := attrReq.Value.(bool)
 				if !ok {
@@ -115,12 +113,10 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 				}
 				valueJSON, _ = json.Marshal(boolVal)
 			} else {
-				// Если значение отсутствует, устанавливаем false
 				valueJSON, _ = json.Marshal(false)
 			}
 
 		case "text":
-			// Ожидаем строку
 			str, ok := attrReq.Value.(string)
 			if !ok {
 				return fmt.Errorf("некорректный тип value для text")
@@ -128,8 +124,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			valueJSON, _ = json.Marshal(str)
 
 		case "numeric":
-			// Ожидаем число
-			num, ok := attrReq.Value.(float64) // JSON числа unmarshaled as float64
+			num, ok := attrReq.Value.(float64)
 			if !ok {
 				return fmt.Errorf("некорректный тип value для numeric")
 			}
@@ -139,7 +134,6 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			return fmt.Errorf("неподдерживаемый тип option: %s", attrReq.TypeOfOption)
 		}
 
-		// Создаем запись атрибута категории
 		attribute := &models.CategoryAttribute{
 			CategoryID:   req.CategoryID,
 			Name:         attrReq.Name,
@@ -150,7 +144,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 
 		err := db.CreateCategoryAttribute(attribute)
 		if err != nil {
-			log.Printf("Не удалось создать атрибут: %s. Ошибка: %v", attrReq.Name, err)
+			log.Printf("Не удалось создать атрибут для пользователя %d: %s. Ошибка: %v", userID, attrReq.Name, err)
 			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
 		}
 	}

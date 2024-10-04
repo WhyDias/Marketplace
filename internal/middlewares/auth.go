@@ -3,7 +3,6 @@
 package middlewares
 
 import (
-	"fmt"
 	"github.com/WhyDias/Marketplace/pkg/jwt"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -13,37 +12,43 @@ import (
 // AuthMiddleware проверяет наличие и валидность JWT токена
 func AuthMiddleware(jwtService jwt.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Извлекаем токен из заголовка Authorization
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Отсутствует заголовок Authorization"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Необходима авторизация"})
 			c.Abort()
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный формат заголовка Authorization"})
+		// Проверяем формат заголовка (должен начинаться с "Bearer")
+		splitToken := strings.Split(authHeader, " ")
+		if len(splitToken) != 2 || strings.ToLower(splitToken[0]) != "bearer" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный формат токена"})
 			c.Abort()
 			return
 		}
 
-		tokenString := parts[1]
-
+		// Проверяем токен
+		tokenString := splitToken[1]
 		token, err := jwtService.ValidateToken(tokenString)
 		if err != nil {
-			// Выводим подробную информацию об ошибке
-			fmt.Println("Ошибка проверки токена:", err)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный токен", "details": err.Error()})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный токен"})
 			c.Abort()
 			return
 		}
 
-		if claims, ok := token.Claims.(*jwt.JWTCustomClaim); ok && token.Valid {
-			c.Set("user_id", claims.UserID)
-			c.Next()
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверные данные токена"})
+		// Извлекаем userID из claims
+		claims, ok := token.Claims.(*jwt.JWTCustomClaim)
+		if !ok || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Невалидный токен"})
 			c.Abort()
+			return
 		}
+
+		// Сохраняем userID в контексте для последующего использования
+		c.Set("user_id", claims.UserID)
+
+		// Переходим к следующему обработчику
+		c.Next()
 	}
 }
