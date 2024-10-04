@@ -8,15 +8,15 @@ import "time"
 type Supplier struct {
 	ID          int        `json:"id"`
 	Name        string     `json:"name"`
-	PhoneNumber string     `json:"phone_number"`
-	Place       string     `json:"place"`
-	MarketID    int        `json:"market_id"`
-	RowName     string     `json:"row_name"`
 	UserID      int        `json:"user_id"`
 	IsVerified  bool       `json:"is_verified"`
+	PlaceName   string     `json:"place_name"`
+	RowName     string     `json:"row_name"`
+	PhoneNumber string     `json:"phone_number"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
-	Categories  []Category `json:"categories,omitempty"` // Populated as needed
+	MarketID    int        `json:"market_id"`
+	Categories  []Category `json:"categories,omitempty"`
 }
 
 type RegisterSupplierRequest struct {
@@ -37,4 +37,12 @@ type UpdateSupplierRequest struct {
 
 type UpdateSupplierDetailsResponse struct {
 	Message string `json:"message"`
+}
+
+type Attribute struct {
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	IsLinked   bool   `json:"is_linked"`
+	CategoryID int    `json:"category_id"`
+	Type       string `json:"type"`
 }

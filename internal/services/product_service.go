@@ -5,11 +5,9 @@ package services
 import (
 	"database/sql"
 	"fmt"
-	"log"
-	"strings"
-
 	"github.com/WhyDias/Marketplace/internal/db"
 	"github.com/WhyDias/Marketplace/internal/models"
+	"log"
 )
 
 type ProductService struct{}
@@ -40,85 +38,92 @@ func (s *ProductService) GetSupplierIDByUserID(userID int) (int, error) {
 	return supplier.ID, nil
 }
 
-func (s *ProductService) AddProduct(product *models.Product, attributes []models.AttributeValueRequest) error {
-	tx, err := db.DB.Begin()
+func (s *ProductService) AddProduct(userID int, req *models.ProductRequest) error {
+	// Получаем supplier_id и market_id для текущего пользователя
+	supplier, err := db.GetSupplierByUserID(userID)
 	if err != nil {
-		return fmt.Errorf("Не удалось начать транзакцию: %v", err)
+		return fmt.Errorf("ошибка при получении поставщика: %v", err)
+	}
+	if supplier == nil {
+		return fmt.Errorf("поставщик не найден для user_id=%d", userID)
 	}
 
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		} else {
-			tx.Commit()
+	// Создаем продукт
+	product := &models.Product{
+		Name:        req.Name,
+		CategoryID:  req.CategoryID,
+		StatusID:    2, // Присваиваем статус 2 (например, "Active")
+		SupplierID:  supplier.ID,
+		MarketID:    supplier.MarketID,
+		Description: req.Description,
+	}
+
+	err = db.CreateProduct(product)
+	if err != nil {
+		return fmt.Errorf("ошибка при создании продукта: %v", err)
+	}
+
+	// Добавляем изображения продукта
+	for _, imgURL := range req.Images {
+		productImage := &models.ProductImage{
+			ProductID: product.ID,
+			ImageURL:  imgURL,
 		}
-	}()
-
-	// Создаём продукт
-	err = db.CreateProductTx(tx, product)
-	if err != nil {
-		return err
+		if err := db.CreateProductImage(productImage); err != nil {
+			log.Printf("Не удалось добавить изображение продукта: %s. Ошибка: %v", imgURL, err)
+			// Можно решить, продолжать ли добавление остальных изображений или прерывать
+			// Для примера продолжаем
+		}
 	}
 
-	// Генерируем вариации
-	variations := s.GenerateVariations(attributes)
-
-	// Создаём вариации продукта
-	for _, variationAttributes := range variations {
+	// Добавляем вариации продукта
+	for _, varReq := range req.Variations {
 		variation := &models.ProductVariation{
-			ProductID:  product.ID,
-			SKU:        generateSKU(product.ID, variationAttributes),
-			Price:      product.Price,
-			Stock:      product.Stock,
-			Attributes: []models.AttributeValue{},
+			ProductID: product.ID,
+			SKU:       varReq.SKU,
+			Price:     varReq.Price,
+			Stock:     varReq.Stock,
 		}
 
-		// Добавляем вариацию в базу данных
-		err = db.CreateProductVariationTx(tx, variation)
+		err = db.CreateProductVariation(variation)
 		if err != nil {
-			return err
+			return fmt.Errorf("ошибка при создании вариации продукта: %v", err)
 		}
 
-		// Связываем вариацию с атрибутами
-		for name, value := range variationAttributes {
-			// Получаем или создаём атрибут и его значение
-			attributeID, err := db.GetAttributeIDByName(tx, name)
+		// Добавляем атрибуты для вариации
+		for _, attrReq := range varReq.Attributes {
+			attrID, err := db.GetAttributeIDByName(attrReq.Name)
 			if err != nil {
-				return err
-			}
-			attributeValueID, err := db.GetAttributeValueID(tx, attributeID, value)
-			if err != nil {
-				// Создаём новое значение атрибута
-				attrValue := &models.AttributeValue{
-					AttributeID: attributeID,
-					Value:       value,
-				}
-				err = db.CreateAttributeValueTx(tx, attrValue)
-				if err != nil {
-					return err
-				}
-				attributeValueID = attrValue.ID
+				return fmt.Errorf("ошибка при получении атрибута %s: %v", attrReq.Name, err)
 			}
 
-			// Связываем вариацию с значением атрибута
-			err = db.CreateVariationAttributeValueTx(tx, variation.ID, attributeValueID)
+			// Получаем или создаем значение атрибута
+			attrValueID, err := db.GetOrCreateAttributeValue(attrID, attrReq.Value)
 			if err != nil {
-				return err
+				return fmt.Errorf("ошибка при получении или создании значения атрибута: %v", err)
+			}
+
+			err = db.CreateVariationAttributeValue(variation.ID, attrValueID)
+			if err != nil {
+				return fmt.Errorf("ошибка при связывании атрибута вариации: %v", err)
+			}
+		}
+
+		// Добавляем изображения вариации продукта
+		for _, imgURL := range varReq.Images {
+			variationImage := &models.ProductVariationImage{
+				ProductVariationID: variation.ID,
+				ImageURL:           imgURL,
+			}
+			if err := db.CreateProductVariationImage(variationImage); err != nil {
+				log.Printf("Не удалось добавить изображение вариации продукта: %s. Ошибка: %v", imgURL, err)
+				// Можно решить, продолжать ли добавление остальных изображений или прерывать
+				// Для примера продолжаем
 			}
 		}
 	}
 
 	return nil
-}
-
-func generateSKU(productID int, attributes map[string]string) string {
-	// Реализуйте генерацию уникального SKU на основе атрибутов
-	// Например: "PROD123-SIZE-M-COLOR-RED"
-	sku := fmt.Sprintf("PROD%d", productID)
-	for name, value := range attributes {
-		sku += fmt.Sprintf("-%s-%s", strings.ToUpper(name), strings.ToUpper(value))
-	}
-	return sku
 }
 
 func (s *ProductService) GetMarketIDBySupplierID(supplierID int) (int, error) {
@@ -196,27 +201,4 @@ func (s *ProductService) addVariationColorsTx(tx *sql.Tx, variationID int, color
 		}
 	}
 	return nil
-}
-
-func (s *ProductService) GenerateVariations(attributes []models.AttributeValueRequest) []map[string]string {
-	var results []map[string]string
-	s.generateVariationsHelper(attributes, 0, map[string]string{}, &results)
-	return results
-}
-
-func (s *ProductService) generateVariationsHelper(attributes []models.AttributeValueRequest, index int, current map[string]string, results *[]map[string]string) {
-	if index == len(attributes) {
-		temp := make(map[string]string)
-		for k, v := range current {
-			temp[k] = v
-		}
-		*results = append(*results, temp)
-		return
-	}
-
-	attr := attributes[index]
-	for _, value := range attr.Values {
-		current[attr.Name] = value
-		s.generateVariationsHelper(attributes, index+1, current, results)
-	}
 }

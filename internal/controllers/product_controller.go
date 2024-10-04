@@ -148,72 +148,46 @@ type AttributeValueRequest struct {
 	Values []string `json:"values" binding:"required"`
 }
 
-// AddProduct добавляет новый продукт
-// @Summary Add a new product
-// @Description Создает новый продукт с вариациями на основе предоставленных атрибутов
+// AddProduct обрабатывает запрос на добавление нового продукта
+// @Summary Добавить новый продукт
+// @Description Добавляет новый продукт вместе с его вариациями и изображениями
 // @Tags Products
-// @Accept multipart/form-data
-// @Produce json
-// @Param name formData string true "Product name"
-// @Param description formData string false "Product description"
-// @Param category_id formData int true "Category ID"
-// @Param price formData number true "Product price"
-// @Param stock formData int true "Product stock"
-// @Param attributes formData string true "JSON-строка атрибутов"
-// @Success 201 {object} map[string]interface{}
-// @Failure 400 {object} utils.ErrorResponse
-// @Failure 401 {object} utils.ErrorResponse
-// @Failure 500 {object} utils.ErrorResponse
-// @Security BearerAuth
-// @Router /api/products [post]
+// @Accept  json
+// @Produce  json
+// @Param Authorization header string true "Bearer <token>"
+// @Param product body dto.ProductRequest true "Данные нового продукта"
+// @Success 201 {object} utils.ErrorResponse "Продукт успешно добавлен"
+// @Failure 400 {object} utils.ErrorResponse "Неверный формат данных или ошибки валидации"
+// @Failure 401 {object} utils.ErrorResponse "Необходима авторизация"
+// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /products [post]
 func (pc *ProductController) AddProduct(c *gin.Context) {
-	var req models.AddProductRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
+	var productReq models.ProductRequest
+
+	if err := c.ShouldBindJSON(&productReq); err != nil {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Неверный формат данных: " + err.Error()})
 		return
 	}
 
-	// Получаем user_id из контекста
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Пользователь не авторизован"})
+		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Необходима авторизация"})
 		return
 	}
-	userID := userIDInterface.(int)
 
-	// Получаем supplier_id и market_id
-	supplierID, err := pc.Service.GetSupplierIDByUserID(userID)
+	userID, err := strconv.Atoi(userIDInterface.(string))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить supplier_id"})
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Неверный формат user_id"})
 		return
 	}
-	marketID, err := pc.Service.GetMarketIDBySupplierID(supplierID)
+
+	err = pc.Service.AddProduct(userID, &productReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить market_id"})
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить продукт: " + err.Error()})
 		return
 	}
 
-	// Создаём продукт
-	product := &models.Product{
-		Name:        req.Name,
-		Description: req.Description,
-		CategoryID:  req.CategoryID,
-		SupplierID:  supplierID,
-		MarketID:    marketID,
-		Price:       req.Price,
-		Stock:       req.Stock,
-		Images:      []models.ProductImage{},     // Добавьте обработку изображений при необходимости
-		Variations:  []models.ProductVariation{}, // Вариации будут созданы на основе атрибутов
-	}
-
-	// Добавляем продукт и вариации
-	err = pc.Service.AddProduct(product, req.Attributes)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить продукт"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "Продукт успешно добавлен", "product_id": product.ID})
+	c.JSON(http.StatusCreated, utils.ErrorResponse{Error: "Продукт успешно добавлен"})
 }
 
 // UpdateProduct обновляет существующий продукт
