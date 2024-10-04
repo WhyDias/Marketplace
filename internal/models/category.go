@@ -32,15 +32,15 @@ type CategoryAttribute struct {
 	ID           int             `json:"id"`
 	CategoryID   int             `json:"category_id"`
 	Name         string          `json:"name"`
-	Description  *string         `json:"description"` // Используем *string для поддержки NULL
-	TypeOfOption string          `json:"type_of_option"`
+	Description  *string         `json:"description"`    // Используем *string для поддержки NULL
+	TypeOfOption *string         `json:"type_of_option"` // Используем *string для поддержки NULL
 	Value        json.RawMessage `json:"value"`
 }
 
 type CategoryAttributeResponse struct {
 	ID           int         `json:"id"`
 	Name         string      `json:"name"`
-	Description  *string     `json:"description,omitempty"` // Изменено на *string с omitempty
-	TypeOfOption string      `json:"type_of_option"`
+	Description  *string     `json:"description,omitempty"`    // *string с omitempty
+	TypeOfOption *string     `json:"type_of_option,omitempty"` // *string с omitempty
 	Value        interface{} `json:"value"`
 }

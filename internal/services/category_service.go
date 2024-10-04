@@ -68,63 +68,61 @@ func buildCategoryTree(categories []models.Category) []models.CategoryNode {
 }
 
 func (s *CategoryService) AddCategoryAttributes(attributes []models.CategoryAttribute) error {
-	// Начинаем транзакцию
-	tx, err := db.DB.Begin()
-	if err != nil {
-		log.Printf("Не удалось начать транзакцию: %v", err)
-		return fmt.Errorf("не удалось начать транзакцию: %v", err)
-	}
-
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			log.Printf("Транзакция откатилась: %v", err)
-		} else {
-			tx.Commit()
-			log.Println("Транзакция успешно завершена")
-		}
-	}()
-
 	for _, attr := range attributes {
-		// Валидация значения в зависимости от типа опции
-		switch attr.TypeOfOption {
+		if attr.TypeOfOption == nil {
+			log.Printf("AddCategoryAttributes: TypeOfOption is NULL for attribute ID=%d", attr.ID)
+			return fmt.Errorf("TypeOfOption не может быть NULL для атрибута ID=%d", attr.ID)
+		}
+
+		switch *attr.TypeOfOption {
 		case "dropdown":
 			var dropdown []string
 			if err := json.Unmarshal(attr.Value, &dropdown); err != nil {
-				return fmt.Errorf("некорректное значение для dropdown: %v", err)
+				log.Printf("AddCategoryAttributes: ошибка при маршалинге dropdown для атрибута ID=%d: %v", attr.ID, err)
+				return fmt.Errorf("Некорректное значение dropdown для атрибута ID=%d", attr.ID)
 			}
+			// Дополнительная логика для dropdown
 		case "range":
 			var rng struct {
 				From string `json:"from"`
 				To   string `json:"to"`
 			}
 			if err := json.Unmarshal(attr.Value, &rng); err != nil {
-				return fmt.Errorf("некорректное значение для range: %v", err)
+				log.Printf("AddCategoryAttributes: ошибка при маршалинге range для атрибута ID=%d: %v", attr.ID, err)
+				return fmt.Errorf("Некорректное значение range для атрибута ID=%d", attr.ID)
 			}
+			// Дополнительная логика для range
 		case "switcher":
 			var sw bool
 			if err := json.Unmarshal(attr.Value, &sw); err != nil {
-				return fmt.Errorf("некорректное значение для switcher: %v", err)
+				log.Printf("AddCategoryAttributes: ошибка при маршалинге switcher для атрибута ID=%d: %v", attr.ID, err)
+				return fmt.Errorf("Некорректное значение switcher для атрибута ID=%d", attr.ID)
 			}
+			// Дополнительная логика для switcher
 		case "text":
 			var txt string
 			if err := json.Unmarshal(attr.Value, &txt); err != nil {
-				return fmt.Errorf("некорректное значение для text: %v", err)
+				log.Printf("AddCategoryAttributes: ошибка при маршалинге text для атрибута ID=%d: %v", attr.ID, err)
+				return fmt.Errorf("Некорректное значение text для атрибута ID=%d", attr.ID)
 			}
+			// Дополнительная логика для text
 		case "number":
 			var num int
 			if err := json.Unmarshal(attr.Value, &num); err != nil {
-				return fmt.Errorf("некорректное значение для number: %v", err)
+				log.Printf("AddCategoryAttributes: ошибка при маршалинге number для атрибута ID=%d: %v", attr.ID, err)
+				return fmt.Errorf("Некорректное значение number для атрибута ID=%d", attr.ID)
 			}
+			// Дополнительная логика для number
 		default:
-			return fmt.Errorf("неподдерживаемый type_of_option: %s", attr.TypeOfOption)
+			log.Printf("AddCategoryAttributes: Неизвестный type_of_option: %s для атрибута ID=%d", *attr.TypeOfOption, attr.ID)
+			return fmt.Errorf("Неизвестный type_of_option: %s для атрибута ID=%d", *attr.TypeOfOption, attr.ID)
 		}
 
-		// Добавляем атрибут в базу данных внутри транзакции
-		err = db.CreateCategoryAttributeTx(tx, &attr)
+		// Добавление атрибута в базу данных
+		err := db.AddCategoryAttribute(attr)
 		if err != nil {
-			log.Printf("Ошибка при добавлении атрибута: %v", err)
-			return err
+			log.Printf("AddCategoryAttributes: ошибка при добавлении атрибута ID=%d: %v", attr.ID, err)
+			return fmt.Errorf("Не удалось добавить атрибут ID=%d: %v", attr.ID, err)
 		}
 	}
 
