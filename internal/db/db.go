@@ -522,3 +522,36 @@ func GetOrCreateAttributeValue(attributeID int, value string) (int, error) {
 	}
 	return id, nil
 }
+
+func GetCategoryAttributesByCategoryID(categoryID int) ([]models.CategoryAttribute, error) {
+	query := `
+		SELECT id, category_id, name, description, type_of_option, value
+		FROM category_attributes
+		WHERE category_id = $1
+	`
+
+	rows, err := DB.Query(query, categoryID)
+	if err != nil {
+		log.Printf("GetCategoryAttributesByCategoryID: ошибка при выполнении запроса: %v", err)
+		return nil, fmt.Errorf("ошибка при выполнении запроса: %v", err)
+	}
+	defer rows.Close()
+
+	var attributes []models.CategoryAttribute
+	for rows.Next() {
+		var attr models.CategoryAttribute
+		err := rows.Scan(&attr.ID, &attr.CategoryID, &attr.Name, &attr.Description, &attr.TypeOfOption, &attr.Value)
+		if err != nil {
+			log.Printf("GetCategoryAttributesByCategoryID: ошибка при сканировании строки: %v", err)
+			return nil, fmt.Errorf("ошибка при сканировании строки: %v", err)
+		}
+		attributes = append(attributes, attr)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Printf("GetCategoryAttributesByCategoryID: ошибка при итерации по строкам: %v", err)
+		return nil, fmt.Errorf("ошибка при итерации по строкам: %v", err)
+	}
+
+	return attributes, nil
+}

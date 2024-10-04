@@ -178,3 +178,78 @@ func (s *CategoryService) GetCategoryByID(categoryID int) (*models.Category, err
 func (s *CategoryService) GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
 	return db.GetCategoryAttributes(categoryID)
 }
+
+func (s *CategoryService) GetCategoryAttributesByCategoryID(userID int, categoryID int) ([]models.CategoryAttributeResponse, error) {
+	// Логирование запроса
+	log.Printf("User ID %d запрашивает атрибуты для категории ID %d", userID, categoryID)
+
+	// Получаем атрибуты из базы данных
+	attributes, err := db.GetCategoryAttributesByCategoryID(categoryID)
+	if err != nil {
+		log.Printf("Ошибка при получении атрибутов для категории %d: %v", categoryID, err)
+		return nil, fmt.Errorf("ошибка при получении атрибутов: %v", err)
+	}
+
+	// Преобразуем атрибуты в DTO
+	var response []models.CategoryAttributeResponse
+	for _, attr := range attributes {
+		var value interface{}
+
+		// Десериализуем Value в зависимости от TypeOfOption
+		switch *attr.TypeOfOption {
+		case "dropdown":
+			var dropdownValues []string
+			if err := json.Unmarshal(attr.Value, &dropdownValues); err != nil {
+				log.Printf("Ошибка десериализации value для dropdown: %v", err)
+				return nil, fmt.Errorf("некорректное значение атрибута %s", attr.Name)
+			}
+			value = dropdownValues
+
+		case "range":
+			var rangeValues []int
+			if err := json.Unmarshal(attr.Value, &rangeValues); err != nil {
+				log.Printf("Ошибка десериализации value для range: %v", err)
+				return nil, fmt.Errorf("некорректное значение атрибута %s", attr.Name)
+			}
+			value = rangeValues
+
+		case "switcher":
+			var switcherValue bool
+			if err := json.Unmarshal(attr.Value, &switcherValue); err != nil {
+				log.Printf("Ошибка десериализации value для switcher: %v", err)
+				return nil, fmt.Errorf("некорректное значение атрибута %s", attr.Name)
+			}
+			value = switcherValue
+
+		case "text":
+			var textValue string
+			if err := json.Unmarshal(attr.Value, &textValue); err != nil {
+				log.Printf("Ошибка десериализации value для text: %v", err)
+				return nil, fmt.Errorf("некорректное значение атрибута %s", attr.Name)
+			}
+			value = textValue
+
+		case "numeric":
+			var numericValue int
+			if err := json.Unmarshal(attr.Value, &numericValue); err != nil {
+				log.Printf("Ошибка десериализации value для numeric: %v", err)
+				return nil, fmt.Errorf("некорректное значение атрибута %s", attr.Name)
+			}
+			value = numericValue
+
+		default:
+			log.Printf("Неизвестный type_of_option: %s", *attr.TypeOfOption)
+			return nil, fmt.Errorf("неизвестный тип опции атрибута %s", attr.Name)
+		}
+
+		response = append(response, models.CategoryAttributeResponse{
+			ID:           attr.ID,
+			Name:         attr.Name,
+			Description:  attr.Description,
+			TypeOfOption: attr.TypeOfOption,
+			Value:        value,
+		})
+	}
+
+	return response, nil
+}

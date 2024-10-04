@@ -8,7 +8,6 @@ import (
 	"github.com/WhyDias/Marketplace/internal/services"
 	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -227,105 +226,34 @@ func (cc *CategoryController) GetCategoryByID(c *gin.Context) {
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /categories/{id}/attributes [get]
 func (cc *CategoryController) GetCategoryAttributesByCategoryID(c *gin.Context) {
+	// Извлекаем category_id из URL
 	categoryIDStr := c.Param("id")
-	log.Printf("Получен category_id: %s", categoryIDStr)
-
 	categoryID, err := strconv.Atoi(categoryIDStr)
 	if err != nil {
-		log.Printf("Ошибка конвертации category_id: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный category_id"})
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный ID категории"})
 		return
 	}
 
-	// Проверяем существование категории
-	category, err := cc.Service.GetCategoryByID(categoryID)
+	// Получаем user_id из контекста (если необходимо для прав доступа)
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Необходима авторизация"})
+		return
+	}
+
+	// Преобразуем userID напрямую к int
+	userID, ok := userIDInterface.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Неверный формат user_id"})
+		return
+	}
+
+	// Получаем атрибуты категории через сервис
+	attributes, err := cc.Service.GetCategoryAttributesByCategoryID(userID, categoryID)
 	if err != nil {
-		log.Printf("Ошибка при получении категории: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении категории"})
-		return
-	}
-	if category == nil {
-		log.Printf("Категория с id=%d не найдена", categoryID)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Категория не найдена"})
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось получить атрибуты: " + err.Error()})
 		return
 	}
 
-	// Получаем атрибуты категории
-	attributes, err := cc.Service.GetCategoryAttributes(categoryID)
-	if err != nil {
-		log.Printf("Ошибка при получении атрибутов: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить атрибуты категории"})
-		return
-	}
-
-	// Преобразуем атрибуты в структуру ответа без category_id
-	var response []models.CategoryAttributeResponse
-	for _, attr := range attributes {
-		var value interface{}
-		if attr.TypeOfOption != nil {
-			switch *attr.TypeOfOption {
-			case "dropdown":
-				var dropdown []string
-				if err := json.Unmarshal(attr.Value, &dropdown); err != nil {
-					log.Printf("Ошибка при маршалинге dropdown: %v", err)
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное значение атрибута"})
-					return
-				}
-				value = dropdown
-			case "range":
-				var rng struct {
-					From string `json:"from"`
-					To   string `json:"to"`
-				}
-				if err := json.Unmarshal(attr.Value, &rng); err != nil {
-					log.Printf("Ошибка при маршалинге range: %v", err)
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное значение атрибута"})
-					return
-				}
-				value = rng
-			case "switcher":
-				var sw bool
-				if err := json.Unmarshal(attr.Value, &sw); err != nil {
-					log.Printf("Ошибка при маршалинге switcher: %v", err)
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное значение атрибута"})
-					return
-				}
-				value = sw
-			case "text":
-				var txt string
-				if err := json.Unmarshal(attr.Value, &txt); err != nil {
-					log.Printf("Ошибка при маршалинге text: %v", err)
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное значение атрибута"})
-					return
-				}
-				value = txt
-			case "number":
-				var num int
-				if err := json.Unmarshal(attr.Value, &num); err != nil {
-					log.Printf("Ошибка при маршалинге number: %v", err)
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное значение атрибута"})
-					return
-				}
-				value = num
-			default:
-				log.Printf("Неизвестный type_of_option: %s", *attr.TypeOfOption)
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Неизвестный type_of_option"})
-				return
-			}
-		} else {
-			log.Printf("TypeOfOption is NULL for attribute id=%d", attr.ID)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "TypeOfOption не может быть NULL"})
-			return
-		}
-
-		response = append(response, models.CategoryAttributeResponse{
-			ID:           attr.ID,
-			Name:         attr.Name,
-			Description:  attr.Description,  // *string
-			TypeOfOption: attr.TypeOfOption, // *string
-			Value:        value,
-		})
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, attributes)
 }
