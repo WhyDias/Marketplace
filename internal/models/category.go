@@ -32,8 +32,8 @@ type CategoryAttribute struct {
 	ID           int             `json:"id"`
 	CategoryID   int             `json:"category_id"`
 	Name         string          `json:"name"`
-	Description  *string         `json:"description"`    // Используем *string для поддержки NULL
-	TypeOfOption *string         `json:"type_of_option"` // Используем *string для поддержки NULL
+	Description  *string         `json:"description"`
+	TypeOfOption *string         `json:"type_of_option"`
 	Value        json.RawMessage `json:"value"`
 }
 
@@ -43,4 +43,16 @@ type CategoryAttributeResponse struct {
 	Description  *string     `json:"description,omitempty"`    // *string с omitempty
 	TypeOfOption *string     `json:"type_of_option,omitempty"` // *string с omitempty
 	Value        interface{} `json:"value"`
+}
+
+type AddCategoryAttributesRequest struct {
+	CategoryID int                `json:"category_id" binding:"required"`
+	Attributes []AttributeRequest `json:"attributes" binding:"required,dive,required"`
+}
+
+type AttributeRequest struct {
+	Name         string      `json:"name" binding:"required"`
+	Description  string      `json:"description" binding:"required"`
+	TypeOfOption string      `json:"type_of_option" binding:"required,oneof=dropdown range switcher text numeric"`
+	Value        interface{} `json:"value,omitempty"`
 }

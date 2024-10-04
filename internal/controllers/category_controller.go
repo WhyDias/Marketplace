@@ -110,61 +110,47 @@ func StringPtr(s string) *string {
 	return &s
 }
 
-// AddCategoryAttributes добавляет несколько атрибутов к категории
+// AddCategoryAttributes обрабатывает запрос на добавление атрибутов к категории
 // @Summary Добавить атрибуты к категории
 // @Description Добавляет один или несколько атрибутов к заданной категории
 // @Tags Categories
 // @Accept  json
 // @Produce  json
-// @Param attributes body AddCategoryAttributesRequest true "Данные атрибутов"
-// @Success 201 {object} utils.ErrorResponse
-// @Failure 400 {object} utils.ErrorResponse
-// @Failure 500 {object} utils.ErrorResponse
-// @Router /categories/attributes [post]
+// @Param Authorization header string true "Bearer <token>"
+// @Param attributes body models.AddCategoryAttributesRequest true "Данные атрибутов"
+// @Success 201 {object} utils.ErrorResponse "Атрибуты успешно добавлены"
+// @Failure 400 {object} utils.ErrorResponse "Неверный формат данных или ошибки валидации"
+// @Failure 401 {object} utils.ErrorResponse "Необходима авторизация"
+// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /api/categories/attributes [post]
 func (cc *CategoryController) AddCategoryAttributes(c *gin.Context) {
-	var req AddCategoryAttributesRequest
+	var req models.AddCategoryAttributesRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Printf("AddCategoryAttributes: ошибка при связывании JSON: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Неверный формат данных: " + err.Error()})
 		return
 	}
 
-	// Подготовка атрибутов для сервиса
-	var attributes []models.CategoryAttribute
-	for _, attrPayload := range req.Attributes {
-		// Сериализуем значение в JSON
-		valueBytes, err := json.Marshal(attrPayload.Value)
-		if err != nil {
-			log.Printf("AddCategoryAttributes: ошибка при маршалинге значения атрибута: %v", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное значение атрибута"})
-			return
-		}
-
-		// Преобразование TypeOfOption в *string
-		typeOfOptionPtr := StringPtr(attrPayload.TypeOfOption)
-
-		categoryAttribute := models.CategoryAttribute{
-			CategoryID:   req.CategoryID,
-			Name:         attrPayload.Name,
-			Description:  attrPayload.Description, // *string
-			TypeOfOption: typeOfOptionPtr,         // *string
-			Value:        valueBytes,
-		}
-
-		attributes = append(attributes, categoryAttribute)
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Необходима авторизация"})
+		return
 	}
 
-	// Вызов сервиса для добавления атрибутов
-	err := cc.Service.AddCategoryAttributes(attributes)
+	// Преобразуем userID напрямую к int
+	userID, ok := userIDInterface.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Неверный формат user_id"})
+		return
+	}
+
+	err := cc.Service.AddCategoryAttributes(userID, &req)
 	if err != nil {
-		log.Printf("AddCategoryAttributes: ошибка при добавлении атрибутов: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось добавить атрибуты категории"})
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить атрибуты: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Атрибуты успешно добавлены к категории",
-	})
+	c.JSON(http.StatusCreated, utils.ErrorResponse{Error: "Атрибуты успешно добавлены"})
 }
 
 type CategoryAttribute struct {

@@ -67,62 +67,91 @@ func buildCategoryTree(categories []models.Category) []models.CategoryNode {
 	return roots
 }
 
-func (s *CategoryService) AddCategoryAttributes(attributes []models.CategoryAttribute) error {
-	for _, attr := range attributes {
-		if attr.TypeOfOption == nil {
-			log.Printf("AddCategoryAttributes: TypeOfOption is NULL for attribute ID=%d", attr.ID)
-			return fmt.Errorf("TypeOfOption не может быть NULL для атрибута ID=%d", attr.ID)
-		}
+func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCategoryAttributesRequest) error {
+	// Здесь можно добавить проверку прав пользователя, если необходимо
 
-		switch *attr.TypeOfOption {
+	for _, attrReq := range req.Attributes {
+		var valueJSON json.RawMessage
+
+		switch attrReq.TypeOfOption {
 		case "dropdown":
-			var dropdown []string
-			if err := json.Unmarshal(attr.Value, &dropdown); err != nil {
-				log.Printf("AddCategoryAttributes: ошибка при маршалинге dropdown для атрибута ID=%d: %v", attr.ID, err)
-				return fmt.Errorf("Некорректное значение dropdown для атрибута ID=%d", attr.ID)
+			// Ожидаем слайс строк
+			values, ok := attrReq.Value.([]interface{})
+			if !ok {
+				return fmt.Errorf("некорректный тип value для dropdown")
 			}
-			// Дополнительная логика для dropdown
+			stringValues := make([]string, len(values))
+			for i, v := range values {
+				str, ok := v.(string)
+				if !ok {
+					return fmt.Errorf("некорректное значение в dropdown")
+				}
+				stringValues[i] = str
+			}
+			valueJSON, _ = json.Marshal(stringValues)
+
 		case "range":
-			var rng struct {
-				From string `json:"from"`
-				To   string `json:"to"`
+			// Ожидаем слайс из двух чисел
+			values, ok := attrReq.Value.([]interface{})
+			if !ok || len(values) != 2 {
+				return fmt.Errorf("некорректный тип value для range")
 			}
-			if err := json.Unmarshal(attr.Value, &rng); err != nil {
-				log.Printf("AddCategoryAttributes: ошибка при маршалинге range для атрибута ID=%d: %v", attr.ID, err)
-				return fmt.Errorf("Некорректное значение range для атрибута ID=%d", attr.ID)
+			rangeValues := make([]int, 2)
+			for i, v := range values {
+				num, ok := v.(float64) // JSON числа unmarshaled as float64
+				if !ok {
+					return fmt.Errorf("некорректное значение в range")
+				}
+				rangeValues[i] = int(num)
 			}
-			// Дополнительная логика для range
+			valueJSON, _ = json.Marshal(rangeValues)
+
 		case "switcher":
-			var sw bool
-			if err := json.Unmarshal(attr.Value, &sw); err != nil {
-				log.Printf("AddCategoryAttributes: ошибка при маршалинге switcher для атрибута ID=%d: %v", attr.ID, err)
-				return fmt.Errorf("Некорректное значение switcher для атрибута ID=%d", attr.ID)
+			// Ожидаем bool или пустое значение
+			if attrReq.Value != nil {
+				boolVal, ok := attrReq.Value.(bool)
+				if !ok {
+					return fmt.Errorf("некорректный тип value для switcher")
+				}
+				valueJSON, _ = json.Marshal(boolVal)
+			} else {
+				// Если значение отсутствует, устанавливаем false
+				valueJSON, _ = json.Marshal(false)
 			}
-			// Дополнительная логика для switcher
+
 		case "text":
-			var txt string
-			if err := json.Unmarshal(attr.Value, &txt); err != nil {
-				log.Printf("AddCategoryAttributes: ошибка при маршалинге text для атрибута ID=%d: %v", attr.ID, err)
-				return fmt.Errorf("Некорректное значение text для атрибута ID=%d", attr.ID)
+			// Ожидаем строку
+			str, ok := attrReq.Value.(string)
+			if !ok {
+				return fmt.Errorf("некорректный тип value для text")
 			}
-			// Дополнительная логика для text
-		case "number":
-			var num int
-			if err := json.Unmarshal(attr.Value, &num); err != nil {
-				log.Printf("AddCategoryAttributes: ошибка при маршалинге number для атрибута ID=%d: %v", attr.ID, err)
-				return fmt.Errorf("Некорректное значение number для атрибута ID=%d", attr.ID)
+			valueJSON, _ = json.Marshal(str)
+
+		case "numeric":
+			// Ожидаем число
+			num, ok := attrReq.Value.(float64) // JSON числа unmarshaled as float64
+			if !ok {
+				return fmt.Errorf("некорректный тип value для numeric")
 			}
-			// Дополнительная логика для number
+			valueJSON, _ = json.Marshal(int(num))
+
 		default:
-			log.Printf("AddCategoryAttributes: Неизвестный type_of_option: %s для атрибута ID=%d", *attr.TypeOfOption, attr.ID)
-			return fmt.Errorf("Неизвестный type_of_option: %s для атрибута ID=%d", *attr.TypeOfOption, attr.ID)
+			return fmt.Errorf("неподдерживаемый тип option: %s", attrReq.TypeOfOption)
 		}
 
-		// Добавление атрибута в базу данных
-		err := db.AddCategoryAttribute(attr)
+		// Создаем запись атрибута категории
+		attribute := &models.CategoryAttribute{
+			CategoryID:   req.CategoryID,
+			Name:         attrReq.Name,
+			Description:  &attrReq.Description,
+			TypeOfOption: &attrReq.TypeOfOption,
+			Value:        valueJSON,
+		}
+
+		err := db.CreateCategoryAttribute(attribute)
 		if err != nil {
-			log.Printf("AddCategoryAttributes: ошибка при добавлении атрибута ID=%d: %v", attr.ID, err)
-			return fmt.Errorf("Не удалось добавить атрибут ID=%d: %v", attr.ID, err)
+			log.Printf("Не удалось создать атрибут: %s. Ошибка: %v", attrReq.Name, err)
+			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
 		}
 	}
 

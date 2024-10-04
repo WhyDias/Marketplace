@@ -301,12 +301,14 @@ func GetAllCategories() ([]models.Category, error) {
 
 func CreateCategoryAttribute(attribute *models.CategoryAttribute) error {
 	query := `
-        INSERT INTO category_attributes (category_id, name, description, type_of_option)
-        VALUES ($1, $2, $3, $4) RETURNING id
-    `
-	err := DB.QueryRow(query, attribute.CategoryID, attribute.Name, attribute.Description, attribute.TypeOfOption).Scan(&attribute.ID)
+		INSERT INTO category_attributes (category_id, name, description, type_of_option, value)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+	err := DB.QueryRow(query, attribute.CategoryID, attribute.Name, attribute.Description, attribute.TypeOfOption, attribute.Value).Scan(&attribute.ID)
 	if err != nil {
-		return fmt.Errorf("Не удалось создать атрибут категории: %v", err)
+		log.Printf("CreateCategoryAttribute: ошибка при выполнении запроса: %v", err)
+		return fmt.Errorf("ошибка при создании атрибута: %v", err)
 	}
 	return nil
 }
