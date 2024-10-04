@@ -76,6 +76,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 
 		switch attrReq.TypeOfOption {
 		case "dropdown":
+			// Ожидаем слайс строк
 			values, ok := attrReq.Value.([]interface{})
 			if !ok {
 				return fmt.Errorf("некорректный тип value для dropdown")
@@ -91,13 +92,14 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			valueJSON, _ = json.Marshal(stringValues)
 
 		case "range":
+			// Ожидаем слайс из двух чисел
 			values, ok := attrReq.Value.([]interface{})
 			if !ok || len(values) != 2 {
 				return fmt.Errorf("некорректный тип value для range")
 			}
 			rangeValues := make([]int, 2)
 			for i, v := range values {
-				num, ok := v.(float64)
+				num, ok := v.(float64) // JSON числа unmarshaled as float64
 				if !ok {
 					return fmt.Errorf("некорректное значение в range")
 				}
@@ -106,6 +108,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			valueJSON, _ = json.Marshal(rangeValues)
 
 		case "switcher":
+			// Ожидаем bool или устанавливаем дефолтное значение false
 			if attrReq.Value != nil {
 				boolVal, ok := attrReq.Value.(bool)
 				if !ok {
@@ -113,27 +116,41 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 				}
 				valueJSON, _ = json.Marshal(boolVal)
 			} else {
+				// Если значение отсутствует, устанавливаем false
 				valueJSON, _ = json.Marshal(false)
 			}
 
 		case "text":
-			str, ok := attrReq.Value.(string)
-			if !ok {
-				return fmt.Errorf("некорректный тип value для text")
+			// Ожидаем строку или устанавливаем дефолтное значение ""
+			if attrReq.Value != nil {
+				str, ok := attrReq.Value.(string)
+				if !ok {
+					return fmt.Errorf("некорректный тип value для text")
+				}
+				valueJSON, _ = json.Marshal(str)
+			} else {
+				// Устанавливаем дефолтное значение ""
+				valueJSON, _ = json.Marshal("")
 			}
-			valueJSON, _ = json.Marshal(str)
 
 		case "numeric":
-			num, ok := attrReq.Value.(float64)
-			if !ok {
-				return fmt.Errorf("некорректный тип value для numeric")
+			// Ожидаем число или устанавливаем дефолтное значение 0
+			if attrReq.Value != nil {
+				num, ok := attrReq.Value.(float64) // JSON числа unmarshaled as float64
+				if !ok {
+					return fmt.Errorf("некорректный тип value для numeric")
+				}
+				valueJSON, _ = json.Marshal(int(num))
+			} else {
+				// Устанавливаем дефолтное значение 0
+				valueJSON, _ = json.Marshal(0)
 			}
-			valueJSON, _ = json.Marshal(int(num))
 
 		default:
 			return fmt.Errorf("неподдерживаемый тип option: %s", attrReq.TypeOfOption)
 		}
 
+		// Создаем запись атрибута категории
 		attribute := &models.CategoryAttribute{
 			CategoryID:   req.CategoryID,
 			Name:         attrReq.Name,
