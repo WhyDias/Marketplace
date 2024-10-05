@@ -77,6 +77,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 		var stringValues []string
 		var rangeValues []int
 
+		// Логика обработки значений в зависимости от типа атрибута
 		switch attrReq.TypeOfOption {
 		case "dropdown":
 			values, ok := attrReq.Value.([]interface{})
