@@ -63,19 +63,19 @@ type VariationAttributeRequest struct {
 }
 
 type ProductRequest struct {
-	Name        string                  `json:"name" binding:"required"`
-	CategoryID  int                     `json:"category_id" binding:"required"`
+	Name        string                  `json:"name"`
+	CategoryID  int                     `json:"category_id"`
 	Description string                  `json:"description"`
-	Price       float64                 `json:"price" binding:"required"`
-	Stock       int                     `json:"stock" binding:"required"`
-	Images      []*multipart.FileHeader `form:"images" binding:"required"`
-	Variations  []ProductVariationReq   `json:"variations" binding:"required"`
+	Price       float64                 `json:"price"`
+	Stock       int                     `json:"stock"`
+	Images      []*multipart.FileHeader `form:"images"`
+	Variations  []ProductVariationReq   `json:"variations"`
 }
 
 type ProductVariationReq struct {
 	Attributes []AttributeValueRequest `json:"attributes"`
-	Images     []*multipart.FileHeader
-	SKU        string `json:"sku"` // Добавлено поле SKU
+	Images     []*multipart.FileHeader `form:"images"`
+	SKU        string                  `json:"sku"` // Добавлено поле SKU
 }
 
 type AttributeValueReq struct {

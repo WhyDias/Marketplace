@@ -177,7 +177,9 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 
 	// Прочитаем параметры запроса и распарсим JSON-параметры продукта
 	var req models.ProductRequest
+	log.Printf("Получен запрос на добавление продукта: %+v", req)
 	if err := c.ShouldBind(&req); err != nil {
+		log.Printf("Ошибка привязки данных: %v", err)
 		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный запрос: неверный формат данных"})
 		return
 	}
