@@ -4,6 +4,7 @@ package services
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/WhyDias/Marketplace/internal/db"
 	"github.com/WhyDias/Marketplace/internal/models"
@@ -219,8 +220,15 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 				return fmt.Errorf("ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
 			}
 
+			// Преобразуем значение атрибута в json.RawMessage
+			valueJSON, err := json.Marshal(attribute.Value)
+			if err != nil {
+				log.Printf("SaveVariationAttributes: Ошибка при преобразовании значения атрибута '%s' в JSON: %v", attribute.Name, err)
+				return fmt.Errorf("ошибка при преобразовании значения атрибута '%s' в JSON: %v", attribute.Name, err)
+			}
+
 			// Обновляем значение в таблице attribute_value
-			if err := db.UpdateAttributeValue(attributeID, attribute.Value); err != nil {
+			if err := db.UpdateAttributeValue(attributeID, json.RawMessage(valueJSON)); err != nil {
 				log.Printf("SaveVariationAttributes: Ошибка при обновлении значения атрибута '%s': %v", attribute.Name, err)
 				return fmt.Errorf("ошибка при обновлении значения атрибута '%s': %v", attribute.Name, err)
 			}
@@ -229,7 +237,6 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 
 	return nil
 }
-
 func (s *ProductService) GetSupplierByUserID(userID int) (*models.Supplier, error) {
 	return db.GetSupplierByUserID(userID)
 }
@@ -286,38 +293,21 @@ func (p *ProductService) SaveVariationAttributes(variationID int, categoryID int
 	for _, attribute := range attributes {
 		log.Printf("SaveVariationAttributes: Сохранение атрибута '%s' для вариации ID: %d", attribute.Name, variationID)
 
-		// Получаем ID атрибута по имени и категории
-		attributeID, err := db.GetAttributeIDByName(categoryID, attribute.Name)
+		// Получение ID атрибута по имени и категории
+		attributeID, err := db.GetAttributeIDByNameAndCategory(attribute.Name, categoryID)
 		if err != nil {
-			log.Printf("SaveVariationAttributes: Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
-			return fmt.Errorf("Ошибка при получении ID атрибута: %v", err)
+			return fmt.Errorf("не удалось получить ID атрибута '%s': %v", attribute.Name, err)
 		}
 
-		// Проверяем тип значения и приводим его к строке
-		attributeValueStr, ok := attribute.Value.(string)
-		if !ok {
-			log.Printf("SaveVariationAttributes: Ошибка приведения значения атрибута '%s' к строке: %v", attribute.Name, attribute.Value)
-			return fmt.Errorf("Некорректный тип значения атрибута '%s'", attribute.Name)
-		}
-
-		// Получаем ID значения атрибута
-		attributeValueID, err := db.GetAttributeValueID(attributeID, attributeValueStr)
+		// Преобразование значения атрибута в JSON
+		valueJSON, err := json.Marshal(attribute.Value)
 		if err != nil {
-			log.Printf("SaveVariationAttributes: Ошибка при получении ID значения атрибута '%s': %v", attributeValueStr, err)
-			return fmt.Errorf("Ошибка при получении ID значения атрибута: %v", err)
+			return fmt.Errorf("не удалось преобразовать значение атрибута '%s' в JSON: %v", attribute.Name, err)
 		}
 
-		// Создаем запись значения атрибута для вариации
-		variationAttributeValue := models.VariationAttributeValue{
-			ProductVariationID: variationID,
-			AttributeValueID:   attributeValueID,
-		}
-
-		if err := db.CreateVariationAttributeValue(&variationAttributeValue); err != nil {
-			log.Printf("SaveVariationAttributes: Ошибка при создании значения атрибута '%s' для вариации ID: %d: %v", attribute.Name, variationID, err)
-			return fmt.Errorf("Ошибка при создании значения атрибута для вариации: %v", err)
-		} else {
-			log.Printf("SaveVariationAttributes: Значение атрибута '%s' успешно сохранено для вариации ID: %d", attribute.Name, variationID)
+		// Обновление значения атрибута в базе данных
+		if err := db.UpdateAttributeValue(attributeID, json.RawMessage(valueJSON)); err != nil {
+			return fmt.Errorf("ошибка при обновлении значения атрибута '%s': %v", attribute.Name, err)
 		}
 	}
 

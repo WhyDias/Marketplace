@@ -612,17 +612,14 @@ func GetAttributeValues(attributeID int) ([]models.AttributeValue, error) {
 	return attributeValues, nil
 }
 
-func UpdateAttributeValue(attributeID int, newValue interface{}) error {
+func UpdateAttributeValue(attributeID int, value json.RawMessage) error {
 	query := `
         UPDATE attribute_value
         SET value_json = $2
         WHERE attribute_id = $1
     `
-	_, err := DB.Exec(query, attributeID, newValue)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := DB.Exec(query, attributeID, value)
+	return err
 }
 
 func GetAttributeIDByNameAndCategory(attributeName string, categoryID int) (int, error) {

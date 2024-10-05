@@ -175,9 +175,9 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 		case "dropdown":
 			for _, value := range stringValues {
 				valueJSON, _ := json.Marshal(value)
-				err = db.CreateAttributeValue(createdAttributeID, valueJSON)
+				err := db.CreateAttributeValue(createdAttributeID, json.RawMessage(valueJSON))
 				if err != nil {
-					return fmt.Errorf("не удалось создать значение атрибута %s: %v", value, err)
+					return fmt.Errorf("не удалось создать значение атрибута '%s': %v", value, err)
 				}
 			}
 
