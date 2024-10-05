@@ -79,7 +79,6 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 
 		switch attrReq.TypeOfOption {
 		case "dropdown":
-			// Ожидаем слайс строк
 			values, ok := attrReq.Value.([]interface{})
 			if !ok {
 				return fmt.Errorf("некорректный тип value для dropdown")
@@ -95,7 +94,6 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			valueJSON, _ = json.Marshal(stringValues)
 
 		case "range":
-			// Ожидаем слайс из двух чисел
 			values, ok := attrReq.Value.([]interface{})
 			if !ok || len(values) != 2 {
 				return fmt.Errorf("некорректный тип value для range")
@@ -111,7 +109,6 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			valueJSON, _ = json.Marshal(rangeValues)
 
 		case "switcher":
-			// Ожидаем bool или устанавливаем дефолтное значение false
 			var boolVal bool
 			if attrReq.Value != nil {
 				value, ok := attrReq.Value.(bool)
@@ -125,7 +122,6 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			valueJSON, _ = json.Marshal(boolVal)
 
 		case "text":
-			// Ожидаем строку или устанавливаем дефолтное значение ""
 			var textVal string
 			if attrReq.Value != nil {
 				str, ok := attrReq.Value.(string)
@@ -139,10 +135,9 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			valueJSON, _ = json.Marshal(textVal)
 
 		case "numeric":
-			// Ожидаем число или устанавливаем дефолтное значение 0
 			var numericVal int
 			if attrReq.Value != nil {
-				num, ok := attrReq.Value.(float64) // JSON числа unmarshaled как float64
+				num, ok := attrReq.Value.(float64)
 				if !ok {
 					return fmt.Errorf("некорректный тип value для numeric")
 				}
