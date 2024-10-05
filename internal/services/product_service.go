@@ -66,6 +66,7 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, c *g
 	}
 
 	// Сохраняем изображения продукта
+	// Сохраняем изображения продукта
 	uploadDir := fmt.Sprintf("uploads/products/%d", product.ID)
 
 	// Создаем директорию, если она не существует
@@ -86,6 +87,7 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, c *g
 			fileName := filepath.Join(uploadDir, fileHeader.Filename)
 			log.Printf("Попытка сохранить файл: %s", fileName)
 
+			// Убираем дополнительный "uploads" префикс
 			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
 				return fmt.Errorf("не удалось сохранить изображение продукта: %v", err)
 			}

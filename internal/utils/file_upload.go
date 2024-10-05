@@ -16,8 +16,8 @@ func SaveUploadedFile(file *multipart.FileHeader, fileName string) error {
 	}
 	defer src.Close()
 
-	// Создаем файл на диске
-	dst, err := os.Create(fmt.Sprintf("uploads/%s", fileName))
+	// Создаем файл на диске по указанному пути
+	dst, err := os.Create(fileName)
 	if err != nil {
 		return fmt.Errorf("Ошибка при создании файла: %v", err)
 	}
