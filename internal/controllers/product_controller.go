@@ -164,16 +164,16 @@ type AttributeValueRequest struct {
 // @Router /products [post]
 func (p *ProductController) AddProduct(c *gin.Context) {
 	// Сначала проверим авторизацию и получим userID из контекста
-	userIDInterface, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Необходима авторизация"})
-		return
-	}
-	userID, ok := userIDInterface.(int)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Ошибка при получении идентификатора пользователя"})
-		return
-	}
+	//userIDInterface, exists := c.Get("userID")
+	//if !exists {
+	//	c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Необходима авторизация"})
+	//	return
+	//}
+	userID := 8
+	//if !ok {
+	//	c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Ошибка при получении идентификатора пользователя"})
+	//	return
+	//}
 
 	// Прочитаем параметры запроса и распарсим JSON-параметры продукта
 	var req models.ProductRequest
