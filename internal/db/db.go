@@ -576,16 +576,12 @@ func CreateAttributeValue(attributeID int, value string) error {
 
 // GetAttributeValueID возвращает ID значения атрибута по его значению
 func GetAttributeValueID(attributeID int, value string) (int, error) {
+	query := `SELECT id FROM attribute_value WHERE attribute_id = $1 AND value = $2`
 	var id int
-	query := `
-        SELECT id FROM attribute_value
-        WHERE attribute_id = $1 AND value = $2
-    `
 	err := DB.QueryRow(query, attributeID, value).Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Printf("Значение атрибута '%s' не найдено для attribute_id %d", value, attributeID)
-			return 0, err
+			return 0, fmt.Errorf("значение атрибута '%s' не найдено для attribute_id %d", value, attributeID)
 		}
 		return 0, err
 	}
