@@ -175,61 +175,42 @@ func (s *ProductService) addVariationColorsTx(tx *sql.Tx, variationID int, color
 }
 
 func (p *ProductService) AddProductVariations(variations []models.ProductVariationReq, productID int, supplierID int, c *gin.Context) error {
-	tx, err := db.DB.Begin()
-	if err != nil {
-		log.Printf("AddProductVariations: Не удалось начать транзакцию: %v", err)
-		return fmt.Errorf("Не удалось начать транзакцию: %v", err)
-	}
-
-	defer func() {
-		if err != nil {
-			log.Printf("AddProductVariations: Ошибка, откат транзакции: %v", err)
-			tx.Rollback()
-		} else {
-			log.Println("AddProductVariations: Транзакция успешно завершена")
-			tx.Commit()
-		}
-	}()
-
-	log.Printf("AddProductVariations: Количество вариаций для добавления: %d", len(variations))
-
-	if len(variations) == 0 {
-		log.Println("AddProductVariations: Нет вариаций для добавления")
-	}
-
 	for _, variationReq := range variations {
 		log.Printf("AddProductVariations: Обработка вариации")
 
+		// Создаем запись для вариации вне транзакции
 		productVariation := models.ProductVariation{
 			ProductID: productID,
 			SKU:       fmt.Sprintf("%d-%s", supplierID, utils.GenerateSKU()), // Автогенерация SKU
 		}
 
-		if err := db.CreateProductVariationTx(tx, &productVariation); err != nil {
+		// Сохраняем вариацию в базе данных
+		if err := db.CreateProductVariation(&productVariation); err != nil {
 			log.Printf("AddProductVariations: Не удалось создать вариацию продукта, ошибка: %v", err)
 			return fmt.Errorf("Не удалось создать вариацию продукта: %v", err)
 		} else {
 			log.Printf("AddProductVariations: Вариация успешно создана с ID: %d", productVariation.ID)
 		}
 
-		// Сохранение атрибутов вариации
+		// Теперь, когда у нас есть ID вариации, можно добавить атрибуты и изображения
 		for _, attribute := range variationReq.Attributes {
-			// Приводим значение атрибута к строке
-			valueStr, ok := attribute.Value.(string)
-			if !ok {
-				log.Printf("Ошибка: значение атрибута '%s' не является строкой", attribute.Name)
-				return fmt.Errorf("некорректный тип значения для атрибута '%s'", attribute.Name)
-			}
+			log.Printf("AddProductVariations: Сохранение атрибута '%s' для вариации SKU: %s", attribute.Name, variationReq.SKU)
 
 			attributeID, err := db.GetAttributeIDByName(attribute.Name)
 			if err != nil {
-				log.Printf("Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
+				log.Printf("AddProductVariations: Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
 				return fmt.Errorf("Ошибка при получении ID атрибута: %v", err)
 			}
 
-			attributeValueID, err := db.GetAttributeValueID(attributeID, valueStr)
+			attributeValueStr, ok := attribute.Value.(string)
+			if !ok {
+				log.Printf("AddProductVariations: Ошибка приведения значения атрибута '%s' к строке: %v", attribute.Name, attribute.Value)
+				return fmt.Errorf("Некорректный тип значения атрибута '%s'", attribute.Name)
+			}
+
+			attributeValueID, err := db.GetAttributeValueID(attributeID, attributeValueStr)
 			if err != nil {
-				log.Printf("Ошибка при получении ID значения атрибута '%s': %v", valueStr, err)
+				log.Printf("AddProductVariations: Ошибка при получении ID значения атрибута '%s': %v", attributeValueStr, err)
 				return fmt.Errorf("Ошибка при получении ID значения атрибута: %v", err)
 			}
 
@@ -239,8 +220,10 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 			}
 
 			if err := db.CreateVariationAttributeValue(&variationAttributeValue); err != nil {
-				log.Printf("Ошибка при создании значения атрибута '%s' для вариации SKU: %s: %v", attribute.Name, variationReq.SKU, err)
+				log.Printf("AddProductVariations: Ошибка при создании значения атрибута '%s' для вариации SKU: %s: %v", attribute.Name, variationReq.SKU, err)
 				return fmt.Errorf("Ошибка при создании значения атрибута для вариации: %v", err)
+			} else {
+				log.Printf("AddProductVariations: Значение атрибута '%s' успешно сохранено для вариации SKU: %s", attribute.Name, variationReq.SKU)
 			}
 		}
 
