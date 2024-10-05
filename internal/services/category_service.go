@@ -167,10 +167,10 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
 		}
 
-		// Добавление значений атрибута в таблицу attribute_value, если тип "dropdown"
+		// Теперь, когда атрибут успешно создан, добавляем значения в attribute_value, если тип "dropdown"
 		if attrReq.TypeOfOption == "dropdown" {
 			for _, value := range stringValues {
-				err := db.CreateAttributeValue(attribute.ID, value)
+				err := db.CreateAttributeValue(attribute.ID, value) // Используем только что созданный attribute.ID
 				if err != nil {
 					log.Printf("Не удалось создать значение атрибута '%s': %v", value, err)
 					return fmt.Errorf("не удалось создать значение атрибута '%s': %v", value, err)
