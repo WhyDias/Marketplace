@@ -590,6 +590,7 @@ func GetAttributeValueID(attributeID int, value string) (int, error) {
 
 func GetAttributeValues(attributeID int) ([]models.AttributeValue, error) {
 	var attributeValues []models.AttributeValue
+
 	query := `
         SELECT id, value
         FROM attribute_value
@@ -597,21 +598,16 @@ func GetAttributeValues(attributeID int) ([]models.AttributeValue, error) {
     `
 	rows, err := DB.Query(query, attributeID)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при выполнении запроса к базе данных: %v", err)
+		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var value models.AttributeValue
-		if err := rows.Scan(&value.ID, &value.Value); err != nil {
-			return nil, fmt.Errorf("ошибка при чтении строки из базы данных: %v", err)
+		var attributeValue models.AttributeValue
+		if err := rows.Scan(&attributeValue.ID, &attributeValue.Value); err != nil {
+			return nil, err
 		}
-		attributeValues = append(attributeValues, value)
+		attributeValues = append(attributeValues, attributeValue)
 	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("ошибка при итерации по строкам: %v", err)
-	}
-
 	return attributeValues, nil
 }

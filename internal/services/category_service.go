@@ -327,30 +327,29 @@ func (s *CategoryService) GetCategoryAttributesByCategoryID(userID int, category
 }
 
 func (s *CategoryService) GetCategoryAttributesAndValues(categoryID int) (map[string]map[string]int, error) {
-	// Получаем атрибуты для категории
 	attributes, err := db.GetCategoryAttributes(categoryID)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при получении атрибутов категории: %v", err)
+		return nil, err
 	}
 
-	// Мапа для хранения атрибутов и их значений
+	// Создаем карту для хранения атрибутов и их значений
 	attributeMap := make(map[string]map[string]int)
 
-	for _, attr := range attributes {
-		// Получаем все значения для текущего атрибута
-		values, err := db.GetAttributeValues(attr.ID)
+	for _, attribute := range attributes {
+		// Загружаем все значения для текущего атрибута
+		attributeValues, err := db.GetAttributeValues(attribute.ID)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка при получении значений атрибута: %v", err)
+			return nil, fmt.Errorf("не удалось загрузить значения для атрибута '%s': %v", attribute.Name, err)
 		}
 
-		// Создаем вложенную мапу для хранения значений атрибута
+		// Создаем мапу значений атрибута (name -> id)
 		valueMap := make(map[string]int)
-		for _, value := range values {
+		for _, value := range attributeValues {
 			valueMap[value.Value] = value.ID
 		}
 
-		// Сохраняем атрибут и его значения в мапе
-		attributeMap[attr.Name] = valueMap
+		// Добавляем атрибут и его значения в attributeMap
+		attributeMap[attribute.Name] = valueMap
 	}
 
 	return attributeMap, nil
