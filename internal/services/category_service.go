@@ -72,6 +72,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 
 	for _, attrReq := range req.Attributes {
 		var valueJSON json.RawMessage
+		var stringValues []string // Объявляем переменную в начале
 
 		switch attrReq.TypeOfOption {
 		case "dropdown":
@@ -80,7 +81,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			if !ok {
 				return fmt.Errorf("некорректный тип value для dropdown")
 			}
-			stringValues := make([]string, len(values))
+			stringValues = make([]string, len(values))
 			for i, v := range values {
 				str, ok := v.(string)
 				if !ok {
@@ -165,16 +166,13 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
 		}
 
-		// Добавление значений атрибута в таблицу attribute_value, если необходимо
+		// Добавление значений атрибута в таблицу attribute_value, если тип "dropdown"
 		if attrReq.TypeOfOption == "dropdown" {
-			for _, value := range attrReq.Value.([]interface{}) {
-				valueStr, ok := value.(string)
-				if !ok {
-					return fmt.Errorf("некорректное значение для dropdown: %v", value)
-				}
-				err := db.CreateAttributeValue(attribute.ID, valueStr)
+			for _, value := range stringValues {
+				err := db.CreateAttributeValue(attribute.ID, value)
 				if err != nil {
-					return fmt.Errorf("не удалось создать значение атрибута '%s': %v", valueStr, err)
+					log.Printf("Не удалось создать значение атрибута '%s': %v", value, err)
+					return fmt.Errorf("не удалось создать значение атрибута '%s': %v", value, err)
 				}
 			}
 		}
