@@ -193,6 +193,9 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 	}
 	req.CategoryID = categoryID
 
+	log.Printf("AddProduct: Получены данные продукта: %+v", req)
+	log.Printf("AddProduct: Получены вариации продукта: %+v", req.Variations)
+
 	// Работа с файлами изображений
 	files, err := c.FormFile("images")
 	if err != nil {
