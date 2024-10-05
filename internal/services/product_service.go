@@ -191,7 +191,6 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 		}
 	}()
 
-	// Логируем количество вариаций
 	log.Printf("AddProductVariations: Количество вариаций для добавления: %d", len(variations))
 
 	if len(variations) == 0 {
@@ -199,23 +198,15 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 	}
 
 	for _, variationReq := range variations {
-		log.Printf("AddProductVariations: Обработка вариации SKU: %s", variationReq.SKU)
+		log.Printf("AddProductVariations: Обработка вариации")
 
-		// Проверка данных о вариации
-		log.Printf("AddProductVariations: Данные вариации - SKU: %s, Attributes: %v, Images: %v",
-			variationReq.SKU, variationReq.Attributes, variationReq.Images)
-
-		// Создаем запись для вариации
 		productVariation := models.ProductVariation{
 			ProductID: productID,
-			SKU:       fmt.Sprintf("%d-%s", supplierID, utils.GenerateSKU()),
-			Price:     0, // Указываем цену, если она предусмотрена
-			Stock:     0, // Указываем количество, если предусмотрено
+			SKU:       fmt.Sprintf("%d-%s", supplierID, utils.GenerateSKU()), // Автогенерация SKU
 		}
 
-		// Сохраняем вариацию в базе данных
 		if err := db.CreateProductVariationTx(tx, &productVariation); err != nil {
-			log.Printf("AddProductVariations: Не удалось создать вариацию продукта SKU: %s, ошибка: %v", variationReq.SKU, err)
+			log.Printf("AddProductVariations: Не удалось создать вариацию продукта, ошибка: %v", err)
 			return fmt.Errorf("Не удалось создать вариацию продукта: %v", err)
 		} else {
 			log.Printf("AddProductVariations: Вариация успешно создана с ID: %d", productVariation.ID)
