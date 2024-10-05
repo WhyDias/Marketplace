@@ -394,12 +394,8 @@ func CreateProduct(product *models.Product) error {
 }
 
 func CreateProductVariation(variation *models.ProductVariation) error {
-	query := `
-        INSERT INTO product_variation (product_id, sku, price, stock)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id
-    `
-	err := DB.QueryRow(query, variation.ProductID, variation.SKU, variation.Price, variation.Stock).Scan(&variation.ID)
+	query := `INSERT INTO product_variation (product_id, sku) VALUES ($1, $2) RETURNING id`
+	err := DB.QueryRow(query, variation.ProductID, variation.SKU).Scan(&variation.ID)
 	if err != nil {
 		log.Printf("CreateProductVariation: ошибка при выполнении запроса: %v", err)
 		return fmt.Errorf("ошибка при создании вариации продукта: %v", err)
