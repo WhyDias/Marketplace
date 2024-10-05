@@ -90,7 +90,7 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 	}
 
 	// Добавляем вариации
-	if err := p.AddProductVariations(variations, product.ID, supplier.ID, c); err != nil {
+	if err := p.AddProductVariations(variations, product.ID, product.CategoryID, supplier.ID, c); err != nil {
 		return fmt.Errorf("не удалось добавить вариации продукта: %v", err)
 	}
 
@@ -174,7 +174,7 @@ func (s *ProductService) addVariationColorsTx(tx *sql.Tx, variationID int, color
 	return nil
 }
 
-func (p *ProductService) AddProductVariations(variations []models.ProductVariationReq, productID int, supplierID int, c *gin.Context) error {
+func (p *ProductService) AddProductVariations(variations []models.ProductVariationReq, productID int, categoryID int, supplierID int, c *gin.Context) error {
 	for _, variationReq := range variations {
 		log.Printf("AddProductVariations: Обработка вариации")
 
@@ -196,7 +196,7 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 		for _, attribute := range variationReq.Attributes {
 			log.Printf("AddProductVariations: Сохранение атрибута '%s' для вариации SKU: %s", attribute.Name, variationReq.SKU)
 
-			attributeID, err := db.GetAttributeIDByName(attribute.Name)
+			attributeID, err := db.GetAttributeIDByName(categoryID, attribute.Name)
 			if err != nil {
 				log.Printf("AddProductVariations: Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
 				return fmt.Errorf("Ошибка при получении ID атрибута: %v", err)

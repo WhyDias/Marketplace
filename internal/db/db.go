@@ -422,12 +422,13 @@ func CreateProductVariationImage(image *models.ProductVariationImage) error {
 	return nil
 }
 
-func GetAttributeIDByName(name string) (int, error) {
+func GetAttributeIDByName(categoryID int, name string) (int, error) {
 	query := `
-        SELECT id FROM attributes WHERE name = $1
+        SELECT id FROM category_attributes
+        WHERE category_id = $1 AND name = $2
     `
 	var id int
-	err := DB.QueryRow(query, name).Scan(&id)
+	err := DB.QueryRow(query, categoryID, name).Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, fmt.Errorf("атрибут с именем %s не найден", name)
