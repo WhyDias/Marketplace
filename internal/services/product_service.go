@@ -190,7 +190,6 @@ func (s *ProductService) addVariationColorsTx(tx *sql.Tx, variationID int, color
 }
 
 func (p *ProductService) AddProductVariations(variations []models.ProductVariationReq, productID int, supplierID int, c *gin.Context) error {
-	// Начинаем транзакцию для добавления вариаций
 	tx, err := db.DB.Begin()
 	if err != nil {
 		log.Printf("AddProductVariations: Не удалось начать транзакцию: %v", err)
@@ -207,13 +206,26 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 		}
 	}()
 
+	// Логируем количество вариаций
+	log.Printf("AddProductVariations: Количество вариаций для добавления: %d", len(variations))
+
+	if len(variations) == 0 {
+		log.Println("AddProductVariations: Нет вариаций для добавления")
+	}
+
 	for _, variationReq := range variations {
 		log.Printf("AddProductVariations: Обработка вариации SKU: %s", variationReq.SKU)
+
+		// Проверка данных о вариации
+		log.Printf("AddProductVariations: Данные вариации - SKU: %s, Attributes: %v, Images: %v",
+			variationReq.SKU, variationReq.Attributes, variationReq.Images)
 
 		// Создаем запись для вариации
 		productVariation := models.ProductVariation{
 			ProductID: productID,
 			SKU:       fmt.Sprintf("%d-%s", supplierID, utils.GenerateSKU()),
+			Price:     0, // Указываем цену, если она предусмотрена
+			Stock:     0, // Указываем количество, если предусмотрено
 		}
 
 		// Сохраняем вариацию в базе данных
@@ -289,6 +301,7 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 
 	return nil
 }
+
 func (s *ProductService) GetSupplierByUserID(userID int) (*models.Supplier, error) {
 	return db.GetSupplierByUserID(userID)
 }
