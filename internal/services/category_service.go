@@ -151,7 +151,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			return fmt.Errorf("неподдерживаемый тип option: %s", attrReq.TypeOfOption)
 		}
 
-		// Создаем запись атрибута категории
+		// Создаем запись атрибута категории и сохраняем его в базу данных
 		attribute := &models.CategoryAttribute{
 			CategoryID:   req.CategoryID,
 			Name:         attrReq.Name,
@@ -160,8 +160,8 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			Value:        valueJSON,
 		}
 
-		// Добавляем атрибут в базу данных
-		err := db.CreateCategoryAttribute(attribute)
+		// Добавляем атрибут в базу данных и получаем его ID
+		createdAttributeID, err := db.CreateCategoryAttribute(attribute)
 		if err != nil {
 			log.Printf("Не удалось создать атрибут для пользователя %d: %s. Ошибка: %v", userID, attrReq.Name, err)
 			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
@@ -170,7 +170,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 		// Теперь, когда атрибут успешно создан, добавляем значения в attribute_value, если тип "dropdown"
 		if attrReq.TypeOfOption == "dropdown" {
 			for _, value := range stringValues {
-				err := db.CreateAttributeValue(attribute.ID, value) // Используем только что созданный attribute.ID
+				err := db.CreateAttributeValue(createdAttributeID, value) // Используем только что созданный createdAttributeID
 				if err != nil {
 					log.Printf("Не удалось создать значение атрибута '%s': %v", value, err)
 					return fmt.Errorf("не удалось создать значение атрибута '%s': %v", value, err)
