@@ -535,8 +535,8 @@ func CreateProductImage(image *models.ProductImage) error {
 	return nil
 }
 func CreateProductVariationTx(tx *sql.Tx, variation *models.ProductVariation) error {
-	query := `INSERT INTO product_variation (product_id, sku, price, stock) VALUES ($1, $2, $3, $4) RETURNING id`
-	err := tx.QueryRow(query, variation.ProductID, variation.SKU, variation.Price, variation.Stock).Scan(&variation.ID)
+	query := `INSERT INTO product_variation (product_id, sku) VALUES ($1, $2) RETURNING id`
+	err := tx.QueryRow(query, variation.ProductID, variation.SKU).Scan(&variation.ID)
 	if err != nil {
 		return fmt.Errorf("Ошибка при создании вариации продукта: %v", err)
 	}
