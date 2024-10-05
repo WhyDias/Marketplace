@@ -186,6 +186,12 @@ func (s *ProductService) addVariationColorsTx(tx *sql.Tx, variationID int, color
 }
 
 func (p *ProductService) AddProductVariations(variations []models.ProductVariationReq, productID int, categoryID int, supplierID int, c *gin.Context) error {
+	categoryService := NewCategoryService()
+	attributeMap, err := categoryService.GetCategoryAttributesAndValues(categoryID)
+	if err != nil {
+		return fmt.Errorf("не удалось получить атрибуты и их значения для категории: %v", err)
+	}
+
 	for _, variationReq := range variations {
 		log.Printf("AddProductVariations: Обработка вариации")
 
@@ -209,8 +215,37 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 		}
 
 		// Сохранение атрибутов для вариации
-		if err := p.SaveVariationAttributes(productVariation.ID, categoryID, variationReq.Attributes); err != nil {
-			return fmt.Errorf("не удалось сохранить атрибуты для вариации: %v", err)
+		for _, attribute := range variationReq.Attributes {
+			log.Printf("SaveVariationAttributes: Сохранение атрибута '%s' для вариации ID: %d", attribute.Name, productVariation.ID)
+
+			// Получаем мапу значений атрибута
+			valueMap, exists := attributeMap[attribute.Name]
+			if !exists {
+				return fmt.Errorf("атрибут '%s' не найден для категории", attribute.Name)
+			}
+
+			// Преобразование значения атрибута в строку
+			attributeValueStr, ok := attribute.Value.(string)
+			if !ok {
+				return fmt.Errorf("значение атрибута '%s' должно быть строкой", attribute.Name)
+			}
+
+			// Получаем ID значения атрибута
+			attributeValueID, exists := valueMap[attributeValueStr]
+			if !exists {
+				return fmt.Errorf("значение атрибута '%s' не найдено для attribute_id %s", attributeValueStr, attribute.Name)
+			}
+
+			// Создаем запись для значения атрибута в вариации
+			variationAttributeValue := models.VariationAttributeValue{
+				ProductVariationID: productVariation.ID,
+				AttributeValueID:   attributeValueID,
+			}
+
+			if err := db.CreateVariationAttributeValue(&variationAttributeValue); err != nil {
+				log.Printf("SaveVariationAttributes: Ошибка при создании значения атрибута '%s' для вариации ID: %d: %v", attribute.Name, productVariation.ID, err)
+				return fmt.Errorf("Ошибка при создании значения атрибута для вариации: %v", err)
+			}
 		}
 	}
 

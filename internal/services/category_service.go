@@ -325,3 +325,33 @@ func (s *CategoryService) GetCategoryAttributesByCategoryID(userID int, category
 
 	return response, nil
 }
+
+func (s *CategoryService) GetCategoryAttributesAndValues(categoryID int) (map[string]map[string]int, error) {
+	// Получаем атрибуты для категории
+	attributes, err := db.GetCategoryAttributes(categoryID)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при получении атрибутов категории: %v", err)
+	}
+
+	// Мапа для хранения атрибутов и их значений
+	attributeMap := make(map[string]map[string]int)
+
+	for _, attr := range attributes {
+		// Получаем все значения для текущего атрибута
+		values, err := db.GetAttributeValues(attr.ID)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка при получении значений атрибута: %v", err)
+		}
+
+		// Создаем вложенную мапу для хранения значений атрибута
+		valueMap := make(map[string]int)
+		for _, value := range values {
+			valueMap[value.Value] = value.ID
+		}
+
+		// Сохраняем атрибут и его значения в мапе
+		attributeMap[attr.Name] = valueMap
+	}
+
+	return attributeMap, nil
+}
