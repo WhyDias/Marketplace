@@ -461,7 +461,7 @@ func CreateProductVariationTx(tx *sql.Tx, variation *models.ProductVariation) er
 func GetCategoryAttributes(categoryID int) ([]models.Attribute, error) {
 	var attributes []models.Attribute
 	query := `
-        SELECT id, name, type_of_option, value
+        SELECT id, name, description, type_of_option, value
         FROM category_attributes
         WHERE category_id = $1
     `
@@ -473,9 +473,18 @@ func GetCategoryAttributes(categoryID int) ([]models.Attribute, error) {
 
 	for rows.Next() {
 		var attribute models.Attribute
-		if err := rows.Scan(&attribute.ID, &attribute.Name, &attribute.TypeOfOption, &attribute.Value); err != nil {
+		var description sql.NullString
+
+		// Сканирование данных
+		if err := rows.Scan(&attribute.ID, &attribute.Name, &description, &attribute.TypeOfOption, &attribute.Value); err != nil {
 			return nil, err
 		}
+
+		// Обработка sql.NullString для Description
+		if description.Valid {
+			attribute.Description = description.String
+		}
+
 		attributes = append(attributes, attribute)
 	}
 	return attributes, nil

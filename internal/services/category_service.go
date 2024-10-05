@@ -174,9 +174,32 @@ func (s *CategoryService) GetCategoryByID(categoryID int) (*models.Category, err
 	return db.GetCategoryByID(categoryID)
 }
 
+func StringPtr(s string) *string {
+	return &s
+}
+
 // GetCategoryAttributes возвращает атрибуты для заданной категории
 func (s *CategoryService) GetCategoryAttributes(categoryID int) ([]models.CategoryAttribute, error) {
-	return db.GetCategoryAttributes(categoryID)
+	// Получаем атрибуты категории из базы данных
+	attributes, err := db.GetCategoryAttributes(categoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Преобразуем []models.Attribute в []models.CategoryAttribute
+	categoryAttributes := make([]models.CategoryAttribute, len(attributes))
+	for i, attr := range attributes {
+		categoryAttributes[i] = models.CategoryAttribute{
+			ID:           attr.ID,    // Используем ID атрибута
+			CategoryID:   categoryID, // Используем переданный в метод categoryID
+			Name:         attr.Name,
+			Description:  StringPtr(attr.Description),  // Преобразуем строку в *string, если требуется
+			TypeOfOption: StringPtr(attr.TypeOfOption), // Преобразуем строку в *string, если требуется
+			Value:        attr.Value,
+		}
+	}
+
+	return categoryAttributes, nil
 }
 
 func (s *CategoryService) GetCategoryAttributesByCategoryID(userID int, categoryID int) ([]models.CategoryAttributeResponse, error) {

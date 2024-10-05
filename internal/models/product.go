@@ -131,6 +131,7 @@ type ProductStatus struct {
 type Attribute struct {
 	ID           int             `json:"id"`
 	Name         string          `json:"name"`
+	Description  string          `json:"description"` // Добавляем описание
 	TypeOfOption string          `json:"type_of_option"`
 	Value        json.RawMessage `json:"value"`
 }
