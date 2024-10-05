@@ -72,8 +72,9 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 
 	for _, attrReq := range req.Attributes {
 		var valueJSON json.RawMessage
-		var stringValues []string // Объявляем переменную в начале
+		var stringValues []string // Переменная для хранения значений dropdown
 
+		// Определение значений атрибута в зависимости от типа
 		switch attrReq.TypeOfOption {
 		case "dropdown":
 			// Ожидаем слайс строк
