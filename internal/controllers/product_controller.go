@@ -3,6 +3,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/WhyDias/Marketplace/internal/services"
@@ -163,7 +164,7 @@ type AttributeValueRequest struct {
 // @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /products [post]
 func (p *ProductController) AddProduct(c *gin.Context) {
-	// Сначала проверим авторизацию и получим userID из контекста
+	// Проверяем авторизацию и получаем userID из контекста
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Необходима авторизация"})
@@ -175,16 +176,29 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 		return
 	}
 
-	// Прочитаем параметры запроса и распарсим JSON-параметры продукта
+	// Чтение полей из form-data
 	var req models.ProductRequest
-
-	// Вместо `c.ShouldBind(&req)` обработаем поля вручную
 	req.Name = c.PostForm("name")
 	req.Description = c.PostForm("description")
-	req.Price, _ = strconv.ParseFloat(c.PostForm("price"), 64)
-	req.Stock, _ = strconv.Atoi(c.PostForm("stock"))
+	priceStr := c.PostForm("price")
+	stockStr := c.PostForm("stock")
 
-	// Обработка category_id как текста
+	// Преобразование строковых значений в числа
+	price, err := strconv.ParseFloat(priceStr, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат price"})
+		return
+	}
+	req.Price = price
+
+	stock, err := strconv.Atoi(stockStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат stock"})
+		return
+	}
+	req.Stock = stock
+
+	// Обработка category_id
 	categoryIDStr := c.PostForm("category_id")
 	categoryID, err := strconv.Atoi(categoryIDStr)
 	if err != nil {
@@ -193,19 +207,44 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 	}
 	req.CategoryID = categoryID
 
-	log.Printf("AddProduct: Получены данные продукта: %+v", req)
-	log.Printf("AddProduct: Получены вариации продукта: %+v", req.Variations)
-
-	// Работа с файлами изображений
-	files, err := c.FormFile("images")
+	// Обработка изображений продукта
+	form, err := c.MultipartForm()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Ошибка при получении изображений: " + err.Error()})
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Ошибка при получении multipart данных"})
 		return
 	}
-	req.Images = append(req.Images, files)
 
-	// Создаем новый продукт с помощью сервиса
-	if err := p.Service.AddProduct(&req, userID, c); err != nil {
+	if formFiles, ok := form.File["images"]; ok {
+		for _, file := range formFiles {
+			req.Images = append(req.Images, file)
+		}
+	} else {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Необходимо предоставить хотя бы одно изображение продукта"})
+		return
+	}
+
+	// Чтение JSON строки с вариациями
+	variationsStr := c.PostForm("variations")
+	var variations []models.ProductVariationReq
+	if err := json.Unmarshal([]byte(variationsStr), &variations); err != nil {
+		log.Printf("Ошибка при десериализации вариаций: %v", err)
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат данных для вариаций"})
+		return
+	}
+
+	// Обработка изображений для вариаций
+	if variationFiles, ok := form.File["variation_images"]; ok {
+		variationIndex := 0
+		for _, file := range variationFiles {
+			if variationIndex < len(variations) {
+				variations[variationIndex].Images = append(variations[variationIndex].Images, file)
+				variationIndex++
+			}
+		}
+	}
+
+	// Создание нового продукта через сервис
+	if err := p.Service.AddProduct(&req, userID, variations, c); err != nil {
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: fmt.Sprintf("Ошибка при добавлении продукта: %v", err)})
 		return
 	}

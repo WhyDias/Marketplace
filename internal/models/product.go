@@ -63,13 +63,14 @@ type VariationAttributeRequest struct {
 }
 
 type ProductRequest struct {
-	Name        string                  `form:"name" binding:"required"`
-	CategoryID  int                     `form:"category_id" binding:"required"`
-	Description string                  `form:"description"`
-	Price       float64                 `form:"price"`
-	Stock       int                     `form:"stock"`
-	Images      []*multipart.FileHeader `form:"images"`
-	Variations  []ProductVariationReq   `json:"variations"`
+	Name           string                  `form:"name" binding:"required"`
+	CategoryID     int                     `form:"category_id" binding:"required"`
+	Description    string                  `form:"description"`
+	Price          float64                 `form:"price" binding:"required"`
+	Stock          int                     `form:"stock" binding:"required"`
+	Images         []*multipart.FileHeader `form:"images" binding:"required"`
+	VariationsJSON string                  `form:"variations" binding:"required"` // JSON строка с данными о вариациях
+	VariationFiles []*multipart.FileHeader `form:"variation_images"`              // Файлы изображений для вариаций
 }
 
 type ProductVariationReq struct {

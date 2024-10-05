@@ -42,8 +42,8 @@ func (s *ProductService) GetSupplierIDByUserID(userID int) (int, error) {
 	return supplier.ID, nil
 }
 
-func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, c *gin.Context) error {
-	// Получаем информацию о поставщике и рынке по userID
+func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, variations []models.ProductVariationReq, c *gin.Context) error {
+	// Получаем информацию о поставщике по userID
 	supplier, err := db.GetSupplierByUserID(userID)
 	if err != nil {
 		return fmt.Errorf("не удалось получить информацию о поставщике: %v", err)
@@ -54,7 +54,7 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, c *g
 		Name:        req.Name,
 		CategoryID:  req.CategoryID,
 		MarketID:    supplier.MarketID,
-		StatusID:    2, // По умолчанию статус продукта
+		StatusID:    2,
 		SupplierID:  supplier.ID,
 		Description: req.Description,
 		Price:       req.Price,
@@ -66,46 +66,31 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, c *g
 	}
 
 	// Сохраняем изображения продукта
-	// Сохраняем изображения продукта
 	uploadDir := fmt.Sprintf("uploads/products/%d", product.ID)
-
-	// Создаем директорию, если она не существует
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
 		return fmt.Errorf("не удалось создать директорию для изображений: %v", err)
 	}
 
-	// Проверяем, действительно ли директория создана
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		return fmt.Errorf("директория для изображений не была создана: %v", err)
-	}
-
-	log.Printf("Директория для загрузки изображений: %s успешно создана", uploadDir)
-
 	for _, fileHeader := range req.Images {
-		if fileHeader != nil {
-			// Генерируем имя файла и сохраняем
-			fileName := filepath.Join(uploadDir, fileHeader.Filename)
-			log.Printf("Попытка сохранить файл: %s", fileName)
+		fileName := filepath.Join(uploadDir, fileHeader.Filename)
+		log.Printf("Попытка сохранить файл: %s", fileName)
 
-			// Убираем дополнительный "uploads" префикс
-			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
-				return fmt.Errorf("не удалось сохранить изображение продукта: %v", err)
-			}
+		if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
+			return fmt.Errorf("не удалось сохранить изображение продукта: %v", err)
+		}
 
-			// Создаем запись изображения в базе данных
-			productImage := &models.ProductImage{
-				ProductID: product.ID,
-				ImageURL:  fileName,
-			}
+		productImage := &models.ProductImage{
+			ProductID: product.ID,
+			ImageURL:  fileName,
+		}
 
-			if err := db.CreateProductImage(productImage); err != nil {
-				return fmt.Errorf("не удалось сохранить изображение в базе данных: %v", err)
-			}
+		if err := db.CreateProductImage(productImage); err != nil {
+			return fmt.Errorf("не удалось сохранить изображение в базе данных: %v", err)
 		}
 	}
 
 	// Добавляем вариации
-	if err := p.AddProductVariations(req.Variations, product.ID, supplier.ID, c); err != nil {
+	if err := p.AddProductVariations(variations, product.ID, supplier.ID, c); err != nil {
 		return fmt.Errorf("не удалось добавить вариации продукта: %v", err)
 	}
 
