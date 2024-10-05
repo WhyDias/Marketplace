@@ -440,15 +440,6 @@ func GetCategoryAttributesByCategoryID(categoryID int) ([]models.CategoryAttribu
 	return attributes, nil
 }
 
-func GetAttributeValueID(attributeID int, value string) (int, error) {
-	query := `SELECT id FROM attribute_value WHERE attribute_id = $1 AND value = $2`
-	var attributeValueID int
-	err := DB.QueryRow(query, attributeID, value).Scan(&attributeValueID)
-	if err != nil {
-		return 0, fmt.Errorf("Не удалось найти значение атрибута: %v", err)
-	}
-	return attributeValueID, nil
-}
 func CreateProductVariationTx(tx *sql.Tx, variation *models.ProductVariation) error {
 	query := `INSERT INTO product_variation (product_id, sku) VALUES ($1, $2) RETURNING id`
 	err := tx.QueryRow(query, variation.ProductID, variation.SKU).Scan(&variation.ID)
@@ -568,4 +559,35 @@ func CreateProductVariationImage(image *models.ProductVariationImage) error {
 		return fmt.Errorf("ошибка при создании изображения вариации продукта: %v", err)
 	}
 	return nil
+}
+
+func CreateAttributeValue(attributeID int, value string) error {
+	query := `
+        INSERT INTO attribute_value (attribute_id, value)
+        VALUES ($1, $2)
+    `
+	_, err := DB.Exec(query, attributeID, value)
+	if err != nil {
+		log.Printf("Ошибка при добавлении значения атрибута '%s': %v", value, err)
+		return err
+	}
+	return nil
+}
+
+// GetAttributeValueID возвращает ID значения атрибута по его значению
+func GetAttributeValueID(attributeID int, value string) (int, error) {
+	var id int
+	query := `
+        SELECT id FROM attribute_value
+        WHERE attribute_id = $1 AND value = $2
+    `
+	err := DB.QueryRow(query, attributeID, value).Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("Значение атрибута '%s' не найдено для attribute_id %d", value, attributeID)
+			return 0, err
+		}
+		return 0, err
+	}
+	return id, nil
 }

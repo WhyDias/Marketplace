@@ -68,7 +68,6 @@ func buildCategoryTree(categories []models.Category) []models.CategoryNode {
 }
 
 func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCategoryAttributesRequest) error {
-	// Логирование информации о пользователе, добавляющем атрибуты
 	log.Printf("User ID %d добавляет атрибуты для категории ID %d", userID, req.CategoryID)
 
 	for _, attrReq := range req.Attributes {
@@ -99,7 +98,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			}
 			rangeValues := make([]int, 2)
 			for i, v := range values {
-				num, ok := v.(float64) // JSON числа unmarshaled as float64
+				num, ok := v.(float64) // JSON числа unmarshaled как float64
 				if !ok {
 					return fmt.Errorf("некорректное значение в range")
 				}
@@ -109,42 +108,45 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 
 		case "switcher":
 			// Ожидаем bool или устанавливаем дефолтное значение false
+			var boolVal bool
 			if attrReq.Value != nil {
-				boolVal, ok := attrReq.Value.(bool)
+				value, ok := attrReq.Value.(bool)
 				if !ok {
 					return fmt.Errorf("некорректный тип value для switcher")
 				}
-				valueJSON, _ = json.Marshal(boolVal)
+				boolVal = value
 			} else {
-				// Если значение отсутствует, устанавливаем false
-				valueJSON, _ = json.Marshal(false)
+				boolVal = false
 			}
+			valueJSON, _ = json.Marshal(boolVal)
 
 		case "text":
 			// Ожидаем строку или устанавливаем дефолтное значение ""
+			var textVal string
 			if attrReq.Value != nil {
 				str, ok := attrReq.Value.(string)
 				if !ok {
 					return fmt.Errorf("некорректный тип value для text")
 				}
-				valueJSON, _ = json.Marshal(str)
+				textVal = str
 			} else {
-				// Устанавливаем дефолтное значение ""
-				valueJSON, _ = json.Marshal("")
+				textVal = ""
 			}
+			valueJSON, _ = json.Marshal(textVal)
 
 		case "numeric":
 			// Ожидаем число или устанавливаем дефолтное значение 0
+			var numericVal int
 			if attrReq.Value != nil {
-				num, ok := attrReq.Value.(float64) // JSON числа unmarshaled as float64
+				num, ok := attrReq.Value.(float64) // JSON числа unmarshaled как float64
 				if !ok {
 					return fmt.Errorf("некорректный тип value для numeric")
 				}
-				valueJSON, _ = json.Marshal(int(num))
+				numericVal = int(num)
 			} else {
-				// Устанавливаем дефолтное значение 0
-				valueJSON, _ = json.Marshal(0)
+				numericVal = 0
 			}
+			valueJSON, _ = json.Marshal(numericVal)
 
 		default:
 			return fmt.Errorf("неподдерживаемый тип option: %s", attrReq.TypeOfOption)
@@ -159,10 +161,60 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			Value:        valueJSON,
 		}
 
+		// Сохраняем атрибут в базе данных
 		err := db.CreateCategoryAttribute(attribute)
 		if err != nil {
 			log.Printf("Не удалось создать атрибут для пользователя %d: %s. Ошибка: %v", userID, attrReq.Name, err)
 			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
+		}
+
+		// После создания атрибута получаем его ID для добавления значений
+		attributeID := attribute.ID
+
+		// Добавляем значения в таблицу attribute_value в зависимости от типа атрибута
+		switch attrReq.TypeOfOption {
+		case "dropdown":
+			// Добавление значений dropdown в attribute_value
+			values, _ := attrReq.Value.([]interface{})
+			for _, v := range values {
+				valueStr, _ := v.(string)
+				err := db.CreateAttributeValue(attributeID, valueStr)
+				if err != nil {
+					return fmt.Errorf("не удалось создать значение атрибута dropdown %s: %v", valueStr, err)
+				}
+			}
+
+		case "range":
+			// Добавление диапазона в attribute_value
+			rangeStr := string(valueJSON)
+			err := db.CreateAttributeValue(attributeID, rangeStr)
+			if err != nil {
+				return fmt.Errorf("не удалось создать значение атрибута range %s: %v", rangeStr, err)
+			}
+
+		case "switcher":
+			// Добавление значения switcher в attribute_value
+			boolStr := string(valueJSON)
+			err := db.CreateAttributeValue(attributeID, boolStr)
+			if err != nil {
+				return fmt.Errorf("не удалось создать значение атрибута switcher %s: %v", boolStr, err)
+			}
+
+		case "text":
+			// Добавление значения text в attribute_value
+			textStr := string(valueJSON)
+			err := db.CreateAttributeValue(attributeID, textStr)
+			if err != nil {
+				return fmt.Errorf("не удалось создать значение атрибута text %s: %v", textStr, err)
+			}
+
+		case "numeric":
+			// Добавление значения numeric в attribute_value
+			numericStr := string(valueJSON)
+			err := db.CreateAttributeValue(attributeID, numericStr)
+			if err != nil {
+				return fmt.Errorf("не удалось создать значение атрибута numeric %s: %v", numericStr, err)
+			}
 		}
 	}
 
