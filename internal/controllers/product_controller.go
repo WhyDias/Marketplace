@@ -177,12 +177,29 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 
 	// Прочитаем параметры запроса и распарсим JSON-параметры продукта
 	var req models.ProductRequest
-	log.Printf("Получен запрос на добавление продукта: %+v", req)
-	if err := c.ShouldBind(&req); err != nil {
-		log.Printf("Ошибка привязки данных: %v", err)
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный запрос: неверный формат данных"})
+
+	// Вместо `c.ShouldBind(&req)` обработаем поля вручную
+	req.Name = c.PostForm("name")
+	req.Description = c.PostForm("description")
+	req.Price, _ = strconv.ParseFloat(c.PostForm("price"), 64)
+	req.Stock, _ = strconv.Atoi(c.PostForm("stock"))
+
+	// Обработка category_id как текста
+	categoryIDStr := c.PostForm("category_id")
+	categoryID, err := strconv.Atoi(categoryIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат category_id"})
 		return
 	}
+	req.CategoryID = categoryID
+
+	// Работа с файлами изображений
+	files, err := c.FormFile("images")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Ошибка при получении изображений: " + err.Error()})
+		return
+	}
+	req.Images = append(req.Images, files)
 
 	// Создаем новый продукт с помощью сервиса
 	if err := p.Service.AddProduct(&req, userID, c); err != nil {
