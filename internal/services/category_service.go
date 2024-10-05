@@ -72,11 +72,6 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 
 	for _, attrReq := range req.Attributes {
 		var valueJSON json.RawMessage
-		var stringValues []string
-		var rangeValues []int
-		var boolVal bool
-		var textVal string
-		var numericVal int
 
 		switch attrReq.TypeOfOption {
 		case "dropdown":
@@ -166,54 +161,18 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			Value:        valueJSON,
 		}
 
-		// Создаем атрибут в базе данных и получаем его ID
 		createdAttributeID, err := db.CreateCategoryAttribute(attribute)
 		if err != nil {
 			log.Printf("Не удалось создать атрибут для пользователя %d: %s. Ошибка: %v", userID, attrReq.Name, err)
 			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
 		}
 
-		// Добавляем значения в attribute_value
-		switch attrReq.TypeOfOption {
-		case "dropdown":
-			for _, value := range stringValues {
-				err := db.CreateAttributeValue(createdAttributeID, value)
-				if err != nil {
-					log.Printf("Ошибка при добавлении значения атрибута '%s': %v", value, err)
-					return fmt.Errorf("не удалось создать значение атрибута %s: %v", value, err)
-				}
-			}
-
-		case "range":
-			rangeStr := fmt.Sprintf("[%d, %d]", rangeValues[0], rangeValues[1])
-			err := db.CreateAttributeValue(createdAttributeID, rangeStr)
-			if err != nil {
-				log.Printf("Ошибка при добавлении значения атрибута 'range': %v", err)
-				return fmt.Errorf("не удалось создать значение атрибута range %s: %v", rangeStr, err)
-			}
-
-		case "switcher":
-			boolStr := fmt.Sprintf("%t", boolVal)
-			err := db.CreateAttributeValue(createdAttributeID, boolStr)
-			if err != nil {
-				log.Printf("Ошибка при добавлении значения атрибута 'switcher': %v", err)
-				return fmt.Errorf("не удалось создать значение атрибута switcher %s: %v", boolStr, err)
-			}
-
-		case "text":
-			err := db.CreateAttributeValue(createdAttributeID, textVal)
-			if err != nil {
-				log.Printf("Ошибка при добавлении значения атрибута 'text': %v", err)
-				return fmt.Errorf("не удалось создать значение атрибута text %s: %v", textVal, err)
-			}
-
-		case "numeric":
-			numericStr := fmt.Sprintf("%d", numericVal)
-			err := db.CreateAttributeValue(createdAttributeID, numericStr)
-			if err != nil {
-				log.Printf("Ошибка при добавлении значения атрибута 'numeric': %v", err)
-				return fmt.Errorf("не удалось создать значение атрибута numeric %s: %v", numericStr, err)
-			}
+		// Создаем запись в attribute_value с пустым значением (в поле value_json)
+		emptyValue := json.RawMessage("{}")
+		err = db.CreateAttributeValue(createdAttributeID, emptyValue)
+		if err != nil {
+			log.Printf("Ошибка при создании значения атрибута '%s': %v", attrReq.Name, err)
+			return fmt.Errorf("не удалось создать значение атрибута %s: %v", attrReq.Name, err)
 		}
 	}
 

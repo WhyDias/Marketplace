@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/lib/pq"
@@ -563,14 +564,13 @@ func CreateProductVariationImage(image *models.ProductVariationImage) error {
 	return nil
 }
 
-func CreateAttributeValue(attributeID int, value string) error {
+func CreateAttributeValue(attributeID int, value json.RawMessage) error {
 	query := `
-        INSERT INTO attribute_value (attribute_id, value)
+        INSERT INTO attribute_value (attribute_id, value_json)
         VALUES ($1, $2)
     `
 	_, err := DB.Exec(query, attributeID, value)
 	if err != nil {
-		log.Printf("Ошибка при добавлении значения атрибута '%s': %v", value, err)
 		return err
 	}
 	return nil
@@ -612,4 +612,37 @@ func GetAttributeValues(attributeID int) ([]models.AttributeValue, error) {
 		attributeValues = append(attributeValues, attributeValue)
 	}
 	return attributeValues, nil
+}
+
+func UpdateAttributeValue(attributeID int, newValue interface{}) error {
+	query := `
+        UPDATE attribute_value
+        SET value_json = $2
+        WHERE attribute_id = $1
+    `
+	_, err := DB.Exec(query, attributeID, newValue)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetAttributeIDByNameAndCategory(attributeName string, categoryID int) (int, error) {
+	var attributeID int
+
+	query := `
+        SELECT id
+        FROM attributes
+        WHERE name = $1 AND category_id = $2
+    `
+
+	err := DB.QueryRow(query, attributeName, categoryID).Scan(&attributeID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, fmt.Errorf("атрибут с именем '%s' для категории с ID %d не найден", attributeName, categoryID)
+		}
+		return 0, fmt.Errorf("ошибка при поиске атрибута '%s': %v", attributeName, err)
+	}
+
+	return attributeID, nil
 }
