@@ -3,6 +3,7 @@
 package controllers
 
 import (
+	"fmt"
 	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/WhyDias/Marketplace/internal/services"
 	"github.com/WhyDias/Marketplace/internal/utils"
@@ -161,33 +162,33 @@ type AttributeValueRequest struct {
 // @Failure 401 {object} utils.ErrorResponse "Необходима авторизация"
 // @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /products [post]
-func (pc *ProductController) AddProduct(c *gin.Context) {
-	var productReq models.ProductRequest
-
-	if err := c.ShouldBindJSON(&productReq); err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Неверный формат данных: " + err.Error()})
-		return
-	}
-
-	userIDInterface, exists := c.Get("user_id")
+func (p *ProductController) AddProduct(c *gin.Context) {
+	// Сначала проверим авторизацию и получим userID из контекста
+	userIDInterface, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Необходима авторизация"})
 		return
 	}
-
-	userID, err := strconv.Atoi(userIDInterface.(string))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Неверный формат user_id"})
+	userID, ok := userIDInterface.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Ошибка при получении идентификатора пользователя"})
 		return
 	}
 
-	err = pc.Service.AddProduct(userID, &productReq)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось добавить продукт: " + err.Error()})
+	// Прочитаем параметры запроса и распарсим JSON-параметры продукта
+	var req models.ProductRequest
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный запрос: неверный формат данных"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, utils.ErrorResponse{Error: "Продукт успешно добавлен"})
+	// Создаем новый продукт с помощью сервиса
+	if err := p.Service.AddProduct(&req, userID, c); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: fmt.Sprintf("Ошибка при добавлении продукта: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Продукт успешно добавлен"})
 }
 
 // UpdateProduct обновляет существующий продукт

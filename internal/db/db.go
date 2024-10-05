@@ -382,58 +382,13 @@ func AddCategoryAttribute(attr models.CategoryAttribute) error {
 	return nil
 }
 
-func GetSupplierByUserID(userID int) (*models.Supplier, error) {
-	query := `
-        SELECT id, name, user_id, is_verified, place_name, row_name, phone_number, created_at, updated_at, market_id
-        FROM supplier
-        WHERE user_id = $1
-    `
-	var supplier models.Supplier
-	err := DB.QueryRow(query, userID).Scan(
-		&supplier.ID,
-		&supplier.Name,
-		&supplier.UserID,
-		&supplier.IsVerified,
-		&supplier.PlaceName,
-		&supplier.RowName,
-		&supplier.PhoneNumber,
-		&supplier.CreatedAt,
-		&supplier.UpdatedAt,
-		&supplier.MarketID,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("поставщик не найден для user_id=%d", userID)
-		}
-		log.Printf("GetSupplierByUserID: ошибка при выполнении запроса: %v", err)
-		return nil, err
-	}
-	return &supplier, nil
-}
-
 func CreateProduct(product *models.Product) error {
 	query := `
-        INSERT INTO product (name, category_id, market_id, status_id, supplier_id, description)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id
-    `
-	err := DB.QueryRow(query, product.Name, product.CategoryID, product.MarketID, product.StatusID, product.SupplierID, product.Description).Scan(&product.ID)
+		INSERT INTO product (name, category_id, market_id, status_id, supplier_id, description, price, stock)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
+	err := DB.QueryRow(query, product.Name, product.CategoryID, product.MarketID, product.StatusID, product.SupplierID, product.Description, product.Price, product.Stock).Scan(&product.ID)
 	if err != nil {
-		log.Printf("CreateProduct: ошибка при выполнении запроса: %v", err)
-		return fmt.Errorf("ошибка при создании продукта: %v", err)
-	}
-	return nil
-}
-
-func CreateProductImage(image *models.ProductImage) error {
-	query := `
-        INSERT INTO product_images (product_id, image_url)
-        VALUES ($1, $2)
-    `
-	_, err := DB.Exec(query, image.ProductID, image.ImageURL)
-	if err != nil {
-		log.Printf("CreateProductImage: ошибка при выполнении запроса: %v", err)
-		return fmt.Errorf("ошибка при добавлении изображения продукта: %v", err)
+		return err
 	}
 	return nil
 }
@@ -452,28 +407,21 @@ func CreateProductVariation(variation *models.ProductVariation) error {
 	return nil
 }
 
-func CreateVariationAttributeValue(variationID int, attributeValueID int) error {
-	query := `
-        INSERT INTO variation_attribute_values (product_variation_id, attribute_value_id)
-        VALUES ($1, $2)
-    `
-	_, err := DB.Exec(query, variationID, attributeValueID)
+func CreateVariationAttributeValue(attributeValue *models.VariationAttributeValue) error {
+	query := `INSERT INTO variation_attribute_values (product_variation_id, attribute_value_id) VALUES ($1, $2)`
+	_, err := DB.Exec(query, attributeValue.ProductVariationID, attributeValue.AttributeValueID)
 	if err != nil {
-		log.Printf("CreateVariationAttributeValue: ошибка при выполнении запроса: %v", err)
-		return fmt.Errorf("ошибка при связывании атрибута вариации: %v", err)
+		return fmt.Errorf("ошибка при добавлении атрибута для вариации: %v", err)
 	}
 	return nil
 }
 
+// db.CreateProductVariationImage - добавление изображения вариации в базу данных
 func CreateProductVariationImage(image *models.ProductVariationImage) error {
-	query := `
-        INSERT INTO product_variation_images (product_variation_id, image_url)
-        VALUES ($1, $2)
-    `
+	query := `INSERT INTO product_variation_images (product_variation_id, image_url) VALUES ($1, $2)`
 	_, err := DB.Exec(query, image.ProductVariationID, image.ImageURL)
 	if err != nil {
-		log.Printf("CreateProductVariationImage: ошибка при выполнении запроса: %v", err)
-		return fmt.Errorf("ошибка при добавлении изображения вариации продукта: %v", err)
+		return fmt.Errorf("ошибка при добавлении изображения вариации: %v", err)
 	}
 	return nil
 }
@@ -554,4 +502,43 @@ func GetCategoryAttributesByCategoryID(categoryID int) ([]models.CategoryAttribu
 	}
 
 	return attributes, nil
+}
+
+func GetAttributeValueID(attributeID int, value string) (int, error) {
+	query := `SELECT id FROM attribute_value WHERE attribute_id = $1 AND value = $2`
+	var attributeValueID int
+	err := DB.QueryRow(query, attributeID, value).Scan(&attributeValueID)
+	if err != nil {
+		return 0, fmt.Errorf("Не удалось найти значение атрибута: %v", err)
+	}
+	return attributeValueID, nil
+}
+
+func GetSupplierByUserID(userID int) (*models.Supplier, error) {
+	query := `SELECT id, user_id, market_id, name, is_verified FROM supplier WHERE user_id = $1`
+	row := DB.QueryRow(query, userID)
+
+	var supplier models.Supplier
+	err := row.Scan(&supplier.ID, &supplier.UserID, &supplier.MarketID, &supplier.Name, &supplier.IsVerified)
+	if err != nil {
+		return nil, err
+	}
+	return &supplier, nil
+}
+
+func CreateProductImage(image *models.ProductImage) error {
+	query := `INSERT INTO product_images (product_id, image_url) VALUES ($1, $2)`
+	_, err := DB.Exec(query, image.ProductID, image.ImageURL)
+	if err != nil {
+		return fmt.Errorf("Ошибка при создании изображения продукта: %v", err)
+	}
+	return nil
+}
+func CreateProductVariationTx(tx *sql.Tx, variation *models.ProductVariation) error {
+	query := `INSERT INTO product_variation (product_id, sku, price, stock) VALUES ($1, $2, $3, $4) RETURNING id`
+	err := tx.QueryRow(query, variation.ProductID, variation.SKU, variation.Price, variation.Stock).Scan(&variation.ID)
+	if err != nil {
+		return fmt.Errorf("Ошибка при создании вариации продукта: %v", err)
+	}
+	return nil
 }

@@ -2,20 +2,10 @@
 
 package models
 
-type Product struct {
-	ID           int                `json:"id"`
-	Name         string             `json:"name"`
-	Description  string             `json:"description"`
-	CategoryID   int                `json:"category_id"`
-	CategoryName string             `json:"category_name"` // Добавляем это поле
-	SupplierID   int                `json:"supplier_id"`
-	MarketID     int                `json:"market_id"`
-	StatusID     int                `json:"status_id"`
-	Price        float64            `json:"price"`
-	Stock        int                `json:"stock"`
-	Images       []ProductImage     `json:"images,omitempty"`
-	Variations   []ProductVariation `json:"variations,omitempty"`
-}
+import (
+	"mime/multipart"
+	"time"
+)
 
 type AttributeValueImage struct {
 	ID               int      `json:"id"`
@@ -41,16 +31,6 @@ type UpdateProductRequest struct {
 	CategoryID  int                       `json:"category_id"`
 	Images      []string                  `json:"images"`
 	Variations  []ProductVariationRequest `json:"variations"`
-}
-
-type AddProductRequest struct {
-	Name        string                  `json:"name" binding:"required"`
-	Description string                  `json:"description"`
-	CategoryID  int                     `json:"category_id" binding:"required"`
-	Images      []string                `json:"images"`
-	Attributes  []AttributeValueRequest `json:"attributes"`
-	Price       float64                 `json:"price" binding:"required"`
-	Stock       int                     `json:"stock" binding:"required"`
 }
 
 type ProductCreationRequest struct {
@@ -83,14 +63,24 @@ type VariationAttributeRequest struct {
 }
 
 type ProductRequest struct {
-	Name        string                    `json:"name" binding:"required"`
-	CategoryID  int                       `json:"category_id" binding:"required"`
-	SKU         string                    `json:"sku" binding:"required"`
-	Description string                    `json:"description"`
-	Price       float64                   `json:"price" binding:"required"`
-	Stock       int                       `json:"stock" binding:"required"`
-	Images      []string                  `json:"images"`
-	Variations  []ProductVariationRequest `json:"variations"`
+	Name        string                  `json:"name" binding:"required"`
+	CategoryID  int                     `json:"category_id" binding:"required"`
+	Description string                  `json:"description"`
+	Price       float64                 `json:"price" binding:"required"`
+	Stock       int                     `json:"stock" binding:"required"`
+	Images      []*multipart.FileHeader `form:"images" binding:"required"`
+	Variations  []ProductVariationReq   `json:"variations" binding:"required"`
+}
+
+type ProductVariationReq struct {
+	Attributes []AttributeValueRequest `json:"attributes"`
+	Images     []*multipart.FileHeader
+	SKU        string `json:"sku"` // Добавлено поле SKU
+}
+
+type AttributeValueReq struct {
+	Name  string `json:"name" binding:"required"`
+	Value string `json:"value" binding:"required"`
 }
 
 type ProductVariationRequest struct {
@@ -106,12 +96,6 @@ type AttributeValueRequest struct {
 	Value string `json:"value" binding:"required"`
 }
 
-type ProductImage struct {
-	ID        int    `json:"id"`
-	ProductID int    `json:"product_id"`
-	ImageURL  string `json:"image_url"`
-}
-
 type VariationAttributeValue struct {
 	ID                 int `json:"id"`
 	ProductVariationID int `json:"product_variation_id"`
@@ -122,6 +106,35 @@ type ProductVariationImage struct {
 	ID                 int    `json:"id"`
 	ProductVariationID int    `json:"product_variation_id"`
 	ImageURL           string `json:"image_url"`
+}
+
+type Product struct {
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	CategoryID  int       `json:"category_id"`
+	MarketID    int       `json:"market_id"`
+	StatusID    int       `json:"status_id"`
+	SupplierID  int       `json:"supplier_id"`
+	Description string    `json:"description"`
+	Price       float64   `json:"price"`
+	Stock       int       `json:"stock"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type ProductImage struct {
+	ID        int    `json:"id"`
+	ProductID int    `json:"product_id"`
+	ImagePath string `json:"image_path" binding:"required"`
+	ImageURL  string `json:"image_url"`
+}
+
+type AddProductRequest struct {
+	Name        string  `form:"name" binding:"required"`
+	CategoryID  int     `form:"category_id" binding:"required"`
+	Description string  `form:"description"`
+	Price       float64 `form:"price" binding:"required"`
+	Stock       int     `form:"stock" binding:"required"`
 }
 
 type ProductVariation struct {
