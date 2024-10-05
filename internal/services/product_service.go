@@ -10,6 +10,7 @@ import (
 	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
 	"log"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 )
@@ -43,7 +44,7 @@ func (s *ProductService) GetSupplierIDByUserID(userID int) (int, error) {
 }
 
 func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, variations []models.ProductVariationReq, c *gin.Context) error {
-	// Получаем информацию о поставщике по userID
+	// Получение информации о поставщике по userID
 	supplier, err := db.GetSupplierByUserID(userID)
 	if err != nil {
 		return fmt.Errorf("не удалось получить информацию о поставщике: %v", err)
@@ -65,27 +66,29 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 		return fmt.Errorf("не удалось создать продукт: %v", err)
 	}
 
-	// Сохраняем изображения продукта
-	uploadDir := fmt.Sprintf("uploads/products/%d", product.ID)
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		return fmt.Errorf("не удалось создать директорию для изображений: %v", err)
-	}
-
-	for _, fileHeader := range req.Images {
-		fileName := filepath.Join(uploadDir, fileHeader.Filename)
-		log.Printf("Попытка сохранить файл: %s", fileName)
-
-		if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
-			return fmt.Errorf("не удалось сохранить изображение продукта: %v", err)
+	// Сохраняем значения атрибутов для основного продукта
+	for _, attribute := range req.Attributes {
+		attributeID, err := db.GetAttributeIDByName(req.CategoryID, attribute.Name)
+		if err != nil {
+			return fmt.Errorf("Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
 		}
 
-		productImage := &models.ProductImage{
-			ProductID: product.ID,
-			ImageURL:  fileName,
+		attributeValueStr, ok := attribute.Value.(string)
+		if !ok {
+			return fmt.Errorf("ошибка приведения значения атрибута '%s' к строке: %v", attribute.Name, attribute.Value)
+		}
+		attributeValueID, err := db.GetAttributeValueID(attributeID, attributeValueStr)
+		if err != nil {
+			return fmt.Errorf("Ошибка при получении ID значения атрибута: %v", err)
 		}
 
-		if err := db.CreateProductImage(productImage); err != nil {
-			return fmt.Errorf("не удалось сохранить изображение в базе данных: %v", err)
+		productAttributeValue := &models.ProductAttributeValue{
+			ProductID:        product.ID,
+			AttributeValueID: attributeValueID,
+		}
+
+		if err := db.CreateProductAttributeValue(productAttributeValue); err != nil {
+			return fmt.Errorf("Ошибка при создании значения атрибута для продукта: %v", err)
 		}
 	}
 
@@ -97,6 +100,14 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 	return nil
 }
 
+func (p *ProductService) GetProductAttributes(categoryID int) ([]models.Attribute, error) {
+	attributes, err := db.GetCategoryAttributes(categoryID)
+	if err != nil {
+		log.Printf("GetProductAttributes: Ошибка при получении атрибутов для категории %d: %v", categoryID, err)
+		return nil, fmt.Errorf("не удалось получить атрибуты категории: %v", err)
+	}
+	return attributes, nil
+}
 func (s *ProductService) GetMarketIDBySupplierID(supplierID int) (int, error) {
 	return db.GetMarketIDBySupplierID(supplierID)
 }
@@ -192,72 +203,14 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 			log.Printf("AddProductVariations: Вариация успешно создана с ID: %d", productVariation.ID)
 		}
 
-		// Теперь, когда у нас есть ID вариации, можно добавить атрибуты и изображения
-		for _, attribute := range variationReq.Attributes {
-			log.Printf("AddProductVariations: Сохранение атрибута '%s' для вариации SKU: %s", attribute.Name, variationReq.SKU)
-
-			attributeID, err := db.GetAttributeIDByName(categoryID, attribute.Name)
-			if err != nil {
-				log.Printf("AddProductVariations: Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
-				return fmt.Errorf("Ошибка при получении ID атрибута: %v", err)
-			}
-
-			attributeValueStr, ok := attribute.Value.(string)
-			if !ok {
-				log.Printf("AddProductVariations: Ошибка приведения значения атрибута '%s' к строке: %v", attribute.Name, attribute.Value)
-				return fmt.Errorf("Некорректный тип значения атрибута '%s'", attribute.Name)
-			}
-
-			attributeValueID, err := db.GetAttributeValueID(attributeID, attributeValueStr)
-			if err != nil {
-				log.Printf("AddProductVariations: Ошибка при получении ID значения атрибута '%s': %v", attributeValueStr, err)
-				return fmt.Errorf("Ошибка при получении ID значения атрибута: %v", err)
-			}
-
-			variationAttributeValue := models.VariationAttributeValue{
-				ProductVariationID: productVariation.ID,
-				AttributeValueID:   attributeValueID,
-			}
-
-			if err := db.CreateVariationAttributeValue(&variationAttributeValue); err != nil {
-				log.Printf("AddProductVariations: Ошибка при создании значения атрибута '%s' для вариации SKU: %s: %v", attribute.Name, variationReq.SKU, err)
-				return fmt.Errorf("Ошибка при создании значения атрибута для вариации: %v", err)
-			} else {
-				log.Printf("AddProductVariations: Значение атрибута '%s' успешно сохранено для вариации SKU: %s", attribute.Name, variationReq.SKU)
-			}
+		// Сохранение изображений для вариации
+		if err := p.SaveVariationImages(productVariation.ID, variationReq.Images, c); err != nil {
+			return fmt.Errorf("не удалось сохранить изображения для вариации: %v", err)
 		}
 
-		// Сохранение изображений для вариации
-		for _, file := range variationReq.Images {
-			if file != nil {
-				log.Printf("AddProductVariations: Сохранение изображения '%s' для вариации SKU: %s", file.Filename, variationReq.SKU)
-
-				// Генерация имени файла для сохранения
-				fileName := fmt.Sprintf("uploads/variations/%d/%s", productVariation.ID, file.Filename)
-
-				// Сохранение изображения на диск
-				if err := utils.SaveUploadedFile(file, fileName); err != nil {
-					log.Printf("AddProductVariations: Не удалось сохранить изображение '%s' для вариации SKU: %s: %v", file.Filename, variationReq.SKU, err)
-					return fmt.Errorf("Не удалось сохранить изображение вариации: %v", err)
-				} else {
-					log.Printf("AddProductVariations: Изображение '%s' успешно сохранено для вариации SKU: %s", file.Filename, variationReq.SKU)
-				}
-
-				// Сохранение информации об изображении в базу данных
-				productVariationImage := &models.ProductVariationImage{
-					ProductVariationID: productVariation.ID,
-					ImageURL:           fileName,
-				}
-
-				if err := db.CreateProductVariationImage(productVariationImage); err != nil {
-					log.Printf("AddProductVariations: Не удалось сохранить информацию об изображении в базу данных для SKU: %s: %v", variationReq.SKU, err)
-					return fmt.Errorf("Не удалось сохранить изображение в базу данных: %v", err)
-				} else {
-					log.Printf("AddProductVariations: Информация об изображении успешно сохранена для SKU: %s", variationReq.SKU)
-				}
-			} else {
-				log.Printf("AddProductVariations: Пропущен файл изображения для SKU: %s, так как он равен nil", variationReq.SKU)
-			}
+		// Сохранение атрибутов для вариации
+		if err := p.SaveVariationAttributes(productVariation.ID, categoryID, variationReq.Attributes); err != nil {
+			return fmt.Errorf("не удалось сохранить атрибуты для вариации: %v", err)
 		}
 	}
 
@@ -270,4 +223,90 @@ func (s *ProductService) GetSupplierByUserID(userID int) (*models.Supplier, erro
 
 func (s *ProductService) AddProductImage(image *models.ProductImage) error {
 	return db.CreateProductImage(image)
+}
+
+func (p *ProductService) SaveVariationImages(variationID int, images []*multipart.FileHeader, c *gin.Context) error {
+	// Создаем директорию для изображений этой вариации
+	uploadDir := fmt.Sprintf("uploads/variations/%d", variationID)
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		return fmt.Errorf("не удалось создать директорию для изображений вариации: %v", err)
+	}
+
+	// Проверяем, действительно ли директория создана
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		return fmt.Errorf("директория для изображений не была создана: %v", err)
+	}
+
+	log.Printf("Директория для загрузки изображений вариации: %s успешно создана", uploadDir)
+
+	// Сохраняем каждое изображение в файловую систему и записываем его в базу данных
+	for _, fileHeader := range images {
+		if fileHeader != nil {
+			// Генерируем имя файла и сохраняем
+			fileName := filepath.Join(uploadDir, fileHeader.Filename)
+			log.Printf("Попытка сохранить файл: %s", fileName)
+
+			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
+				return fmt.Errorf("не удалось сохранить изображение вариации: %v", err)
+			}
+
+			// Создаем запись изображения в базе данных
+			productVariationImage := &models.ProductVariationImage{
+				ProductVariationID: variationID,
+				ImageURL:           fileName,
+			}
+
+			if err := db.CreateProductVariationImage(productVariationImage); err != nil {
+				return fmt.Errorf("не удалось сохранить изображение в базе данных: %v", err)
+			} else {
+				log.Printf("Информация об изображении успешно сохранена для вариации ID: %d", variationID)
+			}
+		} else {
+			log.Printf("Пропущен файл изображения для вариации ID: %d, так как он равен nil", variationID)
+		}
+	}
+
+	return nil
+}
+
+func (p *ProductService) SaveVariationAttributes(variationID int, categoryID int, attributes []models.AttributeValueRequest) error {
+	for _, attribute := range attributes {
+		log.Printf("SaveVariationAttributes: Сохранение атрибута '%s' для вариации ID: %d", attribute.Name, variationID)
+
+		// Получаем ID атрибута по имени и категории
+		attributeID, err := db.GetAttributeIDByName(categoryID, attribute.Name)
+		if err != nil {
+			log.Printf("SaveVariationAttributes: Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
+			return fmt.Errorf("Ошибка при получении ID атрибута: %v", err)
+		}
+
+		// Проверяем тип значения и приводим его к строке
+		attributeValueStr, ok := attribute.Value.(string)
+		if !ok {
+			log.Printf("SaveVariationAttributes: Ошибка приведения значения атрибута '%s' к строке: %v", attribute.Name, attribute.Value)
+			return fmt.Errorf("Некорректный тип значения атрибута '%s'", attribute.Name)
+		}
+
+		// Получаем ID значения атрибута
+		attributeValueID, err := db.GetAttributeValueID(attributeID, attributeValueStr)
+		if err != nil {
+			log.Printf("SaveVariationAttributes: Ошибка при получении ID значения атрибута '%s': %v", attributeValueStr, err)
+			return fmt.Errorf("Ошибка при получении ID значения атрибута: %v", err)
+		}
+
+		// Создаем запись значения атрибута для вариации
+		variationAttributeValue := models.VariationAttributeValue{
+			ProductVariationID: variationID,
+			AttributeValueID:   attributeValueID,
+		}
+
+		if err := db.CreateVariationAttributeValue(&variationAttributeValue); err != nil {
+			log.Printf("SaveVariationAttributes: Ошибка при создании значения атрибута '%s' для вариации ID: %d: %v", attribute.Name, variationID, err)
+			return fmt.Errorf("Ошибка при создании значения атрибута для вариации: %v", err)
+		} else {
+			log.Printf("SaveVariationAttributes: Значение атрибута '%s' успешно сохранено для вариации ID: %d", attribute.Name, variationID)
+		}
+	}
+
+	return nil
 }

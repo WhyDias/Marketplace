@@ -38,11 +38,3 @@ type UpdateSupplierRequest struct {
 type UpdateSupplierDetailsResponse struct {
 	Message string `json:"message"`
 }
-
-type Attribute struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	IsLinked   bool   `json:"is_linked"`
-	CategoryID int    `json:"category_id"`
-	Type       string `json:"type"`
-}

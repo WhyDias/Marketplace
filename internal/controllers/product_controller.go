@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -176,14 +177,13 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 		return
 	}
 
-	// Чтение полей из form-data
+	// Чтение данных из form-data
 	var req models.ProductRequest
 	req.Name = c.PostForm("name")
 	req.Description = c.PostForm("description")
-	priceStr := c.PostForm("price")
-	stockStr := c.PostForm("stock")
 
-	// Преобразование строковых значений в числа
+	// Парсинг строки price в float64
+	priceStr := c.PostForm("price")
 	price, err := strconv.ParseFloat(priceStr, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат price"})
@@ -191,6 +191,8 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 	}
 	req.Price = price
 
+	// Парсинг строки stock в int
+	stockStr := c.PostForm("stock")
 	stock, err := strconv.Atoi(stockStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат stock"})
@@ -198,7 +200,7 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 	}
 	req.Stock = stock
 
-	// Обработка category_id
+	// Парсинг строки category_id в int
 	categoryIDStr := c.PostForm("category_id")
 	categoryID, err := strconv.Atoi(categoryIDStr)
 	if err != nil {
@@ -206,6 +208,8 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 		return
 	}
 	req.CategoryID = categoryID
+
+	log.Printf("AddProduct: Получены данные продукта: %+v", req)
 
 	// Обработка изображений продукта
 	form, err := c.MultipartForm()
@@ -220,6 +224,13 @@ func (p *ProductController) AddProduct(c *gin.Context) {
 		}
 	} else {
 		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Необходимо предоставить хотя бы одно изображение продукта"})
+		return
+	}
+
+	// Создание директории для изображений
+	uploadDir := fmt.Sprintf("uploads/products/%d", categoryID)
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось создать директорию для изображений"})
 		return
 	}
 
