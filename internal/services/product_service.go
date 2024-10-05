@@ -10,6 +10,8 @@ import (
 	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
 	"log"
+	"os"
+	"path/filepath"
 )
 
 type ProductService struct{}
@@ -64,10 +66,17 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, c *g
 	}
 
 	// Сохраняем изображения продукта
+	uploadDir := fmt.Sprintf("uploads/products/%d/", product.ID)
+
+	// Создаем директорию, если она не существует
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		return fmt.Errorf("не удалось создать директорию для изображений: %v", err)
+	}
+
 	for _, fileHeader := range req.Images {
 		if fileHeader != nil {
 			// Генерируем имя файла и сохраняем
-			fileName := fmt.Sprintf("uploads/products/%d/%s", product.ID, fileHeader.Filename)
+			fileName := filepath.Join(uploadDir, fileHeader.Filename)
 			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
 				return fmt.Errorf("не удалось сохранить изображение продукта: %v", err)
 			}
