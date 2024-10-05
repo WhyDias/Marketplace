@@ -223,17 +223,22 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 
 		// Сохранение атрибутов вариации
 		for _, attribute := range variationReq.Attributes {
-			log.Printf("AddProductVariations: Сохранение атрибута '%s' для вариации SKU: %s", attribute.Name, variationReq.SKU)
+			// Приводим значение атрибута к строке
+			valueStr, ok := attribute.Value.(string)
+			if !ok {
+				log.Printf("Ошибка: значение атрибута '%s' не является строкой", attribute.Name)
+				return fmt.Errorf("некорректный тип значения для атрибута '%s'", attribute.Name)
+			}
 
 			attributeID, err := db.GetAttributeIDByName(attribute.Name)
 			if err != nil {
-				log.Printf("AddProductVariations: Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
+				log.Printf("Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
 				return fmt.Errorf("Ошибка при получении ID атрибута: %v", err)
 			}
 
-			attributeValueID, err := db.GetAttributeValueID(attributeID, attribute.Value)
+			attributeValueID, err := db.GetAttributeValueID(attributeID, valueStr)
 			if err != nil {
-				log.Printf("AddProductVariations: Ошибка при получении ID значения атрибута '%s': %v", attribute.Value, err)
+				log.Printf("Ошибка при получении ID значения атрибута '%s': %v", valueStr, err)
 				return fmt.Errorf("Ошибка при получении ID значения атрибута: %v", err)
 			}
 
@@ -243,10 +248,8 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 			}
 
 			if err := db.CreateVariationAttributeValue(&variationAttributeValue); err != nil {
-				log.Printf("AddProductVariations: Ошибка при создании значения атрибута '%s' для вариации SKU: %s: %v", attribute.Name, variationReq.SKU, err)
+				log.Printf("Ошибка при создании значения атрибута '%s' для вариации SKU: %s: %v", attribute.Name, variationReq.SKU, err)
 				return fmt.Errorf("Ошибка при создании значения атрибута для вариации: %v", err)
-			} else {
-				log.Printf("AddProductVariations: Значение атрибута '%s' успешно сохранено для вариации SKU: %s", attribute.Name, variationReq.SKU)
 			}
 		}
 

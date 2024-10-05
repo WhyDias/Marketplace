@@ -79,11 +79,6 @@ type ProductVariationReq struct {
 	Images     []*multipart.FileHeader `form:"images"`
 }
 
-type AttributeValueReq struct {
-	Name  string `json:"name" binding:"required"`
-	Value string `json:"value" binding:"required"`
-}
-
 type ProductVariationRequest struct {
 	SKU        string                  `json:"sku" binding:"required"`
 	Price      float64                 `json:"price" binding:"required"`
@@ -93,8 +88,8 @@ type ProductVariationRequest struct {
 }
 
 type AttributeValueRequest struct {
-	Name  string `json:"name" binding:"required"`
-	Value string `json:"value" binding:"required"`
+	Name  string      `json:"name" binding:"required"`
+	Value interface{} `json:"value" binding:"required"`
 }
 
 type VariationAttributeValue struct {
