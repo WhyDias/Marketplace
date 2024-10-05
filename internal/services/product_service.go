@@ -232,6 +232,16 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 				log.Printf("SaveVariationAttributes: Ошибка при обновлении значения атрибута '%s': %v", attribute.Name, err)
 				return fmt.Errorf("ошибка при обновлении значения атрибута '%s': %v", attribute.Name, err)
 			}
+
+			variationAttributeValue := models.VariationAttributeValue{
+				ProductVariationID: productVariation.ID,
+				AttributeValueID:   attributeID, // Используем полученный ID атрибута
+			}
+
+			if err := db.CreateVariationAttributeValue(&variationAttributeValue); err != nil {
+				log.Printf("AddProductVariations: Ошибка при создании записи в variation_attribute_values для атрибута '%s': %v", attribute.Name, err)
+				return fmt.Errorf("ошибка при создании связи в variation_attribute_values для атрибута '%s': %v", attribute.Name, err)
+			}
 		}
 	}
 

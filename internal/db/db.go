@@ -543,10 +543,7 @@ func CreateVariationAttributeValue(variationAttributeValue *models.VariationAttr
         VALUES ($1, $2)
     `
 	_, err := DB.Exec(query, variationAttributeValue.ProductVariationID, variationAttributeValue.AttributeValueID)
-	if err != nil {
-		return fmt.Errorf("ошибка при создании значения атрибута вариации: %v", err)
-	}
-	return nil
+	return err
 }
 
 func CreateProductVariationImage(image *models.ProductVariationImage) error {
