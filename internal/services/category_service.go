@@ -175,25 +175,37 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 		case "dropdown":
 			for _, value := range stringValues {
 				valueJSON, _ := json.Marshal(value)
-				err := db.CreateAttributeValue(createdAttributeID, json.RawMessage(valueJSON))
+				createdValueID, err := db.CreateAttributeValue(createdAttributeID, json.RawMessage(valueJSON))
 				if err != nil {
 					return fmt.Errorf("не удалось создать значение атрибута '%s': %v", value, err)
+				}
+
+				if createdValueID == 0 {
+					return fmt.Errorf("ошибка при создании значения атрибута: получен нулевой ID")
 				}
 			}
 
 		case "range":
 			rangeStr := fmt.Sprintf("[%d, %d]", rangeValues[0], rangeValues[1])
 			rangeValueJSON, _ := json.Marshal(rangeStr)
-			err = db.CreateAttributeValue(createdAttributeID, rangeValueJSON)
+			createdValueID, err := db.CreateAttributeValue(createdAttributeID, rangeValueJSON)
 			if err != nil {
 				return fmt.Errorf("не удалось создать значение атрибута range %s: %v", rangeStr, err)
 			}
 
+			if createdValueID == 0 {
+				return fmt.Errorf("ошибка при создании значения атрибута: получен нулевой ID")
+			}
+
 		case "switcher", "text", "numeric":
 			emptyValueJSON, _ := json.Marshal("")
-			err = db.CreateAttributeValue(createdAttributeID, emptyValueJSON)
+			createdValueID, err := db.CreateAttributeValue(createdAttributeID, emptyValueJSON)
 			if err != nil {
 				return fmt.Errorf("не удалось создать значение атрибута %s: %v", attrReq.Name, err)
+			}
+
+			if createdValueID == 0 {
+				return fmt.Errorf("ошибка при создании значения атрибута: получен нулевой ID")
 			}
 		}
 	}
