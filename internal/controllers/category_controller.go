@@ -257,3 +257,12 @@ func (cc *CategoryController) GetCategoryAttributesByCategoryID(c *gin.Context) 
 
 	c.JSON(http.StatusOK, attributes)
 }
+
+func (ctrl *CategoryController) GetRootCategories(c *gin.Context) {
+	categories, err := ctrl.Service.GetRootCategories()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, categories)
+}

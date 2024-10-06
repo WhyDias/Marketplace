@@ -326,3 +326,11 @@ func (s *CategoryService) GetCategoryAttributesAndValues(categoryID int) (map[st
 
 	return attributeMap, nil
 }
+
+func (s *CategoryService) GetRootCategories() ([]models.Category, error) {
+	rootCategories, err := db.GetRootCategories()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при получении корневых категорий: %v", err)
+	}
+	return rootCategories, nil
+}

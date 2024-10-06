@@ -673,3 +673,31 @@ func CreateOrUpdateAttributeValue(attributeID int, value json.RawMessage) (int, 
 	// Возвращаем существующий или созданный ID значения атрибута
 	return attributeValueID, nil
 }
+
+func GetRootCategories() ([]models.Category, error) {
+	query := `
+        SELECT id, name, path, image_url, parent_id
+        FROM categories
+        WHERE nlevel(path) = 1
+    `
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %v", err)
+	}
+	defer rows.Close()
+
+	var categories []models.Category
+	for rows.Next() {
+		var category models.Category
+		if err := rows.Scan(&category.ID, &category.Name, &category.Path, &category.ImageURL, &category.ParentID); err != nil {
+			return nil, fmt.Errorf("ошибка при чтении данных категории: %v", err)
+		}
+		categories = append(categories, category)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка при итерации по строкам результата: %v", err)
+	}
+
+	return categories, nil
+}
