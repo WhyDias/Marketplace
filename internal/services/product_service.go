@@ -66,13 +66,13 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 		return fmt.Errorf("не удалось создать продукт: %v", err)
 	}
 
-	// Создаем директорию для изображений продукта, если она не существует
+	// Создаем директорию для изображений продукта
 	uploadDir := fmt.Sprintf("uploads/products/%d", product.ID)
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
 		return fmt.Errorf("не удалось создать директорию для изображений продукта: %v", err)
 	}
 
-	// Сохраняем изображения продукта
+	// Сохраняем изображения продукта и собираем пути к ним
 	var productImages []string
 	for _, fileHeader := range req.Images {
 		if fileHeader != nil {
@@ -86,13 +86,15 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 	}
 
 	// Сохраняем ссылки на изображения в базе данных
-	productImageRecord := &models.ProductImage{
-		ProductID: product.ID,
-		ImageURLs: productImages, // Сохраняем массив ссылок на изображения
-	}
+	if len(productImages) > 0 {
+		productImageRecord := &models.ProductImage{
+			ProductID: product.ID,
+			ImageURLs: productImages, // Сохраняем массив ссылок на изображения
+		}
 
-	if err := db.CreateProductImage(productImageRecord); err != nil {
-		return fmt.Errorf("не удалось сохранить изображения продукта в базе данных: %v", err)
+		if err := db.CreateProductImage(productImageRecord); err != nil {
+			return fmt.Errorf("не удалось сохранить изображения продукта в базе данных: %v", err)
+		}
 	}
 
 	// Сохраняем значения атрибутов для основного продукта
