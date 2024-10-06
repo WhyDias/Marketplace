@@ -645,38 +645,27 @@ func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, erro
 	var attributeValueID int
 
 	// Преобразуем значение в JSON
-	var valueJSON json.RawMessage
-	switch v := value.(type) {
-	case string:
-		valueJSON = json.RawMessage(fmt.Sprintf(`"%s"`, v)) // Заключаем строку в кавычки для JSON
-	case bool, float64, int, map[string]interface{}, []interface{}:
-		jsonValue, err := json.Marshal(v)
-		if err != nil {
-			log.Printf("CreateOrUpdateAttributeValue: Ошибка при преобразовании значения в JSON: %v", err)
-			return 0, fmt.Errorf("не удалось преобразовать значение в JSON: %v", err)
-		}
-		valueJSON = jsonValue
-	case json.RawMessage:
-		valueJSON = v
-	default:
-		return 0, fmt.Errorf("неподдерживаемый тип значения: %T", v)
+	valueJSON, err := json.Marshal(value)
+	if err != nil {
+		log.Printf("CreateOrUpdateAttributeValue: Ошибка при преобразовании значения в JSON: %v", err)
+		return 0, fmt.Errorf("не удалось преобразовать значение в JSON: %v", err)
 	}
 
-	// Проверяем, существует ли значение атрибута (по attribute_id)
+	// Проверяем, существует ли значение атрибута (по attribute_id и значению)
 	query := `
-		SELECT id
-		FROM attribute_value
-		WHERE attribute_id = $1
-	`
-	err := DB.QueryRow(query, attributeID).Scan(&attributeValueID)
+        SELECT id
+        FROM attribute_value
+        WHERE attribute_id = $1 AND value_json = $2
+    `
+	err = DB.QueryRow(query, attributeID, valueJSON).Scan(&attributeValueID)
 
 	if err == sql.ErrNoRows {
 		// Значение не существует, создаем новое
 		insertQuery := `
-			INSERT INTO attribute_value (attribute_id, value_json)
-			VALUES ($1, $2)
-			RETURNING id
-		`
+            INSERT INTO attribute_value (attribute_id, value_json)
+            VALUES ($1, $2)
+            RETURNING id
+        `
 		err = DB.QueryRow(insertQuery, attributeID, valueJSON).Scan(&attributeValueID)
 		if err != nil {
 			log.Printf("CreateOrUpdateAttributeValue: Ошибка при создании значения атрибута с attribute_id %d и value %s: %v", attributeID, string(valueJSON), err)

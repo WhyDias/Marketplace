@@ -74,28 +74,18 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 		}
 
 		// Обработка значений разных типов (string, bool, int, float и т.д.)
-		var attributeValueStr string
+		var attributeValue interface{}
 		switch v := attribute.Value.(type) {
 		case string:
-			attributeValueStr = v
-		case bool:
-			// Преобразование bool в строку
-			if v {
-				attributeValueStr = "true"
-			} else {
-				attributeValueStr = "false"
-			}
-		case float64:
-			// Преобразование float64 в строку (учитывая точность до двух знаков после запятой)
-			attributeValueStr = fmt.Sprintf("%.2f", v)
-		case int:
-			attributeValueStr = fmt.Sprintf("%d", v)
+			attributeValue = v
+		case bool, float64, int:
+			attributeValue = v
 		default:
 			return fmt.Errorf("неподдерживаемый тип значения атрибута '%s': %T", attribute.Name, v)
 		}
 
 		// Получаем ID значения атрибута или создаем новое значение
-		attributeValueID, err := db.CreateOrUpdateAttributeValue(attributeID, json.RawMessage(`"`+attributeValueStr+`"`))
+		attributeValueID, err := db.CreateOrUpdateAttributeValue(attributeID, attributeValue)
 		if err != nil {
 			return fmt.Errorf("Ошибка при создании или обновлении значения атрибута '%s': %v", attribute.Name, err)
 		}
