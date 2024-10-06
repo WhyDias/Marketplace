@@ -66,12 +66,18 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 		return fmt.Errorf("не удалось создать продукт: %v", err)
 	}
 
+	// Создаем директорию для изображений продукта, если она не существует
+	uploadDir := fmt.Sprintf("uploads/products/%d", product.ID)
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		return fmt.Errorf("не удалось создать директорию для изображений продукта: %v", err)
+	}
+
 	// Сохраняем изображения продукта
 	var productImages []string
 	for _, fileHeader := range req.Images {
 		if fileHeader != nil {
-			// Сохраняем изображение в файловую систему
-			fileName := fmt.Sprintf("uploads/products/%d/%s", product.ID, fileHeader.Filename)
+			// Генерируем имя файла и сохраняем
+			fileName := filepath.Join(uploadDir, fileHeader.Filename)
 			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
 				return fmt.Errorf("не удалось сохранить изображение продукта: %v", err)
 			}
