@@ -4,6 +4,7 @@ package services
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -212,7 +213,7 @@ func (s *SupplierService) GetCategoryByPath(path string) (*models.Category, erro
 	return category, nil
 }
 
-func (s *SupplierService) AddCategory(name, path, imageURL string) (*models.Category, error) {
+func (s *CategoryService) AddCategory(name, path, imageURL string) (*models.Category, error) {
 	// Проверка уникальности path
 	existingCategory, err := db.GetCategoryByPath(path)
 	if err == nil && existingCategory != nil {
@@ -233,6 +234,30 @@ func (s *SupplierService) AddCategory(name, path, imageURL string) (*models.Cate
 	if err != nil {
 		log.Printf("AddCategory: ошибка при создании категории: %v", err)
 		return nil, fmt.Errorf("ошибка при создании категории: %v", err)
+	}
+
+	// Добавляем обязательный атрибут "Цвет"
+	mandatoryAttribute := models.CategoryAttribute{
+		CategoryID:   category.ID,
+		Name:         "Цвет",
+		Description:  StringPtr("Выберите цвет товара"),
+		TypeOfOption: StringPtr("dropdown"),
+	}
+
+	// Значения атрибута "Цвет"
+	colorValues := []string{"Красный", "Синий", "Зеленый"}
+	valueJSON, err := json.Marshal(colorValues)
+	if err != nil {
+		log.Printf("AddCategory: ошибка при сериализации значений цвета: %v", err)
+		return nil, fmt.Errorf("ошибка при сериализации значений цвета: %v", err)
+	}
+	mandatoryAttribute.Value = valueJSON
+
+	// Создание обязательного атрибута для новой категории
+	_, err = db.CreateCategoryAttribute(&mandatoryAttribute)
+	if err != nil {
+		log.Printf("AddCategory: ошибка при создании обязательного атрибута 'Цвет' для категории %d: %v", category.ID, err)
+		return nil, fmt.Errorf("ошибка при создании обязательного атрибута 'Цвет': %v", err)
 	}
 
 	return category, nil
