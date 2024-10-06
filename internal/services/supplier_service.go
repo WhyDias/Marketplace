@@ -213,7 +213,7 @@ func (s *SupplierService) GetCategoryByPath(path string) (*models.Category, erro
 	return category, nil
 }
 
-func (s *CategoryService) AddCategory(name, path, imageURL string) (*models.Category, error) {
+func (s *SupplierService) AddCategory(name, path, imageURL string) (*models.Category, error) {
 	// Проверка уникальности path
 	existingCategory, err := db.GetCategoryByPath(path)
 	if err == nil && existingCategory != nil {
