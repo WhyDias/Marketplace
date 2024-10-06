@@ -641,64 +641,35 @@ func GetAttributeIDByNameAndCategory(attributeName string, categoryID int) (int,
 	return attributeID, nil
 }
 
-func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, error) {
+func CreateOrUpdateAttributeValue(attributeID int, value json.RawMessage) (int, error) {
 	var attributeValueID int
 
-	// Преобразуем значение в JSON
-	var valueJSON json.RawMessage
-	switch v := value.(type) {
-	case string:
-		valueJSON = json.RawMessage(fmt.Sprintf(`"%s"`, v)) // Заключаем строку в кавычки для корректного JSON
-	case bool, float64, int, map[string]interface{}, []interface{}:
-		jsonValue, err := json.Marshal(v)
-		if err != nil {
-			log.Printf("CreateOrUpdateAttributeValue: Ошибка при преобразовании значения в JSON: %v", err)
-			return 0, fmt.Errorf("не удалось преобразовать значение в JSON: %v", err)
-		}
-		valueJSON = jsonValue
-	case json.RawMessage:
-		valueJSON = v
-	default:
-		return 0, fmt.Errorf("неподдерживаемый тип значения: %T", v)
-	}
-
-	// Проверяем, существует ли значение атрибута (по attribute_id)
+	// Проверяем, существует ли значение атрибута
 	query := `
-        SELECT id
-        FROM attribute_value
-        WHERE attribute_id = $1
-    `
-	err := DB.QueryRow(query, attributeID).Scan(&attributeValueID)
+		SELECT id
+		FROM attribute_value
+		WHERE attribute_id = $1 AND value_json = $2
+	`
+	err := DB.QueryRow(query, attributeID, value).Scan(&attributeValueID)
 
 	if err == sql.ErrNoRows {
 		// Значение не существует, создаем новое
 		insertQuery := `
-            INSERT INTO attribute_value (attribute_id, value_json)
-            VALUES ($1, $2)
-            RETURNING id
-        `
-		err = DB.QueryRow(insertQuery, attributeID, valueJSON).Scan(&attributeValueID)
+			INSERT INTO attribute_value (attribute_id, value_json)
+			VALUES ($1, $2)
+			RETURNING id
+		`
+		err = DB.QueryRow(insertQuery, attributeID, value).Scan(&attributeValueID)
 		if err != nil {
-			log.Printf("CreateOrUpdateAttributeValue: Ошибка при создании значения атрибута с attribute_id %d и value %s: %v", attributeID, string(valueJSON), err)
+			log.Printf("CreateOrUpdateAttributeValue: Ошибка при создании значения атрибута с attribute_id %d и value %s: %v", attributeID, string(value), err)
 			return 0, fmt.Errorf("ошибка при создании значения атрибута: %v", err)
 		}
 	} else if err != nil {
 		// Ошибка при выполнении запроса
-		log.Printf("CreateOrUpdateAttributeValue: Ошибка при проверке значения атрибута с attribute_id %d: %v", attributeID, err)
+		log.Printf("CreateOrUpdateAttributeValue: Ошибка при проверке значения атрибута с attribute_id %d и value %s: %v", attributeID, string(value), err)
 		return 0, fmt.Errorf("ошибка при проверке значения атрибута: %v", err)
 	}
 
-	// Обновляем value_json, если нужно
-	updateQuery := `
-		UPDATE attribute_value
-		SET value_json = $2
-		WHERE id = $1
-	`
-	_, err = DB.Exec(updateQuery, attributeValueID, valueJSON)
-	if err != nil {
-		log.Printf("CreateOrUpdateAttributeValue: Ошибка при обновлении value_json для attribute_value_id %d: %v", attributeValueID, err)
-		return 0, fmt.Errorf("ошибка при обновлении value_json: %v", err)
-	}
-
+	// Возвращаем существующий или созданный ID значения атрибута
 	return attributeValueID, nil
 }
