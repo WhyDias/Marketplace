@@ -186,9 +186,9 @@ type AddCategoryResponse struct {
 // @Param path formData string true "Путь категории"
 // @Param image formData file true "Изображение категории"
 // @Success 201 {object} AddCategoryResponse "Категория успешно добавлена"
-// @Failure 400 {object} utils.ErrorResponse "Неверный формат данных или ошибки валидации"
-// @Failure 401 {object} utils.ErrorResponse "Необходима авторизация"
-// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Failure 400 {object} ErrorResponse "Неверный формат данных или ошибки валидации"
+// @Failure 401 {object} ErrorResponse "Необходима авторизация"
+// @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/categories [post]
 func (sc *SupplierController) AddCategory(c *gin.Context) {
 	name := c.PostForm("name")
