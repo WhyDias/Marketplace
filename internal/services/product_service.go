@@ -66,6 +66,29 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 		return fmt.Errorf("не удалось создать продукт: %v", err)
 	}
 
+	// Сохраняем изображения продукта
+	var productImages []string
+	for _, fileHeader := range req.Images {
+		if fileHeader != nil {
+			// Сохраняем изображение в файловую систему
+			fileName := fmt.Sprintf("uploads/products/%d/%s", product.ID, fileHeader.Filename)
+			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
+				return fmt.Errorf("не удалось сохранить изображение продукта: %v", err)
+			}
+			productImages = append(productImages, fileName)
+		}
+	}
+
+	// Сохраняем ссылки на изображения в базе данных
+	productImageRecord := &models.ProductImage{
+		ProductID: product.ID,
+		ImageURLs: productImages, // Сохраняем массив ссылок на изображения
+	}
+
+	if err := db.CreateProductImage(productImageRecord); err != nil {
+		return fmt.Errorf("не удалось сохранить изображения продукта в базе данных: %v", err)
+	}
+
 	// Сохраняем значения атрибутов для основного продукта
 	for _, attribute := range req.Attributes {
 		// Получаем ID атрибута по имени
@@ -198,10 +221,18 @@ func (s *ProductService) addVariationColorsTx(tx *sql.Tx, variationID int, color
 }
 
 func (p *ProductService) AddProductVariations(variations []models.ProductVariationReq, productID int, categoryID int, supplierID int, c *gin.Context) error {
-	for _, variationReq := range variations {
-		log.Printf("AddProductVariations: Обработка вариации")
+	multipartForm, err := c.MultipartForm()
+	if err != nil {
+		return fmt.Errorf("не удалось получить multipart form: %v", err)
+	}
 
-		// Создаем запись для вариации вне транзакции
+	// Извлекаем файлы для вариаций из формы
+	files := multipartForm.File
+
+	for i, variationReq := range variations {
+		log.Printf("AddProductVariations: Обработка вариации %d", i)
+
+		// Создаем запись для вариации
 		productVariation := models.ProductVariation{
 			ProductID: productID,
 			SKU:       fmt.Sprintf("%d-%s", supplierID, utils.GenerateSKU()), // Автогенерация SKU
@@ -210,14 +241,20 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 		// Сохраняем вариацию в базе данных
 		if err := db.CreateProductVariation(&productVariation); err != nil {
 			log.Printf("AddProductVariations: Не удалось создать вариацию продукта, ошибка: %v", err)
-			return fmt.Errorf("Не удалось создать вариацию продукта: %v", err)
+			return fmt.Errorf("не удалось создать вариацию продукта: %v", err)
 		} else {
 			log.Printf("AddProductVariations: Вариация успешно создана с ID: %d", productVariation.ID)
 		}
 
 		// Сохранение изображений для вариации
-		if err := p.SaveVariationImages(productVariation.ID, variationReq.Images, c); err != nil {
-			return fmt.Errorf("не удалось сохранить изображения для вариации: %v", err)
+		paramName := fmt.Sprintf("variation_images_%d", i+1)
+		variationImages, ok := files[paramName]
+		if !ok || len(variationImages) == 0 {
+			log.Printf("Не удалось найти изображения для вариации %d", i+1)
+		} else {
+			if err := p.SaveVariationImages(productVariation.ID, variationImages, c); err != nil {
+				return fmt.Errorf("не удалось сохранить изображения для вариации: %v", err)
+			}
 		}
 
 		// Сохранение атрибутов для вариации
@@ -235,7 +272,7 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 			valueJSON, err := json.Marshal(attribute.Value)
 			if err != nil {
 				log.Printf("SaveVariationAttributes: Ошибка при преобразовании значения атрибута '%s' в JSON: %v", attribute.Name, err)
-				return fmt.Errorf("ошибка при преобразовании значения атрибута '%s' в JSON: %v", attribute.Name, err)
+				return fmt.Errorf("ошибка при преобразовании значения атрибута '%s': %v", attribute.Name, err)
 			}
 
 			// Создаем или обновляем значение атрибута в attribute_value и получаем его ID
@@ -248,7 +285,7 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 			// Создаем запись в таблице variation_attribute_values
 			variationAttributeValue := models.VariationAttributeValue{
 				ProductVariationID: productVariation.ID,
-				AttributeValueID:   attributeValueID, // Используем полученный ID значения атрибута
+				AttributeValueID:   attributeValueID,
 			}
 
 			if err := db.CreateVariationAttributeValue(&variationAttributeValue); err != nil {
@@ -282,7 +319,8 @@ func (p *ProductService) SaveVariationImages(variationID int, images []*multipar
 
 	log.Printf("Директория для загрузки изображений вариации: %s успешно создана", uploadDir)
 
-	// Сохраняем каждое изображение в файловую систему и записываем его в базу данных
+	// Сохраняем каждое изображение в файловую систему и собираем пути для базы данных
+	var imagePaths []string
 	for _, fileHeader := range images {
 		if fileHeader != nil {
 			// Генерируем имя файла и сохраняем
@@ -293,20 +331,27 @@ func (p *ProductService) SaveVariationImages(variationID int, images []*multipar
 				return fmt.Errorf("не удалось сохранить изображение вариации: %v", err)
 			}
 
-			// Создаем запись изображения в базе данных
-			productVariationImage := &models.ProductVariationImage{
-				ProductVariationID: variationID,
-				ImageURL:           fileName,
-			}
-
-			if err := db.CreateProductVariationImage(productVariationImage); err != nil {
-				return fmt.Errorf("не удалось сохранить изображение в базе данных: %v", err)
-			} else {
-				log.Printf("Информация об изображении успешно сохранена для вариации ID: %d", variationID)
-			}
+			// Добавляем путь к изображению в список
+			imagePaths = append(imagePaths, "/uploads/variations/"+fileHeader.Filename)
 		} else {
 			log.Printf("Пропущен файл изображения для вариации ID: %d, так как он равен nil", variationID)
 		}
+	}
+
+	// Если есть изображения, создаем запись в базе данных
+	if len(imagePaths) > 0 {
+		productVariationImage := &models.ProductVariationImage{
+			ProductVariationID: variationID,
+			ImageURLs:          imagePaths, // Сохраняем массив ссылок на изображения
+		}
+
+		if err := db.CreateProductVariationImage(productVariationImage); err != nil {
+			return fmt.Errorf("не удалось сохранить изображения в базе данных: %v", err)
+		}
+
+		log.Printf("Информация об изображениях успешно сохранена для вариации ID: %d", variationID)
+	} else {
+		log.Printf("Не было найдено изображений для сохранения для вариации ID: %d", variationID)
 	}
 
 	return nil
