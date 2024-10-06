@@ -641,7 +641,14 @@ func GetAttributeIDByNameAndCategory(attributeName string, categoryID int) (int,
 	return attributeID, nil
 }
 
-func CreateOrUpdateAttributeValue(attributeID int, value json.RawMessage) (int, error) {
+func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, error) {
+	// Преобразуем значение в json.RawMessage
+	valueJSON, err := json.Marshal(value)
+	if err != nil {
+		log.Printf("CreateOrUpdateAttributeValue: Ошибка при преобразовании значения в JSON: %v", err)
+		return 0, fmt.Errorf("не удалось преобразовать значение в JSON: %v", err)
+	}
+
 	var attributeValueID int
 
 	// Проверяем, существует ли значение атрибута
@@ -650,7 +657,7 @@ func CreateOrUpdateAttributeValue(attributeID int, value json.RawMessage) (int, 
 		FROM attribute_value
 		WHERE attribute_id = $1 AND value_json = $2
 	`
-	err := DB.QueryRow(query, attributeID, value).Scan(&attributeValueID)
+	err = DB.QueryRow(query, attributeID, valueJSON).Scan(&attributeValueID)
 
 	if err == sql.ErrNoRows {
 		// Значение не существует, создаем новое
@@ -659,14 +666,14 @@ func CreateOrUpdateAttributeValue(attributeID int, value json.RawMessage) (int, 
 			VALUES ($1, $2)
 			RETURNING id
 		`
-		err = DB.QueryRow(insertQuery, attributeID, value).Scan(&attributeValueID)
+		err = DB.QueryRow(insertQuery, attributeID, valueJSON).Scan(&attributeValueID)
 		if err != nil {
-			log.Printf("CreateOrUpdateAttributeValue: Ошибка при создании значения атрибута с attribute_id %d и value %s: %v", attributeID, string(value), err)
+			log.Printf("CreateOrUpdateAttributeValue: Ошибка при создании значения атрибута с attribute_id %d и value %s: %v", attributeID, string(valueJSON), err)
 			return 0, fmt.Errorf("ошибка при создании значения атрибута: %v", err)
 		}
 	} else if err != nil {
 		// Ошибка при выполнении запроса
-		log.Printf("CreateOrUpdateAttributeValue: Ошибка при проверке значения атрибута с attribute_id %d и value %s: %v", attributeID, string(value), err)
+		log.Printf("CreateOrUpdateAttributeValue: Ошибка при проверке значения атрибута с attribute_id %d и value %s: %v", attributeID, string(valueJSON), err)
 		return 0, fmt.Errorf("ошибка при проверке значения атрибута: %v", err)
 	}
 
