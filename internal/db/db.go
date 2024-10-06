@@ -644,9 +644,8 @@ func GetAttributeIDByNameAndCategory(attributeName string, categoryID int) (int,
 func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, error) {
 	var attributeValueID int
 
-	// Проверяем, существует ли значение атрибута (по attribute_id и значению)
+	// Преобразуем значение в JSON
 	var valueJSON json.RawMessage
-
 	switch v := value.(type) {
 	case string:
 		valueJSON = json.RawMessage(fmt.Sprintf(`"%s"`, v))
@@ -663,20 +662,21 @@ func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, erro
 		return 0, fmt.Errorf("неподдерживаемый тип значения: %T", v)
 	}
 
+	// Проверяем, существует ли значение атрибута (по attribute_id)
 	query := `
-		SELECT id
-		FROM attribute_value
-		WHERE attribute_id = $1
-	`
+        SELECT id
+        FROM attribute_value
+        WHERE attribute_id = $1
+    `
 	err := DB.QueryRow(query, attributeID).Scan(&attributeValueID)
 
 	if err == sql.ErrNoRows {
 		// Значение не существует, создаем новое
 		insertQuery := `
-			INSERT INTO attribute_value (attribute_id)
-			VALUES ($1)
-			RETURNING id
-		`
+            INSERT INTO attribute_value (attribute_id)
+            VALUES ($1)
+            RETURNING id
+        `
 		err = DB.QueryRow(insertQuery, attributeID).Scan(&attributeValueID)
 		if err != nil {
 			log.Printf("CreateOrUpdateAttributeValue: Ошибка при создании значения атрибута с attribute_id %d: %v", attributeID, err)
@@ -688,6 +688,17 @@ func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, erro
 		return 0, fmt.Errorf("ошибка при проверке значения атрибута: %v", err)
 	}
 
-	// Возвращаем существующий или созданный ID значения атрибута
+	// Обновляем value_json, если нужно
+	updateQuery := `
+		UPDATE attribute_value
+		SET value_json = $2
+		WHERE id = $1
+	`
+	_, err = DB.Exec(updateQuery, attributeValueID, valueJSON)
+	if err != nil {
+		log.Printf("CreateOrUpdateAttributeValue: Ошибка при обновлении value_json для attribute_value_id %d: %v", attributeValueID, err)
+		return 0, fmt.Errorf("ошибка при обновлении value_json: %v", err)
+	}
+
 	return attributeValueID, nil
 }
