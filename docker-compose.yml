@@ -22,6 +22,7 @@ services:
       - .env
     volumes:
       - ./configs:/app/configs # Монтируем локальную папку configs в контейнер
+      - ./uploads:/app/uploads
     depends_on:
       - db
 
