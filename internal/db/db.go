@@ -648,7 +648,7 @@ func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, erro
 	var valueJSON json.RawMessage
 	switch v := value.(type) {
 	case string:
-		valueJSON = json.RawMessage(fmt.Sprintf(`"%s"`, v))
+		valueJSON = json.RawMessage(fmt.Sprintf(`"%s"`, v)) // Заключаем строку в кавычки для корректного JSON
 	case bool, float64, int, map[string]interface{}, []interface{}:
 		jsonValue, err := json.Marshal(v)
 		if err != nil {
@@ -673,13 +673,13 @@ func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, erro
 	if err == sql.ErrNoRows {
 		// Значение не существует, создаем новое
 		insertQuery := `
-            INSERT INTO attribute_value (attribute_id)
-            VALUES ($1)
+            INSERT INTO attribute_value (attribute_id, value_json)
+            VALUES ($1, $2)
             RETURNING id
         `
-		err = DB.QueryRow(insertQuery, attributeID).Scan(&attributeValueID)
+		err = DB.QueryRow(insertQuery, attributeID, valueJSON).Scan(&attributeValueID)
 		if err != nil {
-			log.Printf("CreateOrUpdateAttributeValue: Ошибка при создании значения атрибута с attribute_id %d: %v", attributeID, err)
+			log.Printf("CreateOrUpdateAttributeValue: Ошибка при создании значения атрибута с attribute_id %d и value %s: %v", attributeID, string(valueJSON), err)
 			return 0, fmt.Errorf("ошибка при создании значения атрибута: %v", err)
 		}
 	} else if err != nil {
