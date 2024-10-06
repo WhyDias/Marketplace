@@ -715,3 +715,48 @@ func CreateAttribute(attribute *models.Attribute) (int, error) {
 	}
 	return createdAttributeID, nil
 }
+
+func GetCategoryAttributeByName(categoryID int, name string) (*models.CategoryAttribute, error) {
+	query := `SELECT id, category_id, name, description, type_of_option, value FROM category_attributes WHERE category_id = $1 AND name = $2`
+
+	var attribute models.CategoryAttribute
+	err := DB.QueryRow(query, categoryID, name).Scan(
+		&attribute.ID,
+		&attribute.CategoryID,
+		&attribute.Name,
+		&attribute.Description,
+		&attribute.TypeOfOption,
+		&attribute.Value,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // Если атрибут не найден, возвращаем nil
+	} else if err != nil {
+		log.Printf("GetCategoryAttributeByName: ошибка при запросе атрибута категории с category_id %d и name '%s': %v", categoryID, name, err)
+		return nil, err
+	}
+
+	return &attribute, nil
+}
+
+func UpdateCategoryAttribute(attribute *models.CategoryAttribute) error {
+	query := `
+		UPDATE category_attributes
+		SET description = $1, type_of_option = $2, value = $3
+		WHERE id = $4
+	`
+
+	_, err := DB.Exec(query,
+		attribute.Description,
+		attribute.TypeOfOption,
+		attribute.Value,
+		attribute.ID,
+	)
+
+	if err != nil {
+		log.Printf("UpdateCategoryAttribute: ошибка при обновлении атрибута категории с id %d: %v", attribute.ID, err)
+		return err
+	}
+
+	return nil
+}

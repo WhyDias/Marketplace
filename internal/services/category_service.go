@@ -72,12 +72,11 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 
 	for _, attrReq := range req.Attributes {
 		var valueJSON json.RawMessage
-		var createdAttributeID int
 		var err error
 		var stringValues []string
 		var rangeValues []int
 
-		// Логика обработки значений в зависимости от типа атрибута
+		// Преобразование значений в JSON в зависимости от типа атрибута
 		switch attrReq.TypeOfOption {
 		case "dropdown":
 			values, ok := attrReq.Value.([]interface{})
@@ -152,55 +151,38 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			return fmt.Errorf("неподдерживаемый тип option: %s", attrReq.TypeOfOption)
 		}
 
-		// Создаем запись атрибута в таблице attributes
-		attributeID, err := db.CreateAttribute(&models.Attribute{
-			Name:         attrReq.Name,
-			CategoryID:   req.CategoryID,
-			Description:  attrReq.Description,
-			TypeOfOption: attrReq.TypeOfOption,
-			Value:        valueJSON,
-		})
+		// Проверка на наличие атрибута с таким именем для данной категории
+		existingAttribute, err := db.GetCategoryAttributeByName(req.CategoryID, attrReq.Name)
 		if err != nil {
-			log.Printf("Не удалось создать атрибут для категории %d: %s. Ошибка: %v", req.CategoryID, attrReq.Name, err)
-			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
+			log.Printf("Ошибка при проверке существования атрибута: %v", err)
+			return fmt.Errorf("не удалось проверить существование атрибута: %v", err)
 		}
 
-		// Проверяем, что атрибут успешно создан и его ID не нулевой
-		if attributeID == 0 {
-			return fmt.Errorf("ошибка при создании атрибута: получен нулевой ID")
-		}
+		if existingAttribute != nil {
+			// Атрибут с таким именем существует - обновляем его
+			existingAttribute.Description = &attrReq.Description
+			existingAttribute.TypeOfOption = &attrReq.TypeOfOption
+			existingAttribute.Value = valueJSON
 
-		// Создаем запись атрибута категории и получаем ID созданного атрибута
-		createdAttributeID, err = db.CreateCategoryAttribute(&models.CategoryAttribute{
-			CategoryID:   req.CategoryID,
-			Name:         attrReq.Name,
-			Description:  &attrReq.Description,
-			TypeOfOption: &attrReq.TypeOfOption,
-			Value:        valueJSON,
-		})
-		if err != nil {
-			log.Printf("Не удалось создать атрибут для категории %d: %s. Ошибка: %v", req.CategoryID, attrReq.Name, err)
-			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
-		}
+			err = db.UpdateCategoryAttribute(existingAttribute)
+			if err != nil {
+				log.Printf("Ошибка при обновлении атрибута категории: %v", err)
+				return fmt.Errorf("не удалось обновить атрибут категории: %v", err)
+			}
+		} else {
+			// Атрибут с таким именем не найден - создаём новый
+			categoryAttribute := models.CategoryAttribute{
+				CategoryID:   req.CategoryID,
+				Name:         attrReq.Name,
+				Description:  &attrReq.Description,
+				TypeOfOption: &attrReq.TypeOfOption,
+				Value:        valueJSON,
+			}
 
-		// Проверяем, что атрибут успешно создан и его ID не нулевой
-		if createdAttributeID == 0 {
-			return fmt.Errorf("ошибка при создании атрибута: получен нулевой ID")
-		}
-
-		// Добавляем значения в attribute_value только если атрибут успешно создан
-		switch attrReq.TypeOfOption {
-		case "dropdown":
-			for _, value := range stringValues {
-				valueJSON, _ := json.Marshal(value)
-				createdValueID, err := db.CreateAttributeValue(createdAttributeID, json.RawMessage(valueJSON))
-				if err != nil {
-					return fmt.Errorf("не удалось создать значение атрибута '%s': %v", value, err)
-				}
-
-				if createdValueID == 0 {
-					return fmt.Errorf("ошибка при создании значения атрибута: получен нулевой ID")
-				}
+			_, err := db.CreateCategoryAttribute(&categoryAttribute)
+			if err != nil {
+				log.Printf("Ошибка при создании нового атрибута категории: %v", err)
+				return fmt.Errorf("не удалось создать новый атрибут категории: %v", err)
 			}
 		}
 	}
