@@ -497,10 +497,10 @@ func CreateProductAttributeValue(attributeValue *models.ProductAttributeValue) e
 
 func CreateProductImage(image *models.ProductImage) error {
 	query := `
-        INSERT INTO product_images (product_id, image_url, image_path)
+        INSERT INTO product_images (product_id, image_urls, image_path)
         VALUES ($1, $2, $3)
     `
-	_, err := DB.Exec(query, image.ProductID, image.ImageURL, image.ImagePath)
+	_, err := DB.Exec(query, image.ProductID, image.ImageURLs, image.ImagePath)
 	if err != nil {
 		return fmt.Errorf("ошибка при создании изображения продукта: %v", err)
 	}
@@ -548,11 +548,11 @@ func CreateVariationAttributeValue(variationAttributeValue *models.VariationAttr
 
 func CreateProductVariationImage(image *models.ProductVariationImage) error {
 	query := `
-		INSERT INTO product_variation_images (product_variation_id, image_url, image_path)
+		INSERT INTO product_variation_images (product_variation_id, image_urls, image_path)
 		VALUES ($1, $2, $3)
 		RETURNING id`
 
-	err := DB.QueryRow(query, image.ProductVariationID, image.ImageURL, image.ImagePath).Scan(&image.ID)
+	err := DB.QueryRow(query, image.ProductVariationID, image.ImageURLs, image.ImagePath).Scan(&image.ID)
 	if err != nil {
 		return fmt.Errorf("ошибка при создании изображения вариации продукта: %v", err)
 	}
