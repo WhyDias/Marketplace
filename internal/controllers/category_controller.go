@@ -30,7 +30,7 @@ type Category struct {
 	ParentID int    `json:"parent_id"`
 }
 
-// GetImmediateSubcategories возвращает непосредственные подкатегории для заданного пути
+// GetImmediateSubcategories
 // @Summary Get immediate subcategories
 // @Description Получает подкатегории первого уровня для заданного пути категории
 // @Tags Categories
@@ -65,7 +65,7 @@ type CategoryNode struct {
 	Children []CategoryNode `json:"children,omitempty"`
 }
 
-// GetAllCategories возвращает все категории в виде дерева
+// GetAllCategories
 // @Summary Get all categories
 // @Description Получает все категории и подкатегории в иерархическом формате
 // @Tags Categories
@@ -109,14 +109,14 @@ func StringPtr(s string) *string {
 	return &s
 }
 
-// AddCategoryAttributes обрабатывает запрос на добавление атрибутов к категории
+// AddCategoryAttributes
 // @Summary Добавить атрибуты к категории
 // @Description Добавляет один или несколько атрибутов к заданной категории
 // @Tags Categories
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer <token>"
-// @Param attributes body models.AddCategoryAttributesRequest true "Данные атрибутов"
+// @Param attributes body AddCategoryAttributesRequest true "Данные атрибутов"
 // @Success 201 {object} utils.ErrorResponse "Атрибуты успешно добавлены"
 // @Failure 400 {object} utils.ErrorResponse "Неверный формат данных или ошибки валидации"
 // @Failure 401 {object} utils.ErrorResponse "Необходима авторизация"
@@ -157,7 +157,7 @@ type CategoryAttribute struct {
 	Name string `json:"name"`
 }
 
-// GetCategoryAttributes возвращает список атрибутов для категории
+// GetCategoryAttributes
 // @Summary Get category attributes
 // @Description Получает список атрибутов, связанных с категорией по её ID
 // @Tags Categories
@@ -258,6 +258,15 @@ func (cc *CategoryController) GetCategoryAttributesByCategoryID(c *gin.Context) 
 	c.JSON(http.StatusOK, attributes)
 }
 
+// GetRootCategories
+// @Summary Get root categories
+// @Description Получает список корневых категорий
+// @Tags Categories
+// @Accept json
+// @Produce json
+// @Success 200 {array} Category
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /api/categories/root [get]
 func (ctrl *CategoryController) GetRootCategories(c *gin.Context) {
 	categories, err := ctrl.Service.GetRootCategories()
 	if err != nil {

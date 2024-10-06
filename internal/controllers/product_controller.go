@@ -155,15 +155,22 @@ type AttributeValueRequest struct {
 // @Summary Добавить новый продукт
 // @Description Добавляет новый продукт вместе с его вариациями и изображениями
 // @Tags Products
-// @Accept  json
-// @Produce  json
+// @Accept multipart/form-data
+// @Produce json
 // @Param Authorization header string true "Bearer <token>"
-// @Param product body dto.ProductRequest true "Данные нового продукта"
-// @Success 201 {object} utils.ErrorResponse "Продукт успешно добавлен"
+// @Param name formData string true "Название продукта"
+// @Param description formData string false "Описание продукта"
+// @Param price formData number true "Цена продукта"
+// @Param stock formData int true "Количество продукта на складе"
+// @Param category_id formData int true "ID категории"
+// @Param images formData file true "Изображения продукта" multiple=true
+// @Param variations formData string false "JSON-строка с вариациями продукта"
+// @Param variation_images formData file false "Изображения для вариаций" multiple=true
+// @Success 201 {object} gin.H "Продукт успешно добавлен"
 // @Failure 400 {object} utils.ErrorResponse "Неверный формат данных или ошибки валидации"
 // @Failure 401 {object} utils.ErrorResponse "Необходима авторизация"
 // @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /products [post]
+// @Router /api/products [post]
 func (p *ProductController) AddProduct(c *gin.Context) {
 	// Проверяем авторизацию и получаем userID из контекста
 	userIDInterface, exists := c.Get("user_id")
