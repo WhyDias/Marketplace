@@ -100,10 +100,10 @@ type VariationAttributeValue struct {
 }
 
 type ProductVariationImage struct {
-	ID                 int      `json:"id"`                   // Уникальный идентификатор изображения
-	ProductVariationID int      `json:"product_variation_id"` // ID вариации продукта, к которой относится изображение
-	ImageURLs          []string `json:"image_urls"`           // URL изображения
-	ImagePath          string   `json:"image_path"`           // Путь к изображению на сервере
+	ID                 int    `json:"id"`                   // Уникальный идентификатор изображения
+	ProductVariationID int    `json:"product_variation_id"` // ID вариации продукта, к которой относится изображение
+	ImageURLs          string `json:"image_urls"`           // URL изображения
+	ImagePath          string `json:"image_path"`           // Путь к изображению на сервере
 }
 
 type AddProductRequest struct {
@@ -154,8 +154,8 @@ type Product struct {
 }
 
 type ProductImage struct {
-	ID        int      `json:"id"`
-	ProductID int      `json:"product_id"`
-	ImageURLs []string `json:"image_urls"`
-	ImagePath string   `json:"image_path"`
+	ID        int    `json:"id"`
+	ProductID int    `json:"product_id"`
+	ImageURLs string `json:"image_urls"` // Хранит JSON-строку, которая представляет массив ссылок
+	ImagePath string `json:"image_path"`
 }

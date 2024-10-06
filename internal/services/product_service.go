@@ -45,6 +45,7 @@ func (s *ProductService) GetSupplierIDByUserID(userID int) (int, error) {
 }
 
 func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, variations []models.ProductVariationReq, c *gin.Context) error {
+	// Получаем поставщика по userID
 	supplier, err := db.GetSupplierByUserID(userID)
 	if err != nil {
 		return fmt.Errorf("не удалось получить информацию о поставщике: %v", err)
@@ -86,10 +87,14 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 
 	// Сохраняем ссылки на изображения в базе данных
 	if len(productImages) > 0 {
-		// Преобразуем массив ссылок на изображения в SQL массив
+		imagesJSON, err := json.Marshal(productImages)
+		if err != nil {
+			return fmt.Errorf("не удалось преобразовать массив изображений в JSON: %v", err)
+		}
+
 		productImageRecord := &models.ProductImage{
 			ProductID: product.ID,
-			ImageURLs: productImages,
+			ImageURLs: string(imagesJSON), // Хранится как JSON строка в базе данных
 		}
 
 		if err := db.CreateProductImage(productImageRecord); err != nil {
@@ -99,13 +104,11 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 
 	// Сохраняем значения атрибутов для основного продукта
 	for _, attribute := range req.Attributes {
-		// Получаем ID атрибута по имени
 		attributeID, err := db.GetAttributeIDByName(req.CategoryID, attribute.Name)
 		if err != nil {
 			return fmt.Errorf("Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
 		}
 
-		// Проверяем, существует ли значение атрибута, и получаем его ID или создаем новое значение
 		attributeValueStr, ok := attribute.Value.(string)
 		if !ok {
 			return fmt.Errorf("ошибка приведения значения атрибута '%s' к строке: %v", attribute.Name, attribute.Value)
@@ -114,7 +117,6 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 		attributeValueID, err := db.GetAttributeValueID(attributeID, attributeValueStr)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				// Если значение не найдено, создаем его
 				attributeValueID, err = db.CreateAttributeValue(attributeID, json.RawMessage(attributeValueStr))
 				if err != nil {
 					return fmt.Errorf("Ошибка при создании значения атрибута '%s': %v", attribute.Name, err)
@@ -124,7 +126,6 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 			}
 		}
 
-		// Создаем запись в таблице product_attribute_values
 		productAttributeValue := &models.ProductAttributeValue{
 			ProductID:        product.ID,
 			AttributeValueID: attributeValueID,
@@ -320,37 +321,28 @@ func (p *ProductService) SaveVariationImages(variationID int, images []*multipar
 		return fmt.Errorf("не удалось создать директорию для изображений вариации: %v", err)
 	}
 
-	// Проверяем, действительно ли директория создана
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		return fmt.Errorf("директория для изображений не была создана: %v", err)
-	}
-
 	log.Printf("Директория для загрузки изображений вариации: %s успешно создана", uploadDir)
 
-	// Сохраняем каждое изображение в файловую систему и собираем пути для базы данных
 	var imagePaths []string
 	for _, fileHeader := range images {
 		if fileHeader != nil {
-			// Генерируем имя файла и сохраняем
 			fileName := filepath.Join(uploadDir, fileHeader.Filename)
-			log.Printf("Попытка сохранить файл: %s", fileName)
-
 			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
 				return fmt.Errorf("не удалось сохранить изображение вариации: %v", err)
 			}
-
-			// Добавляем путь к изображению в список
-			imagePaths = append(imagePaths, "/uploads/variations/"+fileHeader.Filename)
-		} else {
-			log.Printf("Пропущен файл изображения для вариации ID: %d, так как он равен nil", variationID)
+			imagePaths = append(imagePaths, fileName)
 		}
 	}
 
-	// Если есть изображения, создаем запись в базе данных
 	if len(imagePaths) > 0 {
+		imagesJSON, err := json.Marshal(imagePaths)
+		if err != nil {
+			return fmt.Errorf("не удалось преобразовать массив изображений в JSON: %v", err)
+		}
+
 		productVariationImage := &models.ProductVariationImage{
 			ProductVariationID: variationID,
-			ImageURLs:          imagePaths, // Сохраняем массив ссылок на изображения
+			ImageURLs:          string(imagesJSON), // Хранится как JSON строка в базе данных
 		}
 
 		if err := db.CreateProductVariationImage(productVariationImage); err != nil {
