@@ -642,14 +642,25 @@ func GetAttributeIDByNameAndCategory(attributeName string, categoryID int) (int,
 }
 
 func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, error) {
-	// Преобразуем значение в json.RawMessage
-	valueJSON, err := json.Marshal(value)
-	if err != nil {
-		log.Printf("CreateOrUpdateAttributeValue: Ошибка при преобразовании значения в JSON: %v", err)
-		return 0, fmt.Errorf("не удалось преобразовать значение в JSON: %v", err)
-	}
-
 	var attributeValueID int
+
+	// Преобразуем значение в строку, если это необходимо
+	var valueJSON json.RawMessage
+	switch v := value.(type) {
+	case string:
+		valueJSON = json.RawMessage(fmt.Sprintf(`"%s"`, v))
+	case bool, float64, int, map[string]interface{}:
+		jsonValue, err := json.Marshal(v)
+		if err != nil {
+			log.Printf("CreateOrUpdateAttributeValue: Ошибка при преобразовании значения в JSON: %v", err)
+			return 0, fmt.Errorf("не удалось преобразовать значение в JSON: %v", err)
+		}
+		valueJSON = jsonValue
+	case json.RawMessage:
+		valueJSON = v
+	default:
+		return 0, fmt.Errorf("неподдерживаемый тип значения: %T", v)
+	}
 
 	// Проверяем, существует ли значение атрибута
 	query := `
@@ -657,7 +668,7 @@ func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, erro
 		FROM attribute_value
 		WHERE attribute_id = $1 AND value_json = $2
 	`
-	err = DB.QueryRow(query, attributeID, valueJSON).Scan(&attributeValueID)
+	err := DB.QueryRow(query, attributeID, valueJSON).Scan(&attributeValueID)
 
 	if err == sql.ErrNoRows {
 		// Значение не существует, создаем новое
