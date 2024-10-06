@@ -662,13 +662,13 @@ func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, erro
 		return 0, fmt.Errorf("неподдерживаемый тип значения: %T", v)
 	}
 
-	// Проверяем, существует ли значение атрибута
+	// Проверяем, существует ли значение атрибута (по attribute_id)
 	query := `
 		SELECT id
 		FROM attribute_value
-		WHERE attribute_id = $1 AND value_json = $2
+		WHERE attribute_id = $1
 	`
-	err := DB.QueryRow(query, attributeID, valueJSON).Scan(&attributeValueID)
+	err := DB.QueryRow(query, attributeID).Scan(&attributeValueID)
 
 	if err == sql.ErrNoRows {
 		// Значение не существует, создаем новое
