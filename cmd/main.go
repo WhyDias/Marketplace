@@ -93,6 +93,7 @@ func main() {
 	//router.GET("/api/categories/:id/attributes", categoryController.GetCategoryAttributesByCategoryID)
 	router.GET("/api/categories/:id", categoryController.GetCategoryByID)
 	//router.POST("/api/products", productController.AddProduct)
+	router.Static("/uploads", "./uploads")
 
 	// Защищенные маршруты
 	authorized := router.Group("/")
