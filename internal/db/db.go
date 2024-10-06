@@ -644,12 +644,12 @@ func GetAttributeIDByNameAndCategory(attributeName string, categoryID int) (int,
 func CreateOrUpdateAttributeValue(attributeID int, value interface{}) (int, error) {
 	var attributeValueID int
 
-	// Преобразуем значение в строку, если это необходимо
+	// Преобразуем значение в JSON
 	var valueJSON json.RawMessage
 	switch v := value.(type) {
 	case string:
-		valueJSON = json.RawMessage(fmt.Sprintf(`"%s"`, v))
-	case bool, float64, int, map[string]interface{}:
+		valueJSON = json.RawMessage(fmt.Sprintf(`"%s"`, v)) // Заключаем строку в кавычки для JSON
+	case bool, float64, int, map[string]interface{}, []interface{}:
 		jsonValue, err := json.Marshal(v)
 		if err != nil {
 			log.Printf("CreateOrUpdateAttributeValue: Ошибка при преобразовании значения в JSON: %v", err)
