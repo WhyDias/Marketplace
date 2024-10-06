@@ -152,6 +152,24 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			return fmt.Errorf("неподдерживаемый тип option: %s", attrReq.TypeOfOption)
 		}
 
+		// Создаем запись атрибута в таблице attributes
+		attributeID, err := db.CreateAttribute(&models.Attribute{
+			Name:         attrReq.Name,
+			CategoryID:   req.CategoryID,
+			Description:  attrReq.Description,
+			TypeOfOption: attrReq.TypeOfOption,
+			Value:        valueJSON,
+		})
+		if err != nil {
+			log.Printf("Не удалось создать атрибут для категории %d: %s. Ошибка: %v", req.CategoryID, attrReq.Name, err)
+			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
+		}
+
+		// Проверяем, что атрибут успешно создан и его ID не нулевой
+		if attributeID == 0 {
+			return fmt.Errorf("ошибка при создании атрибута: получен нулевой ID")
+		}
+
 		// Создаем запись атрибута категории и получаем ID созданного атрибута
 		createdAttributeID, err = db.CreateCategoryAttribute(&models.CategoryAttribute{
 			CategoryID:   req.CategoryID,

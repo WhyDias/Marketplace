@@ -701,3 +701,17 @@ func GetRootCategories() ([]models.Category, error) {
 
 	return categories, nil
 }
+
+func CreateAttribute(attribute *models.Attribute) (int, error) {
+	query := `
+        INSERT INTO attributes (category_id, name, description, type_of_option, value)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+    `
+	var createdAttributeID int
+	err := DB.QueryRow(query, attribute.CategoryID, attribute.Name, attribute.Description, attribute.TypeOfOption, attribute.Value).Scan(&createdAttributeID)
+	if err != nil {
+		return 0, err
+	}
+	return createdAttributeID, nil
+}
