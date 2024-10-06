@@ -238,15 +238,17 @@ func (p *ProductService) AddProductVariations(variations []models.ProductVariati
 				return fmt.Errorf("ошибка при преобразовании значения атрибута '%s' в JSON: %v", attribute.Name, err)
 			}
 
-			// Обновляем значение в таблице attribute_value
-			if err := db.UpdateAttributeValue(attributeID, json.RawMessage(valueJSON)); err != nil {
-				log.Printf("SaveVariationAttributes: Ошибка при обновлении значения атрибута '%s': %v", attribute.Name, err)
-				return fmt.Errorf("ошибка при обновлении значения атрибута '%s': %v", attribute.Name, err)
+			// Создаем или обновляем значение атрибута в attribute_value и получаем его ID
+			attributeValueID, err := db.CreateOrUpdateAttributeValue(attributeID, json.RawMessage(valueJSON))
+			if err != nil {
+				log.Printf("SaveVariationAttributes: Ошибка при создании или обновлении значения атрибута '%s': %v", attribute.Name, err)
+				return fmt.Errorf("ошибка при создании или обновлении значения атрибута '%s': %v", attribute.Name, err)
 			}
 
+			// Создаем запись в таблице variation_attribute_values
 			variationAttributeValue := models.VariationAttributeValue{
 				ProductVariationID: productVariation.ID,
-				AttributeValueID:   attributeID, // Используем полученный ID атрибута
+				AttributeValueID:   attributeValueID, // Используем полученный ID значения атрибута
 			}
 
 			if err := db.CreateVariationAttributeValue(&variationAttributeValue); err != nil {
