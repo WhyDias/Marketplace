@@ -45,7 +45,6 @@ func (s *ProductService) GetSupplierIDByUserID(userID int) (int, error) {
 }
 
 func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, variations []models.ProductVariationReq, c *gin.Context) error {
-	// Получение информации о поставщике по userID
 	supplier, err := db.GetSupplierByUserID(userID)
 	if err != nil {
 		return fmt.Errorf("не удалось получить информацию о поставщике: %v", err)
@@ -69,20 +68,32 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 
 	// Сохраняем значения атрибутов для основного продукта
 	for _, attribute := range req.Attributes {
+		// Получаем ID атрибута по имени
 		attributeID, err := db.GetAttributeIDByName(req.CategoryID, attribute.Name)
 		if err != nil {
 			return fmt.Errorf("Ошибка при получении ID атрибута '%s': %v", attribute.Name, err)
 		}
 
+		// Проверяем, существует ли значение атрибута, и получаем его ID или создаем новое значение
 		attributeValueStr, ok := attribute.Value.(string)
 		if !ok {
 			return fmt.Errorf("ошибка приведения значения атрибута '%s' к строке: %v", attribute.Name, attribute.Value)
 		}
+
 		attributeValueID, err := db.GetAttributeValueID(attributeID, attributeValueStr)
 		if err != nil {
-			return fmt.Errorf("Ошибка при получении ID значения атрибута: %v", err)
+			if err == sql.ErrNoRows {
+				// Если значение не найдено, создаем его
+				attributeValueID, err = db.CreateAttributeValue(attributeID, json.RawMessage(fmt.Sprintf(`"%s"`, attributeValueStr)))
+				if err != nil {
+					return fmt.Errorf("Ошибка при создании значения атрибута '%s': %v", attribute.Name, err)
+				}
+			} else {
+				return fmt.Errorf("Ошибка при получении ID значения атрибута: %v", err)
+			}
 		}
 
+		// Создаем запись в таблице product_attribute_values
 		productAttributeValue := &models.ProductAttributeValue{
 			ProductID:        product.ID,
 			AttributeValueID: attributeValueID,

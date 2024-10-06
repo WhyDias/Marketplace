@@ -559,16 +559,18 @@ func CreateProductVariationImage(image *models.ProductVariationImage) error {
 	return nil
 }
 
-func CreateAttributeValue(attributeID int, value json.RawMessage) error {
+func CreateAttributeValue(attributeID int, value json.RawMessage) (int, error) {
+	var createdAttributeValueID int
 	query := `
         INSERT INTO attribute_value (attribute_id, value_json)
         VALUES ($1, $2)
+        RETURNING id
     `
-	_, err := DB.Exec(query, attributeID, value)
+	err := DB.QueryRow(query, attributeID, value).Scan(&createdAttributeValueID)
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("Ошибка при создании значения атрибута: %v", err)
 	}
-	return nil
+	return createdAttributeValueID, nil
 }
 
 // GetAttributeValueID возвращает ID значения атрибута по его значению
