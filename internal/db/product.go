@@ -93,16 +93,6 @@ func FetchProductsBySupplierAndStatus(supplierID, statusID int) ([]models.Produc
 	return products, nil
 }
 
-func GetSupplierIDByUserID(userID int) (int, error) {
-	var supplierID int
-	query := `SELECT id FROM supplier WHERE user_id = $1`
-	err := DB.QueryRow(query, userID).Scan(&supplierID)
-	if err != nil {
-		return 0, fmt.Errorf("Не удалось получить supplier_id для user_id %d: %v", userID, err)
-	}
-	return supplierID, nil
-}
-
 func GetProductByID(productID int) (*models.Product, error) {
 	query := `
         SELECT id, name, description, category_id, market_id, status_id, supplier_id

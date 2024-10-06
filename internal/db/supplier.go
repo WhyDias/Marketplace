@@ -97,3 +97,41 @@ func GetMarketIDBySupplierID(supplierID int) (int, error) {
 	}
 	return marketID, nil
 }
+
+func GetCategoriesBySupplierID(supplierID int) ([]models.Category, error) {
+	query := `
+        SELECT c.id, c.name 
+        FROM categories c
+        JOIN supplier_categories sc ON sc.category_id = c.id
+        WHERE sc.supplier_id = $1
+    `
+	rows, err := DB.Query(query, supplierID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []models.Category
+	for rows.Next() {
+		var category models.Category
+		if err := rows.Scan(&category.ID, &category.Name); err != nil {
+			return nil, err
+		}
+		categories = append(categories, category)
+	}
+
+	return categories, nil
+}
+
+func GetSupplierIDByUserID(userID int) (int, error) {
+	var supplierID int
+	query := `SELECT id FROM supplier WHERE user_id = $1`
+	err := DB.QueryRow(query, userID).Scan(&supplierID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, fmt.Errorf("Поставщик не найден для user_id %d", userID)
+		}
+		return 0, err
+	}
+	return supplierID, nil
+}

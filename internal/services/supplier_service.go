@@ -238,10 +238,20 @@ func (s *SupplierService) AddCategory(name, path, imageURL string) (*models.Cate
 	return category, nil
 }
 
+// GetSupplierIDByUserID возвращает supplier_id по user_id
 func (s *SupplierService) GetSupplierIDByUserID(userID int) (int, error) {
 	supplierID, err := db.GetSupplierIDByUserID(userID)
 	if err != nil {
 		return 0, fmt.Errorf("Не удалось получить supplier_id для user_id %d: %v", userID, err)
 	}
 	return supplierID, nil
+}
+
+// GetCategoriesBySupplierID возвращает категории, связанные с поставщиком
+func (s *SupplierService) GetCategoriesBySupplierID(supplierID int) ([]models.Category, error) {
+	categories, err := db.GetCategoriesBySupplierID(supplierID)
+	if err != nil {
+		return nil, fmt.Errorf("Ошибка при получении категорий для поставщика %d: %v", supplierID, err)
+	}
+	return categories, nil
 }

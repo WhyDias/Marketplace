@@ -239,3 +239,45 @@ func (sc *SupplierController) AddCategory(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, response)
 }
+
+// GetSupplierCategoriesHandler обрабатывает запрос для получения категорий поставщика по user_id
+// @Summary Get Supplier Categories
+// @Description Получение категорий, связанных с поставщиком по user_id из токена
+// @Tags Supplier
+// @Security ApiKeyAuth
+// @Produce json
+// @Success 200 {array} models.Category "Список категорий поставщика"
+// @Failure 401 {object} ErrorResponse "Не авторизован"
+// @Failure 500 {object} ErrorResponse "Ошибка сервера"
+// @Router /api/supplier/categories [get]
+func (ctrl *SupplierController) GetSupplierCategoriesHandler(c *gin.Context) {
+	// Получаем user_id из контекста
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Не удалось получить user_id из токена"})
+		return
+	}
+
+	userID, ok := userIDInterface.(int)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный формат user_id"})
+		return
+	}
+
+	// Получаем supplier_id по user_id
+	supplierID, err := ctrl.Service.GetSupplierIDByUserID(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить supplier_id: " + err.Error()})
+		return
+	}
+
+	// Получаем связанные категории для поставщика
+	categories, err := ctrl.Service.GetCategoriesBySupplierID(supplierID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить категории поставщика: " + err.Error()})
+		return
+	}
+
+	// Возвращаем список категорий в JSON формате
+	c.JSON(http.StatusOK, categories)
+}
