@@ -81,7 +81,7 @@ func (p *ProductService) AddProduct(req *models.ProductRequest, userID int, vari
 			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
 				return fmt.Errorf("не удалось сохранить изображение продукта: %v", err)
 			}
-			productImages = append(productImages, fileName)
+			productImages = append(productImages, fmt.Sprintf("http://195.49.215.120:8080/%s", fileName))
 		}
 	}
 
@@ -330,7 +330,7 @@ func (p *ProductService) SaveVariationImages(variationID int, images []*multipar
 			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
 				return fmt.Errorf("не удалось сохранить изображение вариации: %v", err)
 			}
-			imagePaths = append(imagePaths, fileName)
+			imagePaths = append(imagePaths, fmt.Sprintf("http://195.49.215.120:8080/%s", fileName))
 		}
 	}
 

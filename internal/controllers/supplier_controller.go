@@ -217,8 +217,10 @@ func (sc *SupplierController) AddCategory(c *gin.Context) {
 		return
 	}
 
+	imageURL := fmt.Sprintf("http://195.49.215.120:8080/%s", filePath)
+
 	// Добавление категории через сервисный слой
-	category, err := sc.Service.AddCategory(name, path, filePath)
+	category, err := sc.Service.AddCategory(name, path, imageURL)
 	if err != nil {
 		log.Printf("AddCategory: ошибка при добавлении категории: %v", err)
 		if err.Error() == "категория с path '"+path+"' уже существует" {
