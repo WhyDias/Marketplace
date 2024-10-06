@@ -302,7 +302,7 @@ func GetAllCategories() ([]models.Category, error) {
 
 func CreateCategoryAttribute(attribute *models.CategoryAttribute) (int, error) {
 	query := `
-		INSERT INTO attributes (category_id, name, description, type_of_option, value)
+		INSERT INTO category_attributes (category_id, name, description, type_of_option, value)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 	`

@@ -161,7 +161,7 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			Value:        valueJSON,
 		})
 		if err != nil {
-			log.Printf("Не удалось создать атрибут для пользователя %d: %s. Ошибка: %v", userID, attrReq.Name, err)
+			log.Printf("Не удалось создать атрибут для категории %d: %s. Ошибка: %v", req.CategoryID, attrReq.Name, err)
 			return fmt.Errorf("не удалось создать атрибут %s: %v", attrReq.Name, err)
 		}
 
@@ -183,29 +183,6 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 				if createdValueID == 0 {
 					return fmt.Errorf("ошибка при создании значения атрибута: получен нулевой ID")
 				}
-			}
-
-		case "range":
-			rangeStr := fmt.Sprintf("[%d, %d]", rangeValues[0], rangeValues[1])
-			rangeValueJSON, _ := json.Marshal(rangeStr)
-			createdValueID, err := db.CreateAttributeValue(createdAttributeID, rangeValueJSON)
-			if err != nil {
-				return fmt.Errorf("не удалось создать значение атрибута range %s: %v", rangeStr, err)
-			}
-
-			if createdValueID == 0 {
-				return fmt.Errorf("ошибка при создании значения атрибута: получен нулевой ID")
-			}
-
-		case "switcher", "text", "numeric":
-			emptyValueJSON, _ := json.Marshal("")
-			createdValueID, err := db.CreateAttributeValue(createdAttributeID, emptyValueJSON)
-			if err != nil {
-				return fmt.Errorf("не удалось создать значение атрибута %s: %v", attrReq.Name, err)
-			}
-
-			if createdValueID == 0 {
-				return fmt.Errorf("ошибка при создании значения атрибута: получен нулевой ID")
 			}
 		}
 	}
