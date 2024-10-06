@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"os"
 )
 
 // RegisterSupplierRequest структура запроса для регистрации поставщика
@@ -174,33 +175,53 @@ type AddCategoryResponse struct {
 	ImageURL string `json:"image_url"`
 }
 
-// AddCategory добавляет новую категорию.
-// @Summary      Добавление категории
-// @Description  Добавляет новую категорию с заданными параметрами.
-// @Tags         Категории
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Param        input  body      AddCategoryRequest  true  "Данные для добавления категории"
-// @Success      201    {object}  AddCategoryResponse
-// @Failure      400    {object}  ErrorResponse
-// @Failure      401    {object}  ErrorResponse
-// @Failure      500    {object}  ErrorResponse
-// @Router       /api/categories [post]
+// AddCategory добавляет новую категорию с изображением
+// @Summary Добавить новую категорию
+// @Description Добавляет новую категорию с изображением
+// @Tags Categories
+// @Accept multipart/form-data
+// @Produce json
+// @Param Authorization header string true "Bearer <token>"
+// @Param name formData string true "Название категории"
+// @Param path formData string true "Путь категории"
+// @Param image formData file true "Изображение категории"
+// @Success 201 {object} AddCategoryResponse "Категория успешно добавлена"
+// @Failure 400 {object} utils.ErrorResponse "Неверный формат данных или ошибки валидации"
+// @Failure 401 {object} utils.ErrorResponse "Необходима авторизация"
+// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /api/categories [post]
 func (sc *SupplierController) AddCategory(c *gin.Context) {
-	var req AddCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Printf("AddCategory: ошибка при связывании JSON: %v", err)
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+	name := c.PostForm("name")
+	path := c.PostForm("path")
+
+	file, err := c.FormFile("image")
+	if err != nil {
+		log.Printf("AddCategory: ошибка при получении изображения: %v", err)
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Необходимо предоставить изображение категории"})
+		return
+	}
+
+	// Создаем директорию для изображений категорий, если её нет
+	uploadDir := "uploads/categories"
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		log.Printf("AddCategory: ошибка при создании директории для изображений: %v", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать директорию для изображений"})
+		return
+	}
+
+	// Генерируем путь к файлу
+	filePath := fmt.Sprintf("%s/%s", uploadDir, file.Filename)
+	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		log.Printf("AddCategory: ошибка при сохранении изображения: %v", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось сохранить изображение"})
 		return
 	}
 
 	// Добавление категории через сервисный слой
-	category, err := sc.Service.AddCategory(req.Name, req.Path, req.ImageURL)
+	category, err := sc.Service.AddCategory(name, path, filePath)
 	if err != nil {
 		log.Printf("AddCategory: ошибка при добавлении категории: %v", err)
-		// Проверяем, является ли ошибка связанной с уникальностью path
-		if err.Error() == "категория с path '"+req.Path+"' уже существует" {
+		if err.Error() == "категория с path '"+path+"' уже существует" {
 			c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось добавить категорию"})
