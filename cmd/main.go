@@ -108,6 +108,7 @@ func main() {
 		authorized.POST("/api/categories/attributes", categoryController.AddCategoryAttributes)
 		authorized.GET("/api/categories/:id/attributes", categoryController.GetCategoryAttributesByCategoryID)
 		authorized.GET("/api/supplier/categories", supplierController.GetSupplierCategoriesHandler)
+		authorized.DELETE("/categories/:category_id/attributes", categoryController.DeleteCategoryAttributes)
 	}
 
 	// Маршруты для получения рынков и категорий

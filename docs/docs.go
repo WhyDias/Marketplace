@@ -535,13 +535,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -575,13 +575,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -1009,6 +1009,64 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/categories/{category_id}/attributes": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Удаляет все атрибуты для указанной категории по её ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Category"
+                ],
+                "summary": "Удаление атрибутов категории",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID категории",
+                        "name": "category_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -2219,7 +2277,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "194.32.141.32:8080",
+	Host:             "195.49.215.120:8080",
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Marketplace API",

@@ -996,11 +996,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Получение продуктов с модерацией
@@ -1021,11 +1021,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse'
+            $ref: '#/definitions/internal_controllers.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Получение продуктов без модерации
@@ -1268,6 +1268,43 @@ paths:
       summary: Получение списка категорий
       tags:
       - Справочники
+  /categories/{category_id}/attributes:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет все атрибуты для указанной категории по её ID
+      parameters:
+      - description: ID категории
+        in: path
+        name: category_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Удаление атрибутов категории
+      tags:
+      - Category
   /categories/{id}/attributes:
     get:
       consumes:
