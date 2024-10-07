@@ -217,7 +217,7 @@ func (sc *SupplierController) AddCategory(c *gin.Context) {
 		return
 	}
 
-	imageURL := fmt.Sprintf("http://195.49.215.120:8080/%s", filePath)
+	imageURL := fmt.Sprintf("http://194.32.141.32:8080/%s", filePath)
 
 	// Добавление категории через сервисный слой
 	category, err := sc.Service.AddCategory(name, path, imageURL)
