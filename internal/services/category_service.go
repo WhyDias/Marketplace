@@ -334,3 +334,21 @@ func (s *CategoryService) GetRootCategories() ([]models.Category, error) {
 	}
 	return rootCategories, nil
 }
+
+func (s *CategoryService) DeleteCategoryAttributes(categoryID int) error {
+	log.Printf("Удаление атрибутов для категории ID %d", categoryID)
+
+	// Удаление атрибутов категории из таблицы category_attributes
+	if err := db.DeleteCategoryAttributes(categoryID); err != nil {
+		log.Printf("DeleteCategoryAttributes: ошибка при удалении атрибутов из category_attributes для категории %d: %v", categoryID, err)
+		return err
+	}
+
+	//// Удаление атрибутов из таблицы attributes
+	//if err := db.DeleteAttributesByCategoryID(categoryID); err != nil {
+	//	log.Printf("DeleteAttributesByCategoryID: ошибка при удалении атрибутов из attributes для категории %d: %v", categoryID, err)
+	//	return err
+	//}
+
+	return nil
+}

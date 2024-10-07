@@ -8,6 +8,7 @@ import (
 	"github.com/WhyDias/Marketplace/internal/services"
 	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -107,6 +108,37 @@ type CategoryAttributePayload struct {
 // Helper function to get pointer to string
 func StringPtr(s string) *string {
 	return &s
+}
+
+// DeleteCategoryAttributes godoc
+// @Summary Удаление атрибутов категории
+// @Description Удаляет все атрибуты для указанной категории по её ID
+// @Tags Category
+// @Accept json
+// @Produce json
+// @Param category_id path int true "ID категории"
+// @Success 200 {object} map[string]string "message"
+// @Failure 400 {object} map[string]string "error"
+// @Failure 500 {object} map[string]string "error"
+// @Router /categories/{category_id}/attributes [delete]
+// @Security ApiKeyAuth
+func (cc *CategoryController) DeleteCategoryAttributes(c *gin.Context) {
+	categoryIDStr := c.Param("category_id")
+	categoryID, err := strconv.Atoi(categoryIDStr)
+	if err != nil {
+		log.Printf("DeleteCategoryAttributes: ошибка при преобразовании category_id: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный идентификатор категории"})
+		return
+	}
+
+	err = cc.Service.DeleteCategoryAttributes(categoryID)
+	if err != nil {
+		log.Printf("DeleteCategoryAttributes: ошибка при удалении атрибутов для категории %d: %v", categoryID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось удалить атрибуты категории"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Атрибуты категории успешно удалены"})
 }
 
 // AddCategoryAttributes

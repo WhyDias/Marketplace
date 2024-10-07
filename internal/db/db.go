@@ -760,3 +760,29 @@ func UpdateCategoryAttribute(attribute *models.CategoryAttribute) error {
 
 	return nil
 }
+
+// DeleteCategoryAttributes удаляет атрибуты категории по category_id
+func DeleteCategoryAttributes(categoryID int) error {
+	query := `DELETE FROM category_attributes WHERE id = $1`
+
+	_, err := DB.Exec(query, categoryID)
+	if err != nil {
+		log.Printf("DeleteCategoryAttributes: ошибка при удалении атрибутов категории с category_id %d: %v", categoryID, err)
+		return err
+	}
+
+	return nil
+}
+
+// DeleteAttributesByCategoryID удаляет атрибуты из таблицы attributes по category_id
+func DeleteAttributesByCategoryID(categoryID int) error {
+	query := `DELETE FROM attributes WHERE category_id = $1`
+
+	_, err := DB.Exec(query, categoryID)
+	if err != nil {
+		log.Printf("DeleteAttributesByCategoryID: ошибка при удалении атрибутов с category_id %d: %v", categoryID, err)
+		return err
+	}
+
+	return nil
+}
