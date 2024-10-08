@@ -352,3 +352,38 @@ func (s *CategoryService) DeleteCategoryAttributes(categoryID int) error {
 
 	return nil
 }
+
+// GetCategoryByPath возвращает категорию по её пути (path)
+func (s *CategoryService) GetCategoryByPath(path string) (*models.Category, error) {
+	// Обращаемся к базе данных для получения категории по path
+	category, err := db.GetCategoryByPath(path)
+	if err != nil {
+		log.Printf("GetCategoryByPath: ошибка при получении категории по path %s: %v", path, err)
+		return nil, fmt.Errorf("не удалось найти категорию по path %s", path)
+	}
+	return category, nil
+}
+
+// GetCategoryAttributes возвращает список атрибутов для заданной категории по её ID
+func (s *CategoryService) GetCategoryAttributes(categoryID int) ([]models.CategoryAttributeResponse, error) {
+	// Получаем атрибуты категории из базы данных
+	attributes, err := db.GetCategoryAttributes(categoryID)
+	if err != nil {
+		log.Printf("GetCategoryAttributes: ошибка при получении атрибутов для категории ID %d: %v", categoryID, err)
+		return nil, err
+	}
+
+	// Преобразуем атрибуты в DTO для ответа
+	var attributeResponses []models.CategoryAttributeResponse
+	for _, attr := range attributes {
+		attributeResponses = append(attributeResponses, models.CategoryAttributeResponse{
+			ID:           attr.ID,
+			Name:         attr.Name,
+			Description:  attr.Description,
+			TypeOfOption: attr.TypeOfOption,
+			Value:        attr.Value,
+		})
+	}
+
+	return attributeResponses, nil
+}

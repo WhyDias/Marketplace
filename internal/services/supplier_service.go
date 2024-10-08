@@ -25,9 +25,10 @@ func NewSupplierService() *SupplierService {
 
 // CreateSupplier создает нового поставщика
 func (s *SupplierService) CreateSupplier(supplier *models.Supplier) error {
-	query := `INSERT INTO supplier (phone_number, is_verified, created_at, updated_at)
-              VALUES ($1, $2, $3, $4) RETURNING id`
-	err := db.DB.QueryRow(query, supplier.PhoneNumber, supplier.IsVerified, supplier.CreatedAt, supplier.UpdatedAt).Scan(&supplier.ID)
+	query := `INSERT INTO supplier (phone_number, is_verified, user_id, created_at, updated_at)
+              VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	// Включаем user_id в запрос
+	err := db.DB.QueryRow(query, supplier.PhoneNumber, supplier.IsVerified, supplier.UserID, supplier.CreatedAt, supplier.UpdatedAt).Scan(&supplier.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create supplier: %v", err)
 	}

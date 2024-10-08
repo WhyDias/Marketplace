@@ -307,3 +307,39 @@ func (ctrl *CategoryController) GetRootCategories(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, categories)
 }
+
+// GetCategoryAttributesByPath godoc
+// @Summary Получение атрибутов категории по пути
+// @Description Получает атрибуты категории по её пути (path)
+// @Tags Category
+// @Accept json
+// @Produce json
+// @Param path path string true "Путь категории (например, 'root/electronics/phones')"
+// @Success 200 {object} []models.CategoryAttributeResponse
+// @Failure 400 {object} map[string]string "error"
+// @Failure 404 {object} map[string]string "error"
+// @Failure 500 {object} map[string]string "error"
+// @Router /categories/{path}/attributes [get]
+// @Security ApiKeyAuth
+func (cc *CategoryController) GetCategoryAttributesByPath(c *gin.Context) {
+	// Получаем path из параметров URL
+	path := c.Param("path")
+
+	// Получаем категорию по path
+	category, err := cc.Service.GetCategoryByPath(path)
+	if err != nil {
+		log.Printf("GetCategoryAttributesByPath: ошибка при получении категории по path %s: %v", path, err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Категория не найдена"})
+		return
+	}
+
+	// Получаем атрибуты для этой категории
+	attributes, err := cc.Service.GetCategoryAttributes(category.ID)
+	if err != nil {
+		log.Printf("GetCategoryAttributesByPath: ошибка при получении атрибутов для категории ID %d: %v", category.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить атрибуты категории"})
+		return
+	}
+
+	c.JSON(http.StatusOK, attributes)
+}
