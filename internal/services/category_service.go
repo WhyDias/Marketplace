@@ -352,3 +352,13 @@ func (s *CategoryService) DeleteCategoryAttributes(categoryID int) error {
 
 	return nil
 }
+
+func (s *CategoryService) GetCategoryByPath(path string) (*models.Category, error) {
+	// Обращаемся к базе данных для получения категории по path
+	category, err := db.GetCategoryByPath(path)
+	if err != nil {
+		log.Printf("GetCategoryByPath: ошибка при получении категории по path %s: %v", path, err)
+		return nil, fmt.Errorf("не удалось найти категорию по path %s", path)
+	}
+	return category, nil
+}
