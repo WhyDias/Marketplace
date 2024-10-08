@@ -141,19 +141,19 @@ func (cc *CategoryController) DeleteCategoryAttributes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Атрибуты категории успешно удалены"})
 }
 
-// AddCategoryAttributes
-// @Summary Добавить атрибуты к категории
-// @Description Добавляет один или несколько атрибутов к заданной категории
-// @Tags Categories
-// @Accept  json
-// @Produce  json
-// @Param Authorization header string true "Bearer <token>"
-// @Param attributes body AddCategoryAttributesRequest true "Данные атрибутов"
+// AddCategoryAttributes добавляет или обновляет атрибуты для категории
+// @Summary Добавление или обновление атрибутов категории
+// @Tags Category
+// @Description Добавляет или обновляет атрибуты для указанной категории, проверяет уникальность по имени
+// @Accept json
+// @Produce json
+// @Param AddCategoryAttributesRequest body models.AddCategoryAttributesRequest true "Запрос на добавление атрибутов категории"
 // @Success 201 {object} utils.ErrorResponse "Атрибуты успешно добавлены"
-// @Failure 400 {object} utils.ErrorResponse "Неверный формат данных или ошибки валидации"
+// @Failure 400 {object} utils.ErrorResponse "Неверный формат данных"
 // @Failure 401 {object} utils.ErrorResponse "Необходима авторизация"
-// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /api/categories/attributes [post]
+// @Failure 500 {object} utils.ErrorResponse "Ошибка сервера"
+// @Router /category/attributes [post]
+// @Security ApiKeyAuth
 func (cc *CategoryController) AddCategoryAttributes(c *gin.Context) {
 	var req models.AddCategoryAttributesRequest
 
@@ -341,5 +341,43 @@ func (cc *CategoryController) GetCategoryAttributesByPath(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, attributes)
+}
+
+// GetAttributesByCategoryAndIsLinked Получить атрибуты по категории и is_linked
+// @Summary Получить атрибуты по категории и is_linked
+// @Description Возвращает список атрибутов для указанной категории с учетом is_linked
+// @Tags Атрибуты
+// @Param category_id query int true "ID категории"
+// @Param is_linked query bool true "Флаг is_linked"
+// @Success 200 {array} models.Attribute
+// @Failure 400 {object} utils.ErrorResponse "Некорректные параметры"
+// @Failure 500 {object} utils.ErrorResponse "Ошибка сервера"
+// @Router /attributes [get]
+func (cc *CategoryController) GetAttributesByCategoryAndIsLinked(c *gin.Context) {
+	categoryIDStr := c.Query("category_id")
+	isLinkedStr := c.Query("is_linked")
+
+	// Преобразуем параметры из строки в нужные типы
+	categoryID, err := strconv.Atoi(categoryIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный category_id"})
+		return
+	}
+
+	isLinked, err := strconv.ParseBool(isLinkedStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный параметр is_linked"})
+		return
+	}
+
+	// Получаем атрибуты с помощью сервиса
+	attributes, err := cc.Service.GetAttributesByCategoryAndIsLinked(categoryID, isLinked)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить атрибуты"})
+		return
+	}
+
+	// Отправляем результат
 	c.JSON(http.StatusOK, attributes)
 }

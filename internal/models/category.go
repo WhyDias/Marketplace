@@ -55,4 +55,5 @@ type AttributeRequest struct {
 	Description  string      `json:"description" binding:"required"`
 	TypeOfOption string      `json:"type_of_option" binding:"required,oneof=dropdown range switcher text numeric"`
 	Value        interface{} `json:"value,omitempty"`
+	IsLinked     bool        `json:"is_linked"`
 }

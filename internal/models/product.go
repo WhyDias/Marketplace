@@ -135,6 +135,7 @@ type Attribute struct {
 	Description  string          `json:"description"` // Добавляем описание
 	TypeOfOption string          `json:"type_of_option"`
 	Value        json.RawMessage `json:"value"`
+	IsLinked     bool            `json:"is_linked"`
 }
 
 type ProductAttributeValue struct {
