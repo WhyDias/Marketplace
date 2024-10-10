@@ -296,7 +296,7 @@ func (p *ProductService) SaveVariationImages(variationID int, images []*multipar
 			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
 				return fmt.Errorf("не удалось сохранить изображение вариации: %v", err)
 			}
-			imagePaths = append(imagePaths, fmt.Sprintf("http://your-domain.com/%s", fileName))
+			imagePaths = append(imagePaths, fmt.Sprintf("http://194.32.141.32/%s", fileName))
 		}
 	}
 
