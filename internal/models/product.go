@@ -63,29 +63,19 @@ type VariationAttributeRequest struct {
 }
 
 type ProductRequest struct {
-	Name        string  `form:"name" binding:"required"`
-	CategoryID  int     `form:"category_id" binding:"required"`
-	Description string  `form:"description"`
-	Price       float64 `form:"price" binding:"required"`
-	// Stock          int                     `form:"stock"` // Удаляем это поле или делаем его необязательным
-	//Images         []*multipart.FileHeader `form:"images"` // Об этом поговорим в следующем разделе
-	Attributes     []AttributeValueRequest `form:"attributes"`
-	AttributesJSON string                  `form:"attributes" binding:"required"` // Общие атрибуты
-	VariationsJSON string                  `form:"variations" binding:"required"` // Вариации
-	VariationFiles []*multipart.FileHeader `form:"variation_images"`
-}
-
-type ProductVariationReq struct {
-	SKU        string                  `form:"sku"`
-	Attributes []AttributeValueRequest `form:"attributes"`
-	Images     []*multipart.FileHeader `form:"images"`
+	Name           string  `form:"name" binding:"required"`
+	CategoryID     int     `form:"category_id" binding:"required"`
+	Description    string  `form:"description"`
+	Price          float64 `form:"price" binding:"required"`
+	AttributesJSON string  `form:"attributes" binding:"required"`
+	VariationsJSON string  `form:"variations" binding:"required"`
 }
 
 type ProductVariationRequest struct {
-	SKU        string                  `json:"sku"` // Если не указан, будет сгенерирован автоматически
+	SKU        string                  `json:"sku"`
 	Attributes []AttributeValueRequest `json:"attributes" binding:"required"`
-	Price      float64                 `json:"price"` // Цена вариации, если отличается
-	Images     []*multipart.FileHeader // Изображения вариации (будут обработаны отдельно)
+	Price      float64                 `json:"price"`
+	Images     []*multipart.FileHeader // Images will be assigned later
 }
 
 type AttributeValueRequest struct {
