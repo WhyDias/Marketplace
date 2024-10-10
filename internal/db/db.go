@@ -410,7 +410,7 @@ func GetOrCreateAttributeValue(attributeID int, value string) (int, error) {
 
 func GetCategoryAttributesByCategoryID(categoryID int) ([]models.CategoryAttribute, error) {
 	query := `
-		SELECT id, category_id, name, description, type_of_option, value
+		SELECT id, category_id, name, description, type_of_option, value, is_linked
 		FROM category_attributes
 		WHERE category_id = $1
 	`
@@ -425,7 +425,7 @@ func GetCategoryAttributesByCategoryID(categoryID int) ([]models.CategoryAttribu
 	var attributes []models.CategoryAttribute
 	for rows.Next() {
 		var attr models.CategoryAttribute
-		err := rows.Scan(&attr.ID, &attr.CategoryID, &attr.Name, &attr.Description, &attr.TypeOfOption, &attr.Value)
+		err := rows.Scan(&attr.ID, &attr.CategoryID, &attr.Name, &attr.Description, &attr.TypeOfOption, &attr.Value, &attr.IsLinked)
 		if err != nil {
 			log.Printf("GetCategoryAttributesByCategoryID: ошибка при сканировании строки: %v", err)
 			return nil, fmt.Errorf("ошибка при сканировании строки: %v", err)
@@ -717,6 +717,52 @@ func CreateAttribute(attribute *models.Attribute) (int, error) {
 	return attributeID, nil
 }
 
+func UpdateAttribute(attribute *models.Attribute) error {
+	query := `UPDATE attributes SET 
+		name = $1, 
+		category_id = $2, 
+		description = $3, 
+		type_of_option = $4, 
+		is_linked = $5, 
+		value = $6 
+	WHERE id = $7`
+
+	_, err := DB.Exec(query, attribute.Name, attribute.CategoryID, attribute.Description, attribute.TypeOfOption, attribute.IsLinked, attribute.Value, attribute.ID)
+	if err != nil {
+		log.Printf("Ошибка при обновлении атрибута ID %d: %v", attribute.ID, err)
+		return fmt.Errorf("не удалось обновить атрибут: %v", err)
+	}
+
+	return nil
+}
+
+func GetAttributesByCategoryAndIsLinked(categoryID int, isLinked bool) ([]models.Attribute, error) {
+	var attributes []models.Attribute
+
+	query := `SELECT id, name, category_id, description, type_of_option, is_linked, value
+			  FROM attributes
+			  WHERE category_id = $1 AND is_linked = $2`
+
+	rows, err := DB.Query(query, categoryID, isLinked)
+	if err != nil {
+		log.Printf("Ошибка при получении атрибутов для категории %d с is_linked=%t: %v", categoryID, isLinked, err)
+		return nil, fmt.Errorf("не удалось получить атрибуты: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var attribute models.Attribute
+		err := rows.Scan(&attribute.ID, &attribute.Name, &attribute.CategoryID, &attribute.Description, &attribute.TypeOfOption, &attribute.IsLinked, &attribute.Value)
+		if err != nil {
+			log.Printf("Ошибка при сканировании строки атрибута: %v", err)
+			return nil, fmt.Errorf("не удалось обработать данные атрибута: %v", err)
+		}
+		attributes = append(attributes, attribute)
+	}
+
+	return attributes, nil
+}
+
 func GetCategoryAttributeByName(categoryID int, name string) (*models.CategoryAttribute, error) {
 	query := `SELECT id, category_id, name, description, type_of_option, value FROM category_attributes WHERE category_id = $1 AND name = $2`
 
@@ -775,6 +821,19 @@ func DeleteCategoryAttributes(categoryID int) error {
 	return nil
 }
 
+// DeleteAttributesByCategoryID удаляет атрибуты из таблицы attributes по category_id
+func DeleteAttributesByCategoryID(categoryID int) error {
+	query := `DELETE FROM attributes WHERE category_id = $1`
+
+	_, err := DB.Exec(query, categoryID)
+	if err != nil {
+		log.Printf("DeleteAttributesByCategoryID: ошибка при удалении атрибутов с category_id %d: %v", categoryID, err)
+		return err
+	}
+
+	return nil
+}
+
 func GetAttributeByNameAndCategoryID(name string, categoryID int) (*models.Attribute, error) {
 	var attribute models.Attribute
 
@@ -802,50 +861,4 @@ func GetAttributeByNameAndCategoryID(name string, categoryID int) (*models.Attri
 	}
 
 	return &attribute, nil
-}
-
-func UpdateAttribute(attribute *models.Attribute) error {
-	query := `UPDATE attributes SET 
-		name = $1, 
-		category_id = $2, 
-		description = $3, 
-		type_of_option = $4, 
-		is_linked = $5, 
-		value = $6 
-	WHERE id = $7`
-
-	_, err := DB.Exec(query, attribute.Name, attribute.CategoryID, attribute.Description, attribute.TypeOfOption, attribute.IsLinked, attribute.Value, attribute.ID)
-	if err != nil {
-		log.Printf("Ошибка при обновлении атрибута ID %d: %v", attribute.ID, err)
-		return fmt.Errorf("не удалось обновить атрибут: %v", err)
-	}
-
-	return nil
-}
-
-func GetAttributesByCategoryAndIsLinked(categoryID int, isLinked bool) ([]models.Attribute, error) {
-	var attributes []models.Attribute
-
-	query := `SELECT id, name, category_id, description, type_of_option, is_linked, value
-			  FROM attributes
-			  WHERE category_id = $1 AND is_linked = $2`
-
-	rows, err := DB.Query(query, categoryID, isLinked)
-	if err != nil {
-		log.Printf("Ошибка при получении атрибутов для категории %d с is_linked=%t: %v", categoryID, isLinked, err)
-		return nil, fmt.Errorf("не удалось получить атрибуты: %v", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var attribute models.Attribute
-		err := rows.Scan(&attribute.ID, &attribute.Name, &attribute.CategoryID, &attribute.Description, &attribute.TypeOfOption, &attribute.IsLinked, &attribute.Value)
-		if err != nil {
-			log.Printf("Ошибка при сканировании строки атрибута: %v", err)
-			return nil, fmt.Errorf("не удалось обработать данные атрибута: %v", err)
-		}
-		attributes = append(attributes, attribute)
-	}
-
-	return attributes, nil
 }

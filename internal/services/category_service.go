@@ -329,6 +329,7 @@ func (s *CategoryService) GetCategoryAttributesByCategoryID(userID int, category
 			Description:  attr.Description,
 			TypeOfOption: attr.TypeOfOption,
 			Value:        value,
+			IsLinked:     attr.IsLinked,
 		})
 	}
 
@@ -390,7 +391,6 @@ func (s *CategoryService) DeleteCategoryAttributes(categoryID int) error {
 	return nil
 }
 
-// GetCategoryByPath возвращает категорию по её пути (path)
 func (s *CategoryService) GetCategoryByPath(path string) (*models.Category, error) {
 	// Обращаемся к базе данных для получения категории по path
 	category, err := db.GetCategoryByPath(path)

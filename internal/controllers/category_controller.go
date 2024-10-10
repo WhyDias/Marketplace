@@ -324,7 +324,6 @@ func (ctrl *CategoryController) GetRootCategories(c *gin.Context) {
 func (cc *CategoryController) GetCategoryAttributesByPath(c *gin.Context) {
 	// Получаем path из параметров URL
 	path := c.Param("path")
-
 	// Получаем категорию по path
 	category, err := cc.Service.GetCategoryByPath(path)
 	if err != nil {
@@ -332,7 +331,6 @@ func (cc *CategoryController) GetCategoryAttributesByPath(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Категория не найдена"})
 		return
 	}
-
 	// Получаем атрибуты для этой категории
 	attributes, err := cc.Service.GetCategoryAttributes(category.ID)
 	if err != nil {
@@ -340,7 +338,6 @@ func (cc *CategoryController) GetCategoryAttributesByPath(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить атрибуты категории"})
 		return
 	}
-
 	c.JSON(http.StatusOK, attributes)
 }
 
@@ -357,27 +354,23 @@ func (cc *CategoryController) GetCategoryAttributesByPath(c *gin.Context) {
 func (cc *CategoryController) GetAttributesByCategoryAndIsLinked(c *gin.Context) {
 	categoryIDStr := c.Query("category_id")
 	isLinkedStr := c.Query("is_linked")
-
 	// Преобразуем параметры из строки в нужные типы
 	categoryID, err := strconv.Atoi(categoryIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный category_id"})
 		return
 	}
-
 	isLinked, err := strconv.ParseBool(isLinkedStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный параметр is_linked"})
 		return
 	}
-
 	// Получаем атрибуты с помощью сервиса
 	attributes, err := cc.Service.GetAttributesByCategoryAndIsLinked(categoryID, isLinked)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить атрибуты"})
 		return
 	}
-
 	// Отправляем результат
 	c.JSON(http.StatusOK, attributes)
 }

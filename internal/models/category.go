@@ -35,6 +35,7 @@ type CategoryAttribute struct {
 	Description  *string         `json:"description"`
 	TypeOfOption *string         `json:"type_of_option"`
 	Value        json.RawMessage `json:"value"`
+	IsLinked     bool            `json:"is_linked"`
 }
 
 type CategoryAttributeResponse struct {
@@ -43,6 +44,7 @@ type CategoryAttributeResponse struct {
 	Description  *string     `json:"description,omitempty"`    // *string с omitempty
 	TypeOfOption *string     `json:"type_of_option,omitempty"` // *string с omitempty
 	Value        interface{} `json:"value"`
+	IsLinked     bool        `json:"is_linked"`
 }
 
 type AddCategoryAttributesRequest struct {

@@ -4,6 +4,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -290,4 +291,41 @@ func GetProductsBySupplierAndStatus(supplierID int, statusID int) ([]models.Prod
 	}
 
 	return products, nil
+}
+
+func IsAttributeLinked(attributeID int) (bool, error) {
+	var isLinked bool
+	query := "SELECT is_linked FROM attributes WHERE id = $1"
+	err := DB.QueryRow(query, attributeID).Scan(&isLinked)
+	if err != nil {
+		return false, err
+	}
+	return isLinked, nil
+}
+
+func CreateOrGetAttributeValue(attributeID int, value interface{}) (int, error) {
+	// Преобразуем значение в json.RawMessage
+	valueJSON, err := json.Marshal(value)
+	if err != nil {
+		return 0, fmt.Errorf("Ошибка при преобразовании значения атрибута в JSON: %v", err)
+	}
+
+	// Проверяем, есть ли уже такое значение
+	var attributeValueID int
+	query := "SELECT id FROM attribute_value WHERE attribute_id = $1 AND value_json = $2"
+	err = DB.QueryRow(query, attributeID, valueJSON).Scan(&attributeValueID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Значение не найдено, создаем новое
+			query = "INSERT INTO attribute_value (attribute_id, value_json) VALUES ($1, $2) RETURNING id"
+			err = DB.QueryRow(query, attributeID, valueJSON).Scan(&attributeValueID)
+			if err != nil {
+				return 0, fmt.Errorf("Ошибка при создании значения атрибута: %v", err)
+			}
+		} else {
+			return 0, fmt.Errorf("Ошибка при получении значения атрибута: %v", err)
+		}
+	}
+
+	return attributeValueID, nil
 }
