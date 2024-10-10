@@ -152,19 +152,19 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 		}
 
 		// Проверка на наличие атрибута с таким именем для данной категории
-		existingAttribute, err := db.GetCategoryAttributeByName(req.CategoryID, attrReq.Name)
+		existingCategoryAttribute, err := db.GetCategoryAttributeByName(req.CategoryID, attrReq.Name)
 		if err != nil {
 			log.Printf("Ошибка при проверке существования атрибута: %v", err)
 			return fmt.Errorf("не удалось проверить существование атрибута: %v", err)
 		}
 
-		if existingAttribute != nil {
+		if existingCategoryAttribute != nil {
 			// Атрибут с таким именем существует - обновляем его
-			existingAttribute.Description = &attrReq.Description
-			existingAttribute.TypeOfOption = &attrReq.TypeOfOption
-			existingAttribute.Value = valueJSON
+			existingCategoryAttribute.Description = &attrReq.Description
+			existingCategoryAttribute.TypeOfOption = &attrReq.TypeOfOption
+			existingCategoryAttribute.Value = valueJSON
 
-			err = db.UpdateCategoryAttribute(existingAttribute)
+			err = db.UpdateCategoryAttribute(existingCategoryAttribute)
 			if err != nil {
 				log.Printf("Ошибка при обновлении атрибута категории: %v", err)
 				return fmt.Errorf("не удалось обновить атрибут категории: %v", err)
@@ -183,6 +183,43 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 			if err != nil {
 				log.Printf("Ошибка при создании нового атрибута категории: %v", err)
 				return fmt.Errorf("не удалось создать новый атрибут категории: %v", err)
+			}
+		}
+
+		// Теперь добавляем или обновляем запись в таблице attributes
+		existingAttribute, err := db.GetAttributeByNameAndCategoryID(attrReq.Name, req.CategoryID)
+		if err != nil {
+			log.Printf("Ошибка при проверке существования атрибута в attributes: %v", err)
+			return fmt.Errorf("не удалось проверить существование атрибута в attributes: %v", err)
+		}
+
+		if existingAttribute != nil {
+			// Обновляем атрибут
+			existingAttribute.Description = attrReq.Description
+			existingAttribute.TypeOfOption = attrReq.TypeOfOption
+			existingAttribute.Value = valueJSON
+			existingAttribute.IsLinked = attrReq.IsLinked
+
+			err = db.UpdateAttribute(existingAttribute)
+			if err != nil {
+				log.Printf("Ошибка при обновлении атрибута в таблице attributes: %v", err)
+				return fmt.Errorf("не удалось обновить атрибут в таблице attributes: %v", err)
+			}
+		} else {
+			// Создаём новый атрибут
+			attribute := models.Attribute{
+				Name:         attrReq.Name,
+				CategoryID:   req.CategoryID,
+				Description:  attrReq.Description,
+				TypeOfOption: attrReq.TypeOfOption,
+				IsLinked:     attrReq.IsLinked,
+				Value:        valueJSON,
+			}
+
+			_, err := db.CreateAttribute(&attribute)
+			if err != nil {
+				log.Printf("Ошибка при создании атрибута в таблице attributes: %v", err)
+				return fmt.Errorf("не удалось создать атрибут в таблице attributes: %v", err)
 			}
 		}
 	}
@@ -292,6 +329,7 @@ func (s *CategoryService) GetCategoryAttributesByCategoryID(userID int, category
 			Description:  attr.Description,
 			TypeOfOption: attr.TypeOfOption,
 			Value:        value,
+			IsLinked:     attr.IsLinked,
 		})
 	}
 
@@ -361,4 +399,12 @@ func (s *CategoryService) GetCategoryByPath(path string) (*models.Category, erro
 		return nil, fmt.Errorf("не удалось найти категорию по path %s", path)
 	}
 	return category, nil
+}
+
+func (s *CategoryService) GetAttributesByCategoryAndIsLinked(categoryID int, isLinked bool) ([]models.Attribute, error) {
+	attributes, err := db.GetAttributesByCategoryAndIsLinked(categoryID, isLinked)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось получить атрибуты: %v", err)
+	}
+	return attributes, nil
 }

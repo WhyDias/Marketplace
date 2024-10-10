@@ -1836,6 +1836,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "is_linked": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -2344,7 +2347,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "195.49.215.120:8080",
+	Host:             "195.49.215.120:8080", //194.32.141.32
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Marketplace API",

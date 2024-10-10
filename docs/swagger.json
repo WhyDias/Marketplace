@@ -1830,6 +1830,9 @@
                 "id": {
                     "type": "integer"
                 },
+                "is_linked": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },

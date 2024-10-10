@@ -4,14 +4,11 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/WhyDias/Marketplace/internal/services"
-	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 )
 
@@ -171,103 +168,64 @@ type AttributeValueRequest struct {
 // @Failure 401 {object} utils.ErrorResponse "Необходима авторизация"
 // @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/products [post]
-func (p *ProductController) AddProduct(c *gin.Context) {
-	// Проверяем авторизацию и получаем userID из контекста
+func (pc *ProductController) AddProduct(c *gin.Context) {
+	var req models.ProductRequest
+
+	// Парсим данные из формы
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Получаем userID из контекста
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "Необходима авторизация"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
 		return
 	}
 	userID, ok := userIDInterface.(int)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Ошибка при получении идентификатора пользователя"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Некорректный идентификатор пользователя"})
 		return
 	}
 
-	// Чтение данных из form-data
-	var req models.ProductRequest
-	req.Name = c.PostForm("name")
-	req.Description = c.PostForm("description")
+	// Парсинг общих атрибутов из JSON
+	var attributes []models.AttributeValueRequest
+	if err := json.Unmarshal([]byte(req.AttributesJSON), &attributes); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный формат атрибутов"})
+		return
+	}
 
-	// Парсинг строки price в float64
-	priceStr := c.PostForm("price")
-	price, err := strconv.ParseFloat(priceStr, 64)
+	// Парсинг вариаций из JSON
+	var variations []models.ProductVariationRequest
+	if err := json.Unmarshal([]byte(req.VariationsJSON), &variations); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный формат вариаций"})
+		return
+	}
+
+	// Получаем файлы изображений для вариаций
+	multipartForm, err := c.MultipartForm()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат price"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Не удалось получить данные формы"})
 		return
 	}
-	req.Price = price
+	files := multipartForm.File
 
-	// Парсинг строки stock в int
-	stockStr := c.PostForm("stock")
-	stock, err := strconv.Atoi(stockStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат stock"})
-		return
-	}
-	req.Stock = stock
-
-	// Парсинг строки category_id в int
-	categoryIDStr := c.PostForm("category_id")
-	categoryID, err := strconv.Atoi(categoryIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат category_id"})
-		return
-	}
-	req.CategoryID = categoryID
-
-	log.Printf("AddProduct: Получены данные продукта: %+v", req)
-
-	// Обработка изображений продукта
-	form, err := c.MultipartForm()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Ошибка при получении multipart данных"})
-		return
-	}
-
-	if formFiles, ok := form.File["images"]; ok {
-		for _, file := range formFiles {
-			req.Images = append(req.Images, file)
-		}
-	} else {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Необходимо предоставить хотя бы одно изображение продукта"})
-		return
-	}
-
-	// Создание директории для изображений
-	uploadDir := fmt.Sprintf("uploads/products/%d", categoryID)
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: "Не удалось создать директорию для изображений"})
-		return
-	}
-
-	// Чтение JSON строки с вариациями
-	variationsStr := c.PostForm("variations")
-	var variations []models.ProductVariationReq
-	if err := json.Unmarshal([]byte(variationsStr), &variations); err != nil {
-		log.Printf("Ошибка при десериализации вариаций: %v", err)
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "Некорректный формат данных для вариаций"})
-		return
-	}
-
-	// Обработка изображений для вариаций
-	if variationFiles, ok := form.File["variation_images"]; ok {
-		variationIndex := 0
-		for _, file := range variationFiles {
-			if variationIndex < len(variations) {
-				variations[variationIndex].Images = append(variations[variationIndex].Images, file)
-				variationIndex++
-			}
+	// Привязываем изображения к соответствующим вариациям
+	for i := range variations {
+		paramName := "variation_images_" + strconv.Itoa(i+1)
+		if variationImages, ok := files[paramName]; ok {
+			variations[i].Images = variationImages
 		}
 	}
 
-	// Создание нового продукта через сервис
-	if err := p.Service.AddProduct(&req, userID, variations, c); err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: fmt.Sprintf("Ошибка при добавлении продукта: %v", err)})
+	// Вызов сервиса для добавления продукта
+	if err := pc.Service.AddProduct(&req, userID, attributes, variations); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Продукт успешно добавлен"})
+	c.JSON(http.StatusOK, gin.H{"message": "Продукт успешно добавлен"})
 }
 
 // UpdateProduct обновляет существующий продукт
