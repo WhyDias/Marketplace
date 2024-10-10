@@ -100,7 +100,7 @@ func GetMarketIDBySupplierID(supplierID int) (int, error) {
 
 func GetCategoriesBySupplierID(supplierID int) ([]models.Category, error) {
 	query := `
-        SELECT c.id, c.name 
+        SELECT c.id, c.name, c.path 
         FROM categories c
         JOIN supplier_categories sc ON sc.category_id = c.id
         WHERE sc.supplier_id = $1
@@ -114,7 +114,7 @@ func GetCategoriesBySupplierID(supplierID int) ([]models.Category, error) {
 	var categories []models.Category
 	for rows.Next() {
 		var category models.Category
-		if err := rows.Scan(&category.ID, &category.Name); err != nil {
+		if err := rows.Scan(&category.ID, &category.Name, &category.Path); err != nil {
 			return nil, err
 		}
 		categories = append(categories, category)

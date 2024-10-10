@@ -302,7 +302,7 @@ func GetAllCategories() ([]models.Category, error) {
 
 func CreateCategoryAttribute(attribute *models.CategoryAttribute) (int, error) {
 	query := `
-		INSERT INTO category_attributes (category_id, name, description, type_of_option, value)
+		INSERT INTO attributes (category_id, name, description, type_of_option, value)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 	`
@@ -340,7 +340,7 @@ func GetCategoryByID(categoryID int) (*models.Category, error) {
 // GetCategoryAttributes получает атрибуты для заданной категории
 func AddCategoryAttribute(attr models.CategoryAttribute) error {
 	query := `
-        INSERT INTO category_attributes (category_id, name, description, type_of_option, value)
+        INSERT INTO attributes (category_id, name, description, type_of_option, value)
         VALUES ($1, $2, $3, $4, $5)
     `
 	_, err := DB.Exec(query, attr.CategoryID, attr.Name, attr.Description, attr.TypeOfOption, attr.Value)
@@ -364,7 +364,7 @@ func CreateProduct(product *models.Product) error {
 
 func GetAttributeIDByName(categoryID int, name string) (int, error) {
 	query := `
-        SELECT id FROM category_attributes
+        SELECT id FROM attributes
         WHERE category_id = $1 AND name = $2
     `
 	var id int
@@ -411,7 +411,7 @@ func GetOrCreateAttributeValue(attributeID int, value string) (int, error) {
 func GetCategoryAttributesByCategoryID(categoryID int) ([]models.CategoryAttribute, error) {
 	query := `
 		SELECT id, category_id, name, description, type_of_option, value, is_linked
-		FROM category_attributes
+		FROM attributes
 		WHERE category_id = $1
 	`
 
@@ -454,7 +454,7 @@ func GetCategoryAttributes(categoryID int) ([]models.Attribute, error) {
 	var attributes []models.Attribute
 	query := `
         SELECT id, name, description, type_of_option, value
-        FROM category_attributes
+        FROM attributes
         WHERE category_id = $1
     `
 	rows, err := DB.Query(query, categoryID)
@@ -764,7 +764,7 @@ func GetAttributesByCategoryAndIsLinked(categoryID int, isLinked bool) ([]models
 }
 
 func GetCategoryAttributeByName(categoryID int, name string) (*models.CategoryAttribute, error) {
-	query := `SELECT id, category_id, name, description, type_of_option, value FROM category_attributes WHERE category_id = $1 AND name = $2`
+	query := `SELECT id, category_id, name, description, type_of_option, value FROM attributes WHERE category_id = $1 AND name = $2`
 
 	var attribute models.CategoryAttribute
 	err := DB.QueryRow(query, categoryID, name).Scan(
@@ -788,7 +788,7 @@ func GetCategoryAttributeByName(categoryID int, name string) (*models.CategoryAt
 
 func UpdateCategoryAttribute(attribute *models.CategoryAttribute) error {
 	query := `
-		UPDATE category_attributes
+		UPDATE attributes
 		SET description = $1, type_of_option = $2, value = $3
 		WHERE id = $4
 	`
@@ -810,7 +810,7 @@ func UpdateCategoryAttribute(attribute *models.CategoryAttribute) error {
 
 // DeleteCategoryAttributes удаляет атрибуты категории по category_id
 func DeleteCategoryAttributes(categoryID int) error {
-	query := `DELETE FROM category_attributes WHERE id = $1`
+	query := `DELETE FROM attributes WHERE id = $1`
 
 	_, err := DB.Exec(query, categoryID)
 	if err != nil {

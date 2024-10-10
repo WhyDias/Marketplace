@@ -187,41 +187,41 @@ func (s *CategoryService) AddCategoryAttributes(userID int, req *models.AddCateg
 		}
 
 		// Теперь добавляем или обновляем запись в таблице attributes
-		existingAttribute, err := db.GetAttributeByNameAndCategoryID(attrReq.Name, req.CategoryID)
-		if err != nil {
-			log.Printf("Ошибка при проверке существования атрибута в attributes: %v", err)
-			return fmt.Errorf("не удалось проверить существование атрибута в attributes: %v", err)
-		}
-
-		if existingAttribute != nil {
-			// Обновляем атрибут
-			existingAttribute.Description = attrReq.Description
-			existingAttribute.TypeOfOption = attrReq.TypeOfOption
-			existingAttribute.Value = valueJSON
-			existingAttribute.IsLinked = attrReq.IsLinked
-
-			err = db.UpdateAttribute(existingAttribute)
-			if err != nil {
-				log.Printf("Ошибка при обновлении атрибута в таблице attributes: %v", err)
-				return fmt.Errorf("не удалось обновить атрибут в таблице attributes: %v", err)
-			}
-		} else {
-			// Создаём новый атрибут
-			attribute := models.Attribute{
-				Name:         attrReq.Name,
-				CategoryID:   req.CategoryID,
-				Description:  attrReq.Description,
-				TypeOfOption: attrReq.TypeOfOption,
-				IsLinked:     attrReq.IsLinked,
-				Value:        valueJSON,
-			}
-
-			_, err := db.CreateAttribute(&attribute)
-			if err != nil {
-				log.Printf("Ошибка при создании атрибута в таблице attributes: %v", err)
-				return fmt.Errorf("не удалось создать атрибут в таблице attributes: %v", err)
-			}
-		}
+		//existingAttribute, err := db.GetAttributeByNameAndCategoryID(attrReq.Name, req.CategoryID)
+		//if err != nil {
+		//	log.Printf("Ошибка при проверке существования атрибута в attributes: %v", err)
+		//	return fmt.Errorf("не удалось проверить существование атрибута в attributes: %v", err)
+		//}
+		//
+		//if existingAttribute != nil {
+		//	// Обновляем атрибут
+		//	existingAttribute.Description = attrReq.Description
+		//	existingAttribute.TypeOfOption = attrReq.TypeOfOption
+		//	existingAttribute.Value = valueJSON
+		//	existingAttribute.IsLinked = attrReq.IsLinked
+		//
+		//	err = db.UpdateAttribute(existingAttribute)
+		//	if err != nil {
+		//		log.Printf("Ошибка при обновлении атрибута в таблице attributes: %v", err)
+		//		return fmt.Errorf("не удалось обновить атрибут в таблице attributes: %v", err)
+		//	}
+		//} else {
+		//	// Создаём новый атрибут
+		//	attribute := models.Attribute{
+		//		Name:         attrReq.Name,
+		//		CategoryID:   req.CategoryID,
+		//		Description:  attrReq.Description,
+		//		TypeOfOption: attrReq.TypeOfOption,
+		//		IsLinked:     attrReq.IsLinked,
+		//		Value:        valueJSON,
+		//	}
+		//
+		//	_, err := db.CreateAttribute(&attribute)
+		//	if err != nil {
+		//		log.Printf("Ошибка при создании атрибута в таблице attributes: %v", err)
+		//		return fmt.Errorf("не удалось создать атрибут в таблице attributes: %v", err)
+		//	}
+		//}
 	}
 
 	return nil
