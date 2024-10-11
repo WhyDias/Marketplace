@@ -56,7 +56,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Добавляет новую категорию с изображением",
+                "description": "Добавляет новую категорию с изображением, загружая изображение в Yandex Cloud Storage",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -345,6 +345,125 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/moderation/products/{id}/approve": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Устанавливает статус продукта на \"Подтвержденный\" и добавляет комментарий \"Подтвержден\"",
+                "tags": [
+                    "Модерация"
+                ],
+                "summary": "Подтверждение продукта",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID продукта",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.GoodResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/moderation/products/{id}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Устанавливает статус продукта на \"Отклоненный\" и добавляет комментарий модератора",
+                "tags": [
+                    "Модерация"
+                ],
+                "summary": "Отклонение продукта",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID продукта",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Комментарий модератора",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.ModerationCommentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.GoodResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/products": {
             "post": {
                 "description": "Добавляет новый продукт вместе с его вариациями и изображениями вариаций",
@@ -482,13 +601,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -522,13 +641,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -536,14 +655,9 @@ const docTemplate = `{
         },
         "/api/products/{id}": {
             "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Обновляет информацию о продукте и его вариациях",
+                "description": "Обновляет информацию о продукте, его вариациях и изображениях",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -551,8 +665,15 @@ const docTemplate = `{
                 "tags": [
                     "Products"
                 ],
-                "summary": "Update a product",
+                "summary": "Обновить продукт",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003ctoken\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Product ID",
@@ -561,18 +682,51 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Product data",
-                        "name": "product",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.UpdateProductRequest"
-                        }
+                        "type": "string",
+                        "description": "Название продукта",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Описание продукта",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Цена продукта",
+                        "name": "price",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID категории",
+                        "name": "category_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON-строка с общими атрибутами продукта",
+                        "name": "attributes",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON-строка с вариациями продукта",
+                        "name": "variations",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Изображения для вариации n",
+                        "name": "variation_images_{n}",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Продукт успешно обновлен",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -581,21 +735,30 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный формат данных или ошибки валидации",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Необходима авторизация",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -661,7 +824,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.CheckPhoneRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CheckPhoneRequest"
                         }
                     }
                 ],
@@ -669,19 +832,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.CheckPhoneResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.CheckPhoneResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -707,7 +870,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.LoginRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginRequest"
                         }
                     }
                 ],
@@ -715,25 +878,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.LoginResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.LoginResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -759,7 +922,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.RegisterUserRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserRequest"
                         }
                     }
                 ],
@@ -767,19 +930,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.RegisterUserResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RegisterUserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -805,7 +968,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.RequestPasswordResetRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RequestPasswordResetRequest"
                         }
                     }
                 ],
@@ -813,19 +976,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.RequestPasswordResetResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.RequestPasswordResetResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -851,7 +1014,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.SetNewPasswordRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetNewPasswordRequest"
                         }
                     }
                 ],
@@ -859,19 +1022,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.SetNewPasswordResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetNewPasswordResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -897,7 +1060,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.VerifyCodeRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeRequest"
                         }
                     }
                 ],
@@ -905,25 +1068,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.VerifyCodeResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.VerifyCodeResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -1342,7 +1505,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.SetPasswordRequest"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordRequest"
                         }
                     }
                 ],
@@ -1350,25 +1513,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.SetPasswordResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.SetPasswordResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_controllers.ErrorResponse"
                         }
                     }
                 }
@@ -1574,6 +1737,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_WhyDias_Marketplace_internal_controllers.GoodResponse": {
+            "type": "object",
+            "properties": {
+                "good": {
                     "type": "string"
                 }
             }
@@ -1875,19 +2046,6 @@ const docTemplate = `{
                 "value": {}
             }
         },
-        "github_com_WhyDias_Marketplace_internal_models.AttributeValueRequest": {
-            "type": "object",
-            "required": [
-                "name",
-                "value"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "value": {}
-            }
-        },
         "github_com_WhyDias_Marketplace_internal_models.Category": {
             "type": "object",
             "properties": {
@@ -1947,6 +2105,17 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_WhyDias_Marketplace_internal_models.ModerationCommentRequest": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_WhyDias_Marketplace_internal_models.Product": {
             "type": "object",
             "properties": {
@@ -1976,59 +2145,6 @@ const docTemplate = `{
                 },
                 "supplier_id": {
                     "type": "integer"
-                }
-            }
-        },
-        "github_com_WhyDias_Marketplace_internal_models.ProductVariationRequest": {
-            "type": "object",
-            "required": [
-                "attributes"
-            ],
-            "properties": {
-                "attributes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.AttributeValueRequest"
-                    }
-                },
-                "images": {
-                    "description": "Images will be assigned later",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/multipart.FileHeader"
-                    }
-                },
-                "price": {
-                    "type": "number"
-                },
-                "sku": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_WhyDias_Marketplace_internal_models.UpdateProductRequest": {
-            "type": "object",
-            "properties": {
-                "category_id": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "images": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "variations": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_WhyDias_Marketplace_internal_models.ProductVariationRequest"
-                    }
                 }
             }
         },
@@ -2143,6 +2259,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.GoodResponse": {
+            "type": "object",
+            "properties": {
+                "good": {
                     "type": "string"
                 }
             }
@@ -2366,20 +2490,6 @@ const docTemplate = `{
                 }
             }
         },
-        "multipart.FileHeader": {
-            "type": "object",
-            "properties": {
-                "filename": {
-                    "type": "string"
-                },
-                "header": {
-                    "$ref": "#/definitions/textproto.MIMEHeader"
-                },
-                "size": {
-                    "type": "integer"
-                }
-            }
-        },
         "sql.NullInt64": {
             "type": "object",
             "properties": {
@@ -2389,15 +2499,6 @@ const docTemplate = `{
                 "valid": {
                     "description": "Valid is true if Int64 is not NULL",
                     "type": "boolean"
-                }
-            }
-        },
-        "textproto.MIMEHeader": {
-            "type": "object",
-            "additionalProperties": {
-                "type": "array",
-                "items": {
-                    "type": "string"
                 }
             }
         }

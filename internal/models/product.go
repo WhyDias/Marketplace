@@ -5,6 +5,7 @@ package models
 import (
 	"encoding/json"
 	"mime/multipart"
+	"time"
 )
 
 type AttributeValueImage struct {
@@ -150,4 +151,17 @@ type ProductImage struct {
 	ProductID int    `json:"product_id"`
 	ImageURLs string `json:"image_urls"` // Хранит JSON-строку, которая представляет массив ссылок
 	ImagePath string `json:"image_path"`
+}
+
+type Comment struct {
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	ProductID int       `json:"product_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type ModerationCommentRequest struct {
+	Content string `json:"content" binding:"required"`
 }

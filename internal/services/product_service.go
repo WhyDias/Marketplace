@@ -157,25 +157,174 @@ type AttributeValueRequest struct {
 	Value string `json:"value" binding:"required"`
 }
 
-func (s *ProductService) UpdateProduct(userID, productID int, req *models.UpdateProductRequest) error {
-	// Получаем supplier_id по user_id
-	supplierID, err := s.GetSupplierIDByUserID(userID)
+func (p *ProductService) UpdateProduct(productID int, req *models.ProductRequest, userID int, attributes []models.AttributeValueRequest, variations []models.ProductVariationRequest) error {
+	// Получаем поставщика по userID
+	supplier, err := db.GetSupplierByUserID(userID)
 	if err != nil {
-		return fmt.Errorf("Не удалось получить supplier_id: %v", err)
+		return fmt.Errorf("не удалось получить информацию о поставщике: %v", err)
+	}
+
+	// Получаем текущий продукт из базы данных
+	existingProduct, err := db.GetProductByID(productID)
+	if err != nil {
+		return fmt.Errorf("не удалось получить продукт: %v", err)
 	}
 
 	// Проверяем, что продукт принадлежит поставщику
-	product, err := db.GetProductByID(productID)
-	if err != nil {
-		return fmt.Errorf("Не удалось получить продукт: %v", err)
+	if existingProduct.SupplierID != supplier.ID {
+		return fmt.Errorf("вы не можете обновить этот продукт")
 	}
 
-	if product.SupplierID != supplierID {
-		return fmt.Errorf("У вас нет прав для обновления этого продукта")
+	// Обновляем поля продукта
+	updatedProduct := existingProduct
+	if req.Name != "" {
+		updatedProduct.Name = req.Name
+	}
+	if req.Description != "" {
+		updatedProduct.Description = req.Description
+	}
+	if req.CategoryID != 0 {
+		updatedProduct.CategoryID = req.CategoryID
+	}
+	if req.Price != 0 {
+		updatedProduct.Price = req.Price
 	}
 
 	// Обновляем продукт в базе данных
-	return db.UpdateProduct(productID, req)
+	if err := db.UpdateProduct(&updatedProduct); err != nil {
+		return fmt.Errorf("не удалось обновить продукт: %v", err)
+	}
+
+	// Обновление атрибутов продукта
+	if len(attributes) > 0 {
+		if err := p.UpdateProductAttributes(productID, updatedProduct.CategoryID, attributes); err != nil {
+			return fmt.Errorf("не удалось обновить атрибуты продукта: %v", err)
+		}
+	}
+
+	// Обновление вариаций продукта
+	if len(variations) > 0 {
+		if err := p.UpdateProductVariations(productID, updatedProduct.CategoryID, supplier.ID, variations); err != nil {
+			return fmt.Errorf("не удалось обновить вариации продукта: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (p *ProductService) UpdateProductAttributes(productID int, categoryID int, attributes []models.AttributeValueRequest) error {
+	// Удаляем существующие атрибуты продукта
+	if err := db.DeleteProductAttributes(productID); err != nil {
+		return fmt.Errorf("не удалось удалить существующие атрибуты продукта: %v", err)
+	}
+
+	// Сохраняем новые атрибуты
+	for _, attribute := range attributes {
+		err := p.SaveProductAttribute(productID, categoryID, attribute)
+		if err != nil {
+			return fmt.Errorf("Ошибка при сохранении атрибута '%s': %v", attribute.Name, err)
+		}
+	}
+
+	return nil
+}
+
+func (p *ProductService) UpdateProductVariations(productID int, categoryID int, supplierID int, variations []models.ProductVariationRequest) error {
+	// Получаем существующие вариации продукта
+	existingVariations, err := db.GetProductVariations(productID)
+	if err != nil {
+		return fmt.Errorf("не удалось получить существующие вариации продукта: %v", err)
+	}
+
+	// Создаем мапу для быстрого доступа по SKU
+	existingVariationsMap := make(map[string]models.ProductVariation)
+	for _, v := range existingVariations {
+		existingVariationsMap[v.SKU] = v
+	}
+
+	for _, variationReq := range variations {
+		if existingVariation, exists := existingVariationsMap[variationReq.SKU]; exists {
+			// Обновляем существующую вариацию
+			err := p.UpdateProductVariation(existingVariation.ID, variationReq, categoryID)
+			if err != nil {
+				return fmt.Errorf("не удалось обновить вариацию SKU '%s': %v", variationReq.SKU, err)
+			}
+			// Удаляем из мапы, чтобы в конце осталось то, что нужно удалить
+			delete(existingVariationsMap, variationReq.SKU)
+		} else {
+			// Добавляем новую вариацию
+			err := p.AddProductVariation(variationReq, productID, categoryID, supplierID, 0)
+			if err != nil {
+				return fmt.Errorf("не удалось добавить новую вариацию SKU '%s': %v", variationReq.SKU, err)
+			}
+		}
+	}
+
+	// Удаляем вариации, которые не были в новом списке
+	for _, variationToDelete := range existingVariationsMap {
+		err := db.DeleteProductVariation(variationToDelete.ID)
+		if err != nil {
+			return fmt.Errorf("не удалось удалить вариацию SKU '%s': %v", variationToDelete.SKU, err)
+		}
+	}
+
+	return nil
+}
+
+func (p *ProductService) UpdateProductVariation(variationID int, variationReq models.ProductVariationRequest, categoryID int) error {
+	// Обновляем поля вариации
+	updatedVariation := models.ProductVariation{
+		ID:    variationID,
+		SKU:   variationReq.SKU,
+		Price: variationReq.Price,
+		Stock: variationReq.Stock,
+	}
+
+	// Обновляем вариацию в базе данных
+	if err := db.UpdateProductVariation(&updatedVariation); err != nil {
+		return fmt.Errorf("не удалось обновить вариацию продукта: %v", err)
+	}
+
+	// Обновляем атрибуты вариации
+	if err := p.UpdateVariationAttributes(variationID, categoryID, variationReq.Attributes); err != nil {
+		return fmt.Errorf("не удалось обновить атрибуты вариации: %v", err)
+	}
+
+	// Обновляем изображения вариации
+	if len(variationReq.Images) > 0 {
+		if err := p.UpdateVariationImages(variationID, variationReq.Images); err != nil {
+			return fmt.Errorf("не удалось обновить изображения вариации: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (p *ProductService) UpdateVariationAttributes(variationID int, categoryID int, attributes []models.AttributeValueRequest) error {
+	// Удаляем существующие атрибуты вариации
+	if err := db.DeleteVariationAttributes(variationID); err != nil {
+		return fmt.Errorf("не удалось удалить существующие атрибуты вариации: %v", err)
+	}
+
+	// Сохраняем новые атрибуты
+	for _, attribute := range attributes {
+		err := p.SaveVariationAttribute(variationID, categoryID, attribute)
+		if err != nil {
+			return fmt.Errorf("Ошибка при сохранении атрибута вариации '%s': %v", attribute.Name, err)
+		}
+	}
+
+	return nil
+}
+
+func (p *ProductService) UpdateVariationImages(variationID int, images []*multipart.FileHeader) error {
+	// Удаляем существующие изображения вариации из базы данных
+	if err := db.DeleteVariationImages(variationID); err != nil {
+		return fmt.Errorf("не удалось удалить существующие изображения вариации: %v", err)
+	}
+
+	// Загружаем и сохраняем новые изображения
+	return p.SaveVariationImages(variationID, images)
 }
 
 func (s *ProductService) addVariationColorsTx(tx *sql.Tx, variationID int, colors []models.Color) error {
@@ -322,4 +471,74 @@ func (s *ProductService) GetSupplierByUserID(userID int) (*models.Supplier, erro
 
 func (s *ProductService) AddProductImage(image *models.ProductImage) error {
 	return db.CreateProductImage(image)
+}
+
+// ApproveProduct подтверждает продукт
+func (p *ProductService) ApproveProduct(productID int, userID int) error {
+	// Начинаем транзакцию
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("не удалось начать транзакцию: %v", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	// Обновляем статус продукта на 4 (Подтвержденный)
+	err = db.UpdateProductStatusTx(tx, productID, 4)
+	if err != nil {
+		return fmt.Errorf("не удалось обновить статус продукта: %v", err)
+	}
+
+	// Добавляем комментарий "Подтвержден"
+	comment := models.Comment{
+		UserID:    userID,
+		ProductID: productID,
+		Content:   "Подтвержден",
+	}
+	err = db.CreateCommentTx(tx, &comment)
+	if err != nil {
+		return fmt.Errorf("не удалось добавить комментарий: %v", err)
+	}
+
+	return nil
+}
+
+// RejectProduct отклоняет продукт с комментарием
+func (p *ProductService) RejectProduct(productID int, userID int, content string) error {
+	// Начинаем транзакцию
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("не удалось начать транзакцию: %v", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	// Обновляем статус продукта на 3 (Отклоненный)
+	err = db.UpdateProductStatusTx(tx, productID, 3)
+	if err != nil {
+		return fmt.Errorf("не удалось обновить статус продукта: %v", err)
+	}
+
+	// Добавляем комментарий модератора
+	comment := models.Comment{
+		UserID:    userID,
+		ProductID: productID,
+		Content:   content,
+	}
+	err = db.CreateCommentTx(tx, &comment)
+	if err != nil {
+		return fmt.Errorf("не удалось добавить комментарий: %v", err)
+	}
+
+	return nil
 }

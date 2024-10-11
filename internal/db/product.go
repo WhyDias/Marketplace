@@ -145,47 +145,6 @@ type AttributeValueRequest struct {
 	Value string `json:"value" binding:"required"`
 }
 
-func UpdateProduct(productID int, req *models.UpdateProductRequest) error {
-	tx, err := DB.Begin()
-	if err != nil {
-		return fmt.Errorf("Не удалось начать транзакцию: %v", err)
-	}
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-
-	// Обновляем информацию о продукте
-	query := `UPDATE product SET name = $1, description = $2, category_id = $3 WHERE id = $4`
-	_, err = tx.Exec(query, req.Name, req.Description, req.CategoryID, productID)
-	if err != nil {
-		return fmt.Errorf("Не удалось обновить продукт: %v", err)
-	}
-
-	// Обновляем изображения продукта
-	// Сначала удаляем старые
-	_, err = tx.Exec(`DELETE FROM product_images WHERE product_id = $1`, productID)
-	if err != nil {
-		return fmt.Errorf("Не удалось удалить старые изображения продукта: %v", err)
-	}
-
-	// Затем добавляем новые
-	for _, imageURL := range req.Images {
-		_, err = tx.Exec(`INSERT INTO product_images (product_id, image_url) VALUES ($1, $2)`, productID, imageURL)
-		if err != nil {
-			return fmt.Errorf("Не удалось добавить новое изображение продукта: %v", err)
-		}
-	}
-
-	// Обновляем вариации продукта
-	// Здесь можно реализовать логику обновления, удаления и добавления вариаций
-
-	return nil
-}
-
 func GetColorIDByNameAndCode(tx *sql.Tx, name, code string) (int, error) {
 	var id int
 	query := `SELECT id FROM colors WHERE name = $1 AND code = $2`
@@ -328,4 +287,166 @@ func CreateOrGetAttributeValue(attributeID int, value interface{}) (int, error) 
 	}
 
 	return attributeValueID, nil
+}
+
+func UpdateProduct(product *models.Product) error {
+	query := `
+        UPDATE product
+        SET name = $1, description = $2, category_id = $3, price = $4
+        WHERE id = $5
+    `
+	_, err := DB.Exec(query, product.Name, product.Description, product.CategoryID, product.Price, product.ID)
+	if err != nil {
+		return fmt.Errorf("не удалось обновить продукт: %v", err)
+	}
+	return nil
+}
+
+func UpdateProductVariation(variation *models.ProductVariation) error {
+	query := `
+        UPDATE product_variation
+        SET sku = $1, price = $2, stock = $3
+        WHERE id = $4
+    `
+	_, err := DB.Exec(query, variation.SKU, variation.Price, variation.Stock, variation.ID)
+	if err != nil {
+		return fmt.Errorf("не удалось обновить вариацию продукта: %v", err)
+	}
+	return nil
+}
+
+func DeleteProductAttributes(productID int) error {
+	query := `
+        DELETE FROM product_attribute_values
+        WHERE product_id = $1
+    `
+	_, err := DB.Exec(query, productID)
+	if err != nil {
+		return fmt.Errorf("не удалось удалить атрибуты продукта: %v", err)
+	}
+	return nil
+}
+
+func DeleteVariationAttributes(variationID int) error {
+	query := `
+        DELETE FROM variation_attribute_values
+        WHERE product_variation_id = $1
+    `
+	_, err := DB.Exec(query, variationID)
+	if err != nil {
+		return fmt.Errorf("не удалось удалить атрибуты вариации: %v", err)
+	}
+	return nil
+}
+
+func DeleteProductVariation(variationID int) error {
+	// Начинаем транзакцию, чтобы удалить связанные данные
+	tx, err := DB.Begin()
+	if err != nil {
+		return fmt.Errorf("не удалось начать транзакцию: %v", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	// Удаляем атрибуты вариации
+	_, err = tx.Exec(`DELETE FROM variation_attribute_values WHERE product_variation_id = $1`, variationID)
+	if err != nil {
+		return fmt.Errorf("не удалось удалить атрибуты вариации: %v", err)
+	}
+
+	// Удаляем изображения вариации
+	_, err = tx.Exec(`DELETE FROM product_variation_images WHERE product_variation_id = $1`, variationID)
+	if err != nil {
+		return fmt.Errorf("не удалось удалить изображения вариации: %v", err)
+	}
+
+	// Удаляем саму вариацию
+	_, err = tx.Exec(`DELETE FROM product_variation WHERE id = $1`, variationID)
+	if err != nil {
+		return fmt.Errorf("не удалось удалить вариацию: %v", err)
+	}
+
+	return nil
+}
+
+func DeleteVariationImages(variationID int) error {
+	// Получаем ссылки на изображения для удаления из хранилища, если необходимо
+	query := `
+        SELECT image_urls
+        FROM product_variation_images
+        WHERE product_variation_id = $1
+    `
+	var imagesJSON string
+	err := DB.QueryRow(query, variationID).Scan(&imagesJSON)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("не удалось получить изображения вариации: %v", err)
+	}
+
+	// Удаляем записи из базы данных
+	_, err = DB.Exec(`DELETE FROM product_variation_images WHERE product_variation_id = $1`, variationID)
+	if err != nil {
+		return fmt.Errorf("не удалось удалить изображения вариации из базы данных: %v", err)
+	}
+
+	// Если необходимо, можно добавить код для удаления файлов из Yandex Cloud Storage
+
+	return nil
+}
+
+func GetProductVariations(productID int) ([]models.ProductVariation, error) {
+	query := `
+        SELECT id, product_id, sku, price, stock
+        FROM product_variation
+        WHERE product_id = $1
+    `
+	rows, err := DB.Query(query, productID)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось получить вариации продукта: %v", err)
+	}
+	defer rows.Close()
+
+	var variations []models.ProductVariation
+	for rows.Next() {
+		var variation models.ProductVariation
+		err := rows.Scan(&variation.ID, &variation.ProductID, &variation.SKU, &variation.Price, &variation.Stock)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка при чтении вариации: %v", err)
+		}
+		variations = append(variations, variation)
+	}
+
+	return variations, nil
+}
+
+// UpdateProductStatusTx обновляет статус продукта в транзакции
+func UpdateProductStatusTx(tx *sql.Tx, productID int, statusID int) error {
+	query := `
+        UPDATE product
+        SET status_id = $1
+        WHERE id = $2
+    `
+	_, err := tx.Exec(query, statusID, productID)
+	if err != nil {
+		return fmt.Errorf("не удалось обновить статус продукта: %v", err)
+	}
+	return nil
+}
+
+// CreateCommentTx создает комментарий в транзакции
+func CreateCommentTx(tx *sql.Tx, comment *models.Comment) error {
+	query := `
+        INSERT INTO comments (user_id, product_id, content)
+        VALUES ($1, $2, $3)
+        RETURNING id, created_at, updated_at
+    `
+	err := tx.QueryRow(query, comment.UserID, comment.ProductID, comment.Content).Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("не удалось создать комментарий: %v", err)
+	}
+	return nil
 }

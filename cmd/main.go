@@ -111,6 +111,9 @@ func main() {
 		authorized.GET("/api/supplier/categories", supplierController.GetSupplierCategoriesHandler)
 		authorized.DELETE("/categories/:category_id/attributes", categoryController.DeleteCategoryAttributes)
 		authorized.GET("/categories/:path/attributes", categoryController.GetCategoryAttributesByPath)
+		authorized.PUT("/api/products/:id", productController.UpdateProduct)
+		authorized.POST("/products/:id/approve", productController.ApproveProduct)
+		authorized.POST("/products/:id/reject", productController.RejectProduct)
 	}
 
 	// Маршруты для получения рынков и категорий

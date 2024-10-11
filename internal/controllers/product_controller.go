@@ -228,18 +228,24 @@ func (pc *ProductController) AddProduct(c *gin.Context) {
 }
 
 // UpdateProduct обновляет существующий продукт
-// @Summary Update a product
-// @Description Обновляет информацию о продукте и его вариациях
+// @Summary Обновить продукт
+// @Description Обновляет информацию о продукте, его вариациях и изображениях
 // @Tags Products
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
+// @Param Authorization header string true "Bearer <token>"
 // @Param id path int true "Product ID"
-// @Param product body models.UpdateProductRequest true "Product data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Security BearerAuth
+// @Param name formData string false "Название продукта"
+// @Param description formData string false "Описание продукта"
+// @Param price formData number false "Цена продукта"
+// @Param category_id formData int false "ID категории"
+// @Param attributes formData string false "JSON-строка с общими атрибутами продукта"
+// @Param variations formData string false "JSON-строка с вариациями продукта"
+// @Param variation_images_{n} formData file false "Изображения для вариации n" multiple=true
+// @Success 200 {object} map[string]string "Продукт успешно обновлен"
+// @Failure 400 {object} map[string]string "Неверный формат данных или ошибки валидации"
+// @Failure 401 {object} map[string]string "Необходима авторизация"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router /api/products/{id} [put]
 func (pc *ProductController) UpdateProduct(c *gin.Context) {
 	productIDStr := c.Param("id")
@@ -249,13 +255,94 @@ func (pc *ProductController) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	var req models.UpdateProductRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+	var req models.ProductRequest
+
+	// Парсим данные из формы
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Получаем user_id из контекста (из JWT)
+	// Получаем userID из контекста
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
+		return
+	}
+	userID, ok := userIDInterface.(int)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Некорректный идентификатор пользователя"})
+		return
+	}
+
+	// Парсинг общих атрибутов из JSON
+	var attributes []models.AttributeValueRequest
+	if req.AttributesJSON != "" {
+		if err := json.Unmarshal([]byte(req.AttributesJSON), &attributes); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный формат атрибутов"})
+			return
+		}
+	}
+
+	// Парсинг вариаций из JSON
+	var variations []models.ProductVariationRequest
+	if req.VariationsJSON != "" {
+		if err := json.Unmarshal([]byte(req.VariationsJSON), &variations); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный формат вариаций"})
+			return
+		}
+	}
+
+	// Получаем файлы изображений для вариаций
+	multipartForm, err := c.MultipartForm()
+	if err != nil && err != http.ErrNotMultipart {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Не удалось получить данные формы"})
+		return
+	}
+	files := multipartForm.File
+
+	// Привязываем изображения к соответствующим вариациям
+	for i := range variations {
+		paramName := "variation_images_" + strconv.Itoa(i+1)
+		if variationImages, ok := files[paramName]; ok {
+			variations[i].Images = variationImages
+		}
+	}
+
+	// Вызов сервиса для обновления продукта
+	if err := pc.Service.UpdateProduct(productID, &req, userID, attributes, variations); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Продукт успешно обновлен"})
+}
+
+type GoodResponse struct {
+	Good string `json:"good"`
+}
+
+// ApproveProduct подтверждает продукт
+// @Summary Подтверждение продукта
+// @Description Устанавливает статус продукта на "Подтвержденный" и добавляет комментарий "Подтвержден"
+// @Tags Модерация
+// @Security BearerAuth
+// @Param id path int true "ID продукта"
+// @Success 200 {object} GoodResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/moderation/products/{id}/approve [post]
+func (pc *ProductController) ApproveProduct(c *gin.Context) {
+	productIDStr := c.Param("id")
+	productID, err := strconv.Atoi(productIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Некорректный ID продукта"})
+		return
+	}
+
+	// Получаем userID из контекста
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Пользователь не авторизован"})
@@ -263,12 +350,64 @@ func (pc *ProductController) UpdateProduct(c *gin.Context) {
 	}
 	userID := userIDInterface.(int)
 
-	// Обновляем продукт через сервис
-	err = pc.Service.UpdateProduct(userID, productID, &req)
+	// Вызываем сервис для подтверждения продукта
+	err = pc.Service.ApproveProduct(productID, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить продукт"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Продукт успешно обновлен"})
+	c.JSON(http.StatusOK, gin.H{"message": "Продукт подтвержден"})
+}
+
+// RejectProduct отклоняет продукт с комментарием
+// @Summary Отклонение продукта
+// @Description Устанавливает статус продукта на "Отклоненный" и добавляет комментарий модератора
+// @Tags Модерация
+// @Security BearerAuth
+// @Param id path int true "ID продукта"
+// @Param comment body models.ModerationCommentRequest true "Комментарий модератора"
+// @Success 200 {object} GoodResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/moderation/products/{id}/reject [post]
+func (pc *ProductController) RejectProduct(c *gin.Context) {
+	productIDStr := c.Param("id")
+	productID, err := strconv.Atoi(productIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Некорректный ID продукта"})
+		return
+	}
+
+	// Получаем комментарий из запроса
+	var req models.ModerationCommentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Некорректный формат данных"})
+		return
+	}
+
+	// Проверяем, что комментарий не пустой
+	if req.Content == "" {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Комментарий не может быть пустым"})
+		return
+	}
+
+	// Получаем userID из контекста
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Пользователь не авторизован"})
+		return
+	}
+	userID := userIDInterface.(int)
+
+	// Вызываем сервис для отклонения продукта
+	err = pc.Service.RejectProduct(productID, userID, req.Content)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Продукт отклонен"})
 }
