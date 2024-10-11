@@ -281,3 +281,7 @@ func (s *SupplierService) GetCategoriesBySupplierID(supplierID int) ([]models.Ca
 	}
 	return categories, nil
 }
+
+func (s *SupplierService) UpdateCategoryImageURL(categoryID int, imageURL string) error {
+	return db.UpdateCategoryImageURL(categoryID, imageURL)
+}

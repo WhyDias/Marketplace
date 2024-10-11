@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/WhyDias/Marketplace/internal/models"
 	"github.com/WhyDias/Marketplace/internal/services"
+	"github.com/WhyDias/Marketplace/internal/utils"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"os"
 )
 
 // RegisterSupplierRequest структура запроса для регистрации поставщика
@@ -177,7 +177,7 @@ type AddCategoryResponse struct {
 
 // AddCategory добавляет новую категорию с изображением
 // @Summary Добавить новую категорию
-// @Description Добавляет новую категорию с изображением
+// @Description Добавляет новую категорию с изображением, загружая изображение в Yandex Cloud Storage
 // @Tags Categories
 // @Accept multipart/form-data
 // @Produce json
@@ -201,26 +201,8 @@ func (sc *SupplierController) AddCategory(c *gin.Context) {
 		return
 	}
 
-	// Создаем директорию для изображений категорий, если её нет
-	uploadDir := "uploads/categories"
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		log.Printf("AddCategory: ошибка при создании директории для изображений: %v", err)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось создать директорию для изображений"})
-		return
-	}
-
-	// Генерируем путь к файлу
-	filePath := fmt.Sprintf("%s/%s", uploadDir, file.Filename)
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		log.Printf("AddCategory: ошибка при сохранении изображения: %v", err)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось сохранить изображение"})
-		return
-	}
-
-	imageURL := fmt.Sprintf("http://195.49.215.120:8080/%s", filePath)
-
-	// Добавление категории через сервисный слой
-	category, err := sc.Service.AddCategory(name, path, imageURL)
+	// Сначала создаем категорию без изображения, чтобы получить ее ID
+	category, err := sc.Service.AddCategory(name, path, "")
 	if err != nil {
 		log.Printf("AddCategory: ошибка при добавлении категории: %v", err)
 		if err.Error() == "категория с path '"+path+"' уже существует" {
@@ -228,6 +210,28 @@ func (sc *SupplierController) AddCategory(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось добавить категорию"})
 		}
+		return
+	}
+
+	// Теперь у нас есть category.ID, можем использовать его для создания подкаталога
+	folderPath := fmt.Sprintf("categories/%d", category.ID)
+
+	// Загружаем изображение в Yandex Cloud Storage в подкаталог категории
+	imageURL, err := utils.UploadFileToYandex(file, folderPath)
+	if err != nil {
+		log.Printf("AddCategory: ошибка при загрузке изображения в Yandex Cloud Storage: %v", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось загрузить изображение"})
+		return
+	}
+
+	// Обновляем URL изображения в категории
+	category.ImageURL = imageURL
+
+	// Сохраняем изменения в базе данных
+	err = sc.Service.UpdateCategoryImageURL(category.ID, imageURL)
+	if err != nil {
+		log.Printf("AddCategory: ошибка при обновлении URL изображения категории: %v", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Не удалось обновить категорию"})
 		return
 	}
 

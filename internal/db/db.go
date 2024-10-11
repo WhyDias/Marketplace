@@ -862,3 +862,16 @@ func GetAttributeByNameAndCategoryID(name string, categoryID int) (*models.Attri
 
 	return &attribute, nil
 }
+
+func UpdateCategoryImageURL(categoryID int, imageURL string) error {
+	query := `
+        UPDATE categories
+        SET image_url = $1
+        WHERE id = $2
+    `
+	_, err := DB.Exec(query, imageURL, categoryID)
+	if err != nil {
+		return fmt.Errorf("Ошибка при обновлении URL изображения категории: %v", err)
+	}
+	return nil
+}
