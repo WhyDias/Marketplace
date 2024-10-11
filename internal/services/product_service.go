@@ -11,8 +11,6 @@ import (
 	"github.com/WhyDias/Marketplace/internal/utils"
 	"log"
 	"mime/multipart"
-	"os"
-	"path/filepath"
 )
 
 type ProductService struct{}
@@ -283,25 +281,25 @@ func (p *ProductService) SaveVariationAttribute(variationID int, categoryID int,
 }
 
 func (p *ProductService) SaveVariationImages(variationID int, images []*multipart.FileHeader) error {
-	// Создаем директорию для изображений этой вариации
-	uploadDir := fmt.Sprintf("uploads/variations/%d", variationID)
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		return fmt.Errorf("не удалось создать директорию для изображений вариации: %v", err)
-	}
-
-	var imagePaths []string
+	var imageURLs []string
 	for _, fileHeader := range images {
 		if fileHeader != nil {
-			fileName := filepath.Join(uploadDir, fileHeader.Filename)
-			if err := utils.SaveUploadedFile(fileHeader, fileName); err != nil {
-				return fmt.Errorf("не удалось сохранить изображение вариации: %v", err)
+			// Указываем путь внутри бакета для сохранения изображений вариации
+			folderPath := fmt.Sprintf("variations/%d", variationID)
+
+			// Загружаем файл в Yandex Cloud Storage
+			imageURL, err := utils.UploadFileToYandex(fileHeader, folderPath)
+			if err != nil {
+				return fmt.Errorf("не удалось загрузить изображение вариации: %v", err)
 			}
-			imagePaths = append(imagePaths, fmt.Sprintf("http://195.49.215.120/%s", fileName))
+
+			imageURLs = append(imageURLs, imageURL)
 		}
 	}
 
-	if len(imagePaths) > 0 {
-		imagesJSON, err := json.Marshal(imagePaths)
+	if len(imageURLs) > 0 {
+		// Преобразуем массив ссылок в JSON
+		imagesJSON, err := json.Marshal(imageURLs)
 		if err != nil {
 			return fmt.Errorf("не удалось преобразовать массив изображений в JSON: %v", err)
 		}
@@ -318,7 +316,6 @@ func (p *ProductService) SaveVariationImages(variationID int, images []*multipar
 
 	return nil
 }
-
 func (s *ProductService) GetSupplierByUserID(userID int) (*models.Supplier, error) {
 	return db.GetSupplierByUserID(userID)
 }
