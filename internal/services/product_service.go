@@ -191,7 +191,7 @@ func (p *ProductService) UpdateProduct(productID int, req *models.ProductRequest
 	}
 
 	// Обновляем продукт в базе данных
-	if err := db.UpdateProduct(&updatedProduct); err != nil {
+	if err := db.UpdateProduct(updatedProduct); err != nil {
 		return fmt.Errorf("не удалось обновить продукт: %v", err)
 	}
 
@@ -277,7 +277,6 @@ func (p *ProductService) UpdateProductVariation(variationID int, variationReq mo
 		ID:    variationID,
 		SKU:   variationReq.SKU,
 		Price: variationReq.Price,
-		Stock: variationReq.Stock,
 	}
 
 	// Обновляем вариацию в базе данных
